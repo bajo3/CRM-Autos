@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import type { Route } from "next";
 import { ArrowLeft, RefreshCcw, Pencil } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseBrowser";
@@ -142,7 +143,7 @@ export default function VehicleDetailPage() {
           <CardContent className="py-10 text-center text-sm text-slate-600">
             No existe o no tenés acceso.
             <div className="mt-4">
-              <Button variant="outline" onClick={() => router.replace("/vehicles")}>Volver</Button>
+              <Button variant="outline" onClick={() => router.replace(("/vehicles" as unknown) as Route)}>Volver</Button>
             </div>
           </CardContent>
         </Card>

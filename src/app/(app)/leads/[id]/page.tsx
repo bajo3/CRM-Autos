@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import type { Route } from "next";
 import { Phone, MessageCircle, ArrowLeft, Plus } from "lucide-react";
 
 import { Topbar } from "@/components/app-shell/topbar";
@@ -220,7 +221,7 @@ export default function LeadDetailPage() {
         <Card>
           <CardContent className="space-y-4">
             {err ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{err}</div> : null}
-            <Button variant="outline" onClick={() => router.push("/leads")}>
+            <Button variant="outline" onClick={() => router.push(("/leads" as unknown) as Route)}>
               Volver
             </Button>
           </CardContent>
@@ -232,7 +233,7 @@ export default function LeadDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => router.push("/leads")}>
+        <Button variant="outline" size="sm" onClick={() => router.push(("/leads" as unknown) as Route)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Leads
         </Button>

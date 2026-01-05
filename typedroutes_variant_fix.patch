@@ -1,0 +1,28 @@
+diff --git a/src/features/tasks/components/TasksTable.tsx b/src/features/tasks/components/TasksTable.tsx
+index 0000000..0000000 100644
+--- a/src/features/tasks/components/TasksTable.tsx
++++ b/src/features/tasks/components/TasksTable.tsx
+@@ -43,7 +43,7 @@ function PriorityBadge({ p }: { p: TaskRow["priority"] }) {
+   if (p === "low") return <Badge variant="secondary">Baja</Badge>;
+   if (p === "medium") return <Badge>Media</Badge>;
+-  if (p === "high") return <Badge variant="danger">Alta</Badge>;
++  if (p === "high") return <Badge variant="destructive">Alta</Badge>;
+   return null;
+ }
+@@ -54,7 +54,7 @@ function DueBadge({ dueAt }: { dueAt: string | null }) {
+   if (!dueAt) return <Badge variant="secondary">Sin vencimiento</Badge>;
+
+   const { isOverdue, isToday, isThisWeek } = dueMeta(dueAt);
+-  if (isOverdue) return <Badge variant="danger">🔴 Vencida</Badge>;
++  if (isOverdue) return <Badge variant="destructive">🔴 Vencida</Badge>;
+   if (isToday) return <Badge>🟡 Hoy</Badge>;
+   if (isThisWeek) return <Badge variant="secondary">🟢 Esta semana</Badge>;
+   return <Badge variant="secondary">📅 Próximamente</Badge>;
+@@ -183,7 +183,7 @@ export function TasksTable({
+
+                     {(myRole === "admin" || t.created_by === userId) ? (
+-                      <Button size="sm" variant="danger" onClick={() => run(() => deleteTask(t.id))} title="Eliminar">
++                      <Button size="sm" variant="destructive" onClick={() => run(() => deleteTask(t.id))} title="Eliminar">
+                         <Trash2 className="h-4 w-4" />
+                       </Button>
+                     ) : null}

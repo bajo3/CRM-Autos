@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type { Route } from "next";
 import { Bell } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ function roleLabel(role: string | null) {
 function LinkChip({ href, label }: { href: string; label: string }) {
   return (
     <Link
-      href={href}
+      href={href as Route}
       className="inline-flex h-9 items-center justify-center rounded-2xl border border-slate-200 px-3 text-sm font-medium text-slate-900 hover:bg-slate-50"
     >
       {label}

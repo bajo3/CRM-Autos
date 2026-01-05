@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/AuthProvider";
 
@@ -17,7 +18,7 @@ export function RequireRole(props: { role: Role | Role[]; children: React.ReactN
     if (loading) return;
     if (session) return;
     const next = pathname ? `?next=${encodeURIComponent(pathname)}` : "";
-    router.replace(`/login${next}`);
+    router.replace((`/login${next}` as unknown) as Route);
   }, [loading, session, router, pathname]);
 
   if (loading) {
@@ -41,7 +42,7 @@ export function RequireRole(props: { role: Role | Role[]; children: React.ReactN
           <div className="mt-1 text-slate-600">No tenés acceso a esta sección con tu rol actual.</div>
           <button
             className="mt-4 inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2 text-white"
-            onClick={() => router.replace("/dashboard")}
+            onClick={() => router.replace(("/dashboard" as unknown) as Route)}
           >
             Volver al dashboard
           </button>

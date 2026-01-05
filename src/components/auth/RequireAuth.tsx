@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import type { Route } from "next";
 import { useAuth } from "@/features/auth/AuthProvider";
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -14,7 +15,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     if (session) return;
 
     const next = pathname && pathname !== "/login" ? `?next=${encodeURIComponent(pathname)}` : "";
-    router.replace(`/login${next}`);
+    router.replace((`/login${next}` as unknown) as Route);
   }, [loading, session, router, pathname]);
 
   // Durante el bootstrap inicial (una sola vez), mostramos un loader liviano.

@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import Link from "next/link";
+import type { Route } from "next";
 import { useDealership } from "@/features/dealership/useDealership";
 
 const currencyOptions = [
@@ -39,7 +40,7 @@ export default function SettingsPage() {
     setCity(row.city ?? "");
     setCurrency(row.currency ?? "ARS");
     setLogoUrl(row.logo_url ?? "");
-  }, [row?.id]); // solo cuando cambia de agencia
+  }, [row]); // solo cuando cambia de agencia
 
   async function onSave() {
     if (!row) return;
@@ -128,7 +129,7 @@ export default function SettingsPage() {
               Administrá vendedores, reseteo de contraseña y activación.
             </p>
             <Link
-              href="/settings/users"
+              href={("/settings/users" as unknown) as Route}
               className="inline-flex rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
             >
               Abrir usuarios

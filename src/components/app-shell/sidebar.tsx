@@ -1,18 +1,19 @@
 "use client";
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Car, LayoutDashboard, Users, Banknote, Settings, ListChecks } from "lucide-react";
 import { useEffect } from "react";
 import { useDealership } from "@/features/dealership/useDealership";
 
-const nav = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/vehicles", label: "Vehículos", icon: Car },
-  { href: "/leads", label: "Leads", icon: Users },
-  { href: "/credits", label: "Créditos", icon: Banknote },
-  { href: "/tasks", label: "Tareas", icon: ListChecks },
-  { href: "/settings", label: "Ajustes", icon: Settings },
+const nav: Array<{ href: Route; label: string; icon: any }> = [
+  { href: "/dashboard" as Route, label: "Dashboard", icon: LayoutDashboard },
+  { href: "/vehicles" as Route, label: "Vehículos", icon: Car },
+  { href: "/leads" as Route, label: "Leads", icon: Users },
+  { href: "/credits" as Route, label: "Créditos", icon: Banknote },
+  { href: "/tasks" as Route, label: "Tareas", icon: ListChecks },
+  { href: "/settings" as Route, label: "Ajustes", icon: Settings },
 ];
 
 export function Sidebar() {
@@ -22,7 +23,7 @@ export function Sidebar() {
 
   // Prefetch de rutas del menú (reduce la espera en la primera navegación)
   useEffect(() => {
-    for (const item of nav) router.prefetch(item.href);
+    for (const item of nav) router.prefetch((item.href as unknown) as Route);
   }, [router]);
 
   const brandName = row?.name ?? "Autos CRM";
@@ -53,7 +54,7 @@ export function Sidebar() {
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={(item.href as unknown) as Route}
               className={cn(
                 "group flex items-center gap-3 rounded-2xl px-3 py-2 text-sm transition",
                 active ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-50"

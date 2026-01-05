@@ -180,6 +180,9 @@ export function useTasks(filters: Filters) {
   }, [authLoading, cacheKey, debouncedSearch, filters.assignedTo, filters.status, hasMore, page, role, userId]);
 
   
+  // Filtrado en cliente para las "vistas" (Hoy / Vencidas / Semana / Hechas)
+  // La API devuelve un set razonable y esto nos permite mostrar contadores y tabs
+  // sin hacer múltiples queries.
   const viewItems = useMemo(() => {
     const v = filters.view ?? "all";
     if (v === "done") return items.filter((t) => t.status === "done");
@@ -198,8 +201,10 @@ export function useTasks(filters: Filters) {
     return { open, done, overdue, today, week };
   }, [items]);
 
-return {
-    items,
+  return {
+    // la UI consume "items" ya filtrados por view
+    items: viewItems,
+    counts,
     loading,
     error,
     refresh,

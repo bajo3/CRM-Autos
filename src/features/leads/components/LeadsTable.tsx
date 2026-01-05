@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import type { Route } from "next";
 import { MessageCircle } from "lucide-react";
 
 import type { LeadRow, LeadStage } from "../leads.types";
@@ -173,7 +174,7 @@ export function LeadsTable(props: {
                 <tr key={it.id} className="hover:bg-slate-50/60">
                   <td className="px-4 py-3">
                     <Link
-                      href={`/leads/${it.id}`}
+                      href={(`/leads/${it.id}` as unknown) as Route}
                       className="text-left font-medium text-slate-900 hover:underline"
                       aria-label={`Abrir lead ${it.name}`}
                     >
@@ -329,7 +330,7 @@ export function LeadsTable(props: {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <Link
-                    href={`/leads/${it.id}`}
+                    href={(`/leads/${it.id}` as unknown) as Route}
                     className="block w-full truncate text-left text-sm font-semibold text-slate-900 hover:underline"
                     aria-label={`Abrir lead ${it.name}`}
                   >

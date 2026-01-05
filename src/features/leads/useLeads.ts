@@ -8,7 +8,7 @@ import { useAuth } from "@/features/auth/AuthProvider";
 const LEADS_CACHE_TTL_MS = 30_000;
 const PAGE_SIZE = 50;
 
-const leadsCache = new Map<string, { at: number; items: LeadRow[] }>();
+const leadsCache = new Map<string, { at: number; items: LeadRow[]; page: number; hasMore: boolean }>();
 
 function useDebouncedValue<T>(value: T, delayMs: number) {
   const [debounced, setDebounced] = useState<T>(value);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseBrowser";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { RequireRole } from "@/components/auth/RequireRole";
@@ -50,7 +50,7 @@ export default function UsersPage() {
     });
   }
 
-  async function load() {
+  const load = useCallback(async () => {
     setErr(null);
     setMsg(null);
 
@@ -73,11 +73,11 @@ export default function UsersPage() {
     }
 
     setLoading(false);
-  }
+  }, [session?.access_token, session?.user?.id]);
 
   useEffect(() => {
-    load();
-  }, [session?.user?.id]);
+    void load();
+  }, [load]);
 
   const isAdmin = true; // esta página está protegida por <RequireRole role="admin" />
 

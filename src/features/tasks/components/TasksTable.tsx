@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { Pencil, Trash2, CheckCircle2, RotateCcw, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,7 +80,7 @@ type Props = {
 };
 
 export function TasksTable({ items, loading, myRole, userId, assignees, onEdit, onChanged, onActionError }: Props) {
-  async function run(action: () => Promise<void>) {
+  async function run<T>(action: () => Promise<T>) {
     try {
       await action();
       onChanged();
@@ -129,7 +130,7 @@ export function TasksTable({ items, loading, myRole, userId, assignees, onEdit, 
                 <TD>
                   <div className="flex items-start gap-2">
                     {href ? (
-                      <Link className="font-medium hover:underline" href={href}>
+                      <Link className="font-medium hover:underline" href={(href as unknown) as Route}>
                         {t.title}
                       </Link>
                     ) : (
@@ -183,7 +184,7 @@ export function TasksTable({ items, loading, myRole, userId, assignees, onEdit, 
                     ) : null}
 
                     {(myRole === "admin" || t.created_by === userId) ? (
-                      <Button size="sm" variant="danger" onClick={() => run(() => deleteTask(t.id))} title="Eliminar">
+                      <Button size="sm" variant="destructive" onClick={() => run(() => deleteTask(t.id))} title="Eliminar">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     ) : null}
