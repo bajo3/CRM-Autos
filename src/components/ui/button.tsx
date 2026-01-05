@@ -18,23 +18,49 @@ const sizeClasses: Record<Size, string> = {
   icon: "h-10 w-10",
 };
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+type AsChildProps = {
+  asChild?: boolean;
+  children?: React.ReactNode;
+};
+
+type ButtonAsButton = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  asChild?: false;
+};
+
+type ButtonAsChild = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  asChild: true;
+};
+
+export interface ButtonProps extends AsChildProps {
   variant?: Variant;
   size?: Size;
 }
 
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", ...props }, ref) => (
-    <button
-      ref={ref}
-      className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-2xl text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50",
-        variantClasses[variant],
-        sizeClasses[size],
-        className
-      )}
-      {...props}
-    />
-  )
+type Props = ButtonProps & (ButtonAsButton | ButtonAsChild);
+
+export const Button = React.forwardRef<HTMLButtonElement, Props>(
+  ({ className, variant = "default", size = "default", asChild, children, ...props }, ref) => {
+    const classes = cn(
+      "inline-flex items-center justify-center whitespace-nowrap rounded-2xl text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50",
+      variantClasses[variant],
+      sizeClasses[size],
+      className
+    );
+
+    if (asChild) {
+      const child = React.Children.only(children) as React.ReactElement<any>;
+      return React.cloneElement(child, {
+        className: cn(classes, child.props?.className),
+        ...props,
+      });
+    }
+
+    return (
+      <button ref={ref} className={classes} {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}>
+        {children}
+      </button>
+    );
+  }
 );
+
 Button.displayName = "Button";

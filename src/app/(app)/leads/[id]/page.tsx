@@ -220,7 +220,9 @@ export default function LeadDetailPage() {
         <Card>
           <CardContent className="space-y-4">
             {err ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{err}</div> : null}
-            <Button variant="outline" onClick={() => router.push("/leads")}>Volver</Button>
+            <Button variant="outline" onClick={() => router.push("/leads")}>
+              Volver
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -230,7 +232,7 @@ export default function LeadDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => router.push("/leads")}> 
+        <Button variant="outline" size="sm" onClick={() => router.push("/leads")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Leads
         </Button>
@@ -261,6 +263,7 @@ export default function LeadDetailPage() {
               <Button size="sm" onClick={doContactedNow} disabled={busy}>
                 Contactado hoy
               </Button>
+
               {waLink ? (
                 <Button asChild variant="outline" size="sm">
                   <a href={waLink} target="_blank" rel="noreferrer">
@@ -269,6 +272,7 @@ export default function LeadDetailPage() {
                   </a>
                 </Button>
               ) : null}
+
               {telLink ? (
                 <Button asChild variant="outline" size="sm">
                   <a href={telLink}>
@@ -306,7 +310,14 @@ export default function LeadDetailPage() {
               <div>
                 <div className="text-xs font-medium text-slate-700">Asignado a</div>
                 {isAdmin ? (
-                  <Select value={assignedTo} onChange={(e) => { setAssignedTo(e.target.value); saveAssigned(e.target.value); }} disabled={busy}>
+                  <Select
+                    value={assignedTo}
+                    onChange={(e) => {
+                      setAssignedTo(e.target.value);
+                      saveAssigned(e.target.value);
+                    }}
+                    disabled={busy}
+                  >
                     <option value="unassigned">(Sin asignar)</option>
                     {assignees.map((a) => (
                       <option key={a.user_id} value={a.user_id}>
