@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type Role = "admin" | "manager" | "seller";
 function isRole(v: any): v is Role {
-  return v === "admin" || v === "seller";
+  return v === "admin" || v === "manager" || v === "seller";
 }
 
 function bad(msg: string, status = 400) {
@@ -18,7 +18,12 @@ function bearer(req: Request) {
   return m?.[1] ?? null;
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+// ✅ Next.js 15: params es Promise, no objeto directo
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function PATCH(req: Request, ctx: Ctx) {
+  const { id } = await ctx.params;
+
   const token = bearer(req);
   if (!token) return bad("Missing token", 401);
 
@@ -43,13 +48,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (callerRole !== "admin") return bad("Forbidden", 403);
 
   // target (a quién editás)
-  const targetUserId = String(params.id ?? "").trim();
+  const targetUserId = String(id ?? "").trim();
   if (!targetUserId) return bad("Missing target id", 400);
-
-  if (targetUserId === callerId) {
-    // opcional: permitir editarse nombre/teléfono, pero no desactivarse
-    // lo manejamos abajo
-  }
 
   const { data: target, error: targetErr } = await supabaseAdmin
     .from("profiles")
@@ -59,8 +59,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   if (targetErr || !target) return bad("Target profile not found", 404);
   if (String(target.dealership_id) !== String(callerDealership)) return bad("Forbidden", 403);
-
-  const targetRole = String(target.role ?? "");
 
   const body = await req.json().catch(() => null);
   if (!body) return bad("Invalid JSON");
@@ -93,7 +91,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     // cortar login (ban)
     const ban_duration = next ? "none" : "100y";
-    const { error: banErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, { ban_duration } as any);
+    const { error: banErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+      ban_duration,
+    } as any);
+
     if (banErr) return bad(banErr.message, 400);
   }
 
@@ -103,7 +104,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, ctx: Ctx) {
+  const { id } = await ctx.params;
+
   const token = bearer(req);
   if (!token) return bad("Missing token", 401);
 
@@ -119,12 +122,14 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     .maybeSingle();
 
   if (callerErr || !caller) return bad("Caller profile not found", 403);
+
   const callerRole = (caller.role as Role | null) ?? null;
   const callerDealership = (caller.dealership_id as string | null) ?? null;
+
   if (!callerRole || !callerDealership) return bad("Caller not assigned to a dealership/role", 403);
   if (callerRole !== "admin") return bad("Forbidden", 403);
 
-  const targetUserId = String(params.id ?? "").trim();
+  const targetUserId = String(id ?? "").trim();
   if (!targetUserId) return bad("Missing target id", 400);
   if (targetUserId === callerId) return bad("No podés eliminarte a vos mismo", 400);
 
