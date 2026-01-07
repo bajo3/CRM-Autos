@@ -30,6 +30,8 @@ export type TopbarAlerts = {
   staleLeads: number;
   reservedStale: number;
   creditsEndingSoon2m: number;
+  tasksOverdue: number;
+  tasksToday: number;
 };
 
 export async function fetchTopbarAlerts(params: {
@@ -39,6 +41,9 @@ export async function fetchTopbarAlerts(params: {
   const { role, userId } = params;
   const isAdmin = role === "admin" || role === "manager";
   const nowIso = new Date().toISOString();
+
+  const today = startOfDay(new Date());
+  const tomorrow = startOfDay(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
   async function safeCount(q: any): Promise<number> {
     const r = await q;
@@ -88,7 +93,6 @@ export async function fetchTopbarAlerts(params: {
     .limit(500);
 
   if (!creditsActiveRows.error) {
-    const today = startOfDay(new Date());
     const limit = startOfDay(addMonths(today, 2));
 
     creditsEndingSoon2m = ((creditsActiveRows.data ?? []) as any[]).reduce((acc, c) => {
@@ -103,5 +107,26 @@ export async function fetchTopbarAlerts(params: {
     }, 0);
   }
 
-  return { pendingVehicles, staleLeads, reservedStale, creditsEndingSoon2m };
+  // Tareas vencidas y de hoy
+  // Nota: RLS se encarga de mostrar lo que corresponde por rol/dealership.
+  const tasksOverdue = await safeCount(
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open")
+      .not("due_at", "is", null)
+      .lt("due_at", today.toISOString())
+  );
+
+  const tasksToday = await safeCount(
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open")
+      .not("due_at", "is", null)
+      .gte("due_at", today.toISOString())
+      .lt("due_at", tomorrow.toISOString())
+  );
+
+  return { pendingVehicles, staleLeads, reservedStale, creditsEndingSoon2m, tasksOverdue, tasksToday };
 }

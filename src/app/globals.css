@@ -10,6 +10,22 @@ html, body {
   height: 100%;
 }
 
+/* Evita scroll horizontal por contenido largo dentro de layouts flex/table */
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
 body {
   @apply bg-slate-50 text-slate-900;
 }

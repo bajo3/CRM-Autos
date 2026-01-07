@@ -3,13 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { Bell } from "lucide-react";
+import { Bell, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 
 import { useAuth } from "@/features/auth/AuthProvider";
+import { useAssignees } from "@/features/leads/useAssignees";
+import { TaskFormModal } from "@/features/tasks/components/TaskFormModal";
 import { fetchTopbarAlerts, type TopbarAlerts } from "@/components/app-shell/topbar-alerts";
 
 function roleLabel(role: string | null) {
@@ -32,10 +34,13 @@ function LinkChip({ href, label }: { href: string; label: string }) {
 
 export function Topbar({ title, subtitle }: { title: string; subtitle?: string }) {
   const { fullName, role, loading, userId } = useAuth();
+  const { assignees } = useAssignees();
 
   const [alerts, setAlerts] = useState<TopbarAlerts | null>(null);
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [openAlerts, setOpenAlerts] = useState(false);
+
+  const [openNewTask, setOpenNewTask] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -72,19 +77,26 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
       (alerts.pendingVehicles ?? 0) +
       (alerts.staleLeads ?? 0) +
       (alerts.reservedStale ?? 0) +
-      (alerts.creditsEndingSoon2m ?? 0)
+      (alerts.creditsEndingSoon2m ?? 0) +
+      (alerts.tasksOverdue ?? 0) +
+      (alerts.tasksToday ?? 0)
     );
   }, [alerts]);
 
   return (
     <div className="mb-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
           {subtitle ? <p className="text-sm text-slate-600">{subtitle}</p> : null}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <Button onClick={() => setOpenNewTask(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">+ Tarea</span>
+          </Button>
+
           <Button variant="secondary" className="gap-2 relative" onClick={() => setOpenAlerts(true)}>
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Notificaciones</span>
@@ -155,6 +167,32 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
             </div>
           </div>
 
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="font-medium text-slate-900">Tareas vencidas</div>
+                <div className="text-xs text-slate-500">Abiertas con vencimiento anterior a hoy.</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{alerts?.tasksOverdue ?? 0}</Badge>
+                <LinkChip href="/tasks" label="Ver" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="font-medium text-slate-900">Tareas para hoy</div>
+                <div className="text-xs text-slate-500">Abiertas con vencimiento hoy.</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{alerts?.tasksToday ?? 0}</Badge>
+                <LinkChip href="/tasks" label="Ver" />
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end pt-2">
             <Button variant="outline" onClick={() => setOpenAlerts(false)}>
               Cerrar
@@ -162,6 +200,19 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
           </div>
         </div>
       </Modal>
+
+      <TaskFormModal
+        open={openNewTask}
+        onClose={() => setOpenNewTask(false)}
+        onSaved={() => {
+          // refresco suave
+          setOpenNewTask(false);
+        }}
+        editing={null}
+        myRole={(role ?? "seller") as any}
+        userId={userId}
+        assignees={assignees as any}
+      />
     </div>
   );
 }

@@ -1,14 +1,39 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import type { Route } from "next";
 import { Topbar } from "@/components/app-shell/topbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { SalesChart } from "@/components/charts/sales-chart";
 import { Car, Users, Banknote, ListChecks } from "lucide-react";
 import { fetchDashboardStats, fetchSellerActivity } from "@/features/dashboard/dashboard.api";
 import type { DashboardStats, SellerActivityRow } from "@/features/dashboard/dashboard.api";
 import { toErrorMessage } from "@/lib/errors";
+import { useTasks } from "@/features/tasks/useTasks";
+import type { TaskRow } from "@/features/tasks/tasks.types";
+
+function startOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function isDueToday(t: TaskRow) {
+  if (!t.due_at) return false;
+  const d = new Date(t.due_at);
+  if (Number.isNaN(d.getTime())) return false;
+  return startOfDay(d).getTime() === startOfDay(new Date()).getTime();
+}
+
+function isOverdue(t: TaskRow) {
+  if (t.status !== "open" || !t.due_at) return false;
+  const d = new Date(t.due_at);
+  if (Number.isNaN(d.getTime())) return false;
+  return startOfDay(d).getTime() < startOfDay(new Date()).getTime();
+}
 
 function stageLabel(stage: string) {
   if (stage === "new") return "Nuevo";
@@ -25,6 +50,22 @@ export default function DashboardPage() {
   const [activity, setActivity] = useState<SellerActivityRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Widget: Mis tareas
+  const { items: myTasks, loading: tasksLoading, refresh: refreshTasks } = useTasks({
+    status: "open",
+    assignedTo: "me",
+    view: "all",
+    search: "",
+  });
+
+  const todayTasks = useMemo(() => {
+    return [...myTasks].filter(isDueToday).sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""));
+  }, [myTasks]);
+
+  const overdueTasks = useMemo(() => {
+    return [...myTasks].filter(isOverdue).sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""));
+  }, [myTasks]);
 
   async function load() {
     setLoading(true);
@@ -120,6 +161,85 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle>Mis tareas de hoy</CardTitle>
+            <CardDescription>Operativo: hoy + vencidas</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={("/tasks" as unknown) as Route}>Ver todas</Link>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => refreshTasks()}>
+              Actualizar
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          {tasksLoading ? (
+            <div className="text-sm text-slate-600">Cargando tareas…</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="font-medium text-slate-900">Para hoy</div>
+                  <Badge variant={todayTasks.length ? "secondary" : "muted"}>{todayTasks.length}</Badge>
+                </div>
+                {todayTasks.length === 0 ? (
+                  <div className="text-sm text-slate-600">No tenés tareas con vencimiento hoy.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {todayTasks.slice(0, 6).map((t) => (
+                      <div key={t.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium text-slate-900">{t.title}</div>
+                          {t.entity_type && t.entity_id ? (
+                            <div className="mt-0.5 text-xs text-slate-600">
+                              <Link className="hover:underline" href={((t.entity_type === "lead" ? `/leads/${t.entity_id}` : t.entity_type === "vehicle" ? `/vehicles/${t.entity_id}` : `/tasks`) as unknown) as Route}>
+                                Ver {t.entity_type}
+                              </Link>
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="text-xs text-slate-500">Hoy</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="font-medium text-slate-900">Vencidas</div>
+                  <Badge variant={overdueTasks.length ? "danger" : "muted"}>{overdueTasks.length}</Badge>
+                </div>
+                {overdueTasks.length === 0 ? (
+                  <div className="text-sm text-slate-600">No tenés tareas vencidas. Bien.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {overdueTasks.slice(0, 6).map((t) => (
+                      <div key={t.id} className="flex items-center justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium text-rose-900">{t.title}</div>
+                          {t.due_at ? (
+                            <div className="mt-0.5 text-xs text-rose-700">Venció: {new Date(t.due_at).toLocaleDateString("es-AR")}</div>
+                          ) : null}
+                        </div>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={("/tasks" as unknown) as Route}>Abrir</Link>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

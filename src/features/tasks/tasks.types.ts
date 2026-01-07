@@ -26,6 +26,8 @@ export type TaskRow = {
   updated_at: string;
 };
 
+export type TaskEntityType = "lead" | "vehicle" | "credit" | "client";
+
 export type TaskInsert = {
   title: string;
   description?: string | null;
@@ -34,7 +36,7 @@ export type TaskInsert = {
   due_at?: string | null;
   assigned_to?: string | null;
   audience?: TaskAudience;
-  entity_type?: "lead" | "vehicle" | "credit" | "client" | null;
+  entity_type?: TaskEntityType | null;
   entity_id?: string | null;
   canceled_at?: string | null;
 };

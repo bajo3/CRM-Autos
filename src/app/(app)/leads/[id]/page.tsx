@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 
 import { LeadFormModal } from "@/features/leads/components/LeadFormModal";
 import { LeadStageBadge } from "@/features/leads/components/LeadStageBadge";
+import { TaskFormModal } from "@/features/tasks/components/TaskFormModal";
+import type { TaskPriority } from "@/features/tasks/tasks.types";
 import type { LeadRow, LeadStage } from "@/features/leads/leads.types";
 import type { LeadEventRow } from "@/features/leads/leadEvents.types";
 import {
@@ -56,7 +58,7 @@ export default function LeadDetailPage() {
   const router = useRouter();
   const id = String((params as any)?.id ?? "");
 
-  const { role } = useAuth();
+  const { role, userId } = useAuth();
   const isAdmin = role === "admin";
 
   const [lead, setLead] = useState<LeadRow | null>(null);
@@ -77,6 +79,18 @@ export default function LeadDetailPage() {
 
   // Edit modal
   const [editOpen, setEditOpen] = useState(false);
+
+  // Nueva tarea ligada
+  const [taskOpen, setTaskOpen] = useState(false);
+  const [taskPrefill, setTaskPrefill] = useState<{
+    title?: string;
+    description?: string | null;
+    priority?: TaskPriority;
+    dueDate?: string;
+    assignedTo?: string;
+    entity_type?: any;
+    entity_id?: string;
+  } | null>(null);
 
   async function load() {
     if (!id) return;
@@ -261,6 +275,29 @@ export default function LeadDetailPage() {
               <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} disabled={busy}>
                 Editar
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const now = new Date();
+                  const y = now.getFullYear();
+                  const m = String(now.getMonth() + 1).padStart(2, "0");
+                  const d = String(now.getDate()).padStart(2, "0");
+                  setTaskPrefill({
+                    title: `Llamar a ${lead.name ?? "cliente"}`,
+                    description: lead.interest ? `Interés: ${lead.interest}` : null,
+                    priority: "medium",
+                    dueDate: `${y}-${m}-${d}`,
+                    assignedTo: "team",
+                    entity_type: "lead",
+                    entity_id: lead.id,
+                  });
+                  setTaskOpen(true);
+                }}
+                disabled={busy}
+              >
+                + Tarea
+              </Button>
               <Button size="sm" onClick={doContactedNow} disabled={busy}>
                 Contactado hoy
               </Button>
@@ -414,6 +451,23 @@ export default function LeadDetailPage() {
           const ev = await listLeadEvents(lead.id);
           setEvents(ev);
         }}
+      />
+
+      <TaskFormModal
+        open={taskOpen}
+        onClose={() => {
+          setTaskOpen(false);
+          setTaskPrefill(null);
+        }}
+        onSaved={() => {
+          setTaskOpen(false);
+          setTaskPrefill(null);
+        }}
+        editing={null}
+        myRole={(role ?? "seller") as any}
+        userId={userId}
+        assignees={assignees as any}
+        prefill={(taskPrefill ?? undefined) as any}
       />
     </div>
   );

@@ -30,7 +30,7 @@ export function Sidebar() {
   const brandSubtitle = row?.city ?? "CRM";
 
   return (
-    <aside className="hidden md:flex md:w-72 md:flex-col md:gap-4 md:border-r md:border-slate-200 md:bg-white md:p-4">
+    <aside className="hidden md:flex md:w-64 lg:w-72 md:flex-col md:gap-4 md:border-r md:border-slate-200 md:bg-white md:p-3 lg:p-4 shrink-0">
       <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-soft">
         <div className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-2xl bg-slate-900 text-white">
           {row?.logo_url ? (

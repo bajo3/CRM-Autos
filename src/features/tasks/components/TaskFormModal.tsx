@@ -5,7 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import type { TaskPriority, TaskRow } from "../tasks.types";
+import type { TaskEntityType, TaskPriority, TaskRow } from "../tasks.types";
 import { createTask, updateTask } from "../tasks.api";
 
 function toDateInput(iso: string | null) {
@@ -33,6 +33,7 @@ export function TaskFormModal({
   myRole,
   userId,
   assignees,
+  prefill,
 }: {
   open: boolean;
   onClose: () => void;
@@ -43,6 +44,17 @@ export function TaskFormModal({
   userId: string | null;
 
   assignees: { user_id: string; full_name: string | null; role: string | null }[];
+
+  prefill?: {
+    title?: string;
+    description?: string | null;
+    priority?: TaskPriority;
+    due_at?: string | null;
+    dueDate?: string; // YYYY-MM-DD
+    assignedTo?: string; // "team" | user_id
+    entity_type?: TaskEntityType | null;
+    entity_id?: string | null;
+  };
 }) {
   const isEditing = !!editing;
 
@@ -51,8 +63,53 @@ export function TaskFormModal({
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [dueDate, setDueDate] = useState(""); // YYYY-MM-DD
   const [assignedTo, setAssignedTo] = useState<string>("team"); // admin: "team" | user_id
+  const [entityType, setEntityType] = useState<TaskEntityType | null>(null);
+  const [entityId, setEntityId] = useState<string | null>(null);
+  const [template, setTemplate] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  const templateOptions = useMemo(
+    () => [
+      { value: "", label: "(Sin plantilla)" },
+      { value: "call", label: "Llamar" },
+      { value: "whatsapp", label: "Enviar WhatsApp" },
+      { value: "docs", label: "Pedir documentación" },
+      { value: "testdrive", label: "Agendar test drive" },
+    ],
+    []
+  );
+
+  function isoTodayPlus(days: number) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return toDateInput(new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0).toISOString());
+  }
+
+  function applyTemplate(t: string) {
+    setTemplate(t);
+    if (!t) return;
+    if (t === "call") {
+      if (!title.trim()) setTitle("Llamar");
+      if (!dueDate) setDueDate(isoTodayPlus(0));
+      return;
+    }
+    if (t === "whatsapp") {
+      if (!title.trim()) setTitle("Enviar WhatsApp");
+      if (!dueDate) setDueDate(isoTodayPlus(0));
+      return;
+    }
+    if (t === "docs") {
+      if (!title.trim()) setTitle("Pedir documentación");
+      if (!dueDate) setDueDate(isoTodayPlus(1));
+      return;
+    }
+    if (t === "testdrive") {
+      if (!title.trim()) setTitle("Agendar test drive");
+      if (!dueDate) setDueDate(isoTodayPlus(1));
+      return;
+    }
+  }
 
   const assigneeOptions = useMemo(() => {
     const base = [{ value: "team", label: "Todos (equipo)" }];
@@ -74,17 +131,30 @@ export function TaskFormModal({
       setPriority(editing.priority ?? "medium");
       setDueDate(toDateInput(editing.due_at));
       setAssignedTo(editing.audience === "team" ? "team" : (editing.assigned_to ?? "team"));
+      setEntityType((editing.entity_type as any) ?? null);
+      setEntityId(editing.entity_id ?? null);
+      setTemplate("");
     } else {
-      setTitle("");
-      setDescription("");
-      setPriority("medium");
-      setDueDate("");
-      setAssignedTo("team");
+      setTitle(prefill?.title ?? "");
+      setDescription(prefill?.description ?? "");
+      setPriority(prefill?.priority ?? "medium");
+
+      const preDue = prefill?.dueDate
+        ? prefill.dueDate
+        : prefill?.due_at
+          ? toDateInput(prefill.due_at)
+          : "";
+      setDueDate(preDue);
+
+      setAssignedTo(prefill?.assignedTo ?? "team");
+      setEntityType(prefill?.entity_type ?? null);
+      setEntityId(prefill?.entity_id ?? null);
+      setTemplate("");
     }
 
     setErr(null);
     setSaving(false);
-  }, [open, editing]);
+  }, [open, editing, prefill]);
 
   async function submit() {
     setErr(null);
@@ -108,6 +178,8 @@ export function TaskFormModal({
           description: description.trim() ? description.trim() : null,
           priority,
           due_at,
+          entity_type: entityType,
+          entity_id: entityId,
           ...(myRole === "admin"
             ? { audience: assignedTo === "team" ? "team" : "private", assigned_to: assignedTo === "team" ? null : assignedTo }
             : {}),
@@ -120,6 +192,8 @@ export function TaskFormModal({
           due_at,
           audience: myRole === "admin" && assignedTo === "team" ? "team" : "private",
           assigned_to: myRole === "admin" ? (assignedTo === "team" ? null : assignedTo) : userId,
+          entity_type: entityType,
+          entity_id: entityId,
         });
       }
 
@@ -137,6 +211,26 @@ export function TaskFormModal({
       <div className="space-y-4">
         {err ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{err}</div>
+        ) : null}
+
+        {!isEditing ? (
+          <div className="grid gap-2">
+            <div className="text-xs font-medium text-slate-700">Plantilla</div>
+            <Select
+              value={template}
+              onChange={(e) => {
+                const v = e.target.value;
+                applyTemplate(v);
+              }}
+            >
+              {templateOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+            <div className="text-[11px] text-slate-500">Tip: elegí plantilla y ajustá el título si querés.</div>
+          </div>
         ) : null}
 
         <div className="grid gap-2">

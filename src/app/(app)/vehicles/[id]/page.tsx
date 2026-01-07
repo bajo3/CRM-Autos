@@ -15,6 +15,9 @@ import { ui } from "@/lib/ui";
 
 import { EditVehicleModal, type VehicleRow, type VehicleStatus } from "@/features/vehicles/edit-vehicle-modal";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { useAssignees } from "@/features/leads/useAssignees";
+import { TaskFormModal } from "@/features/tasks/components/TaskFormModal";
+import type { TaskPriority } from "@/features/tasks/tasks.types";
 
 type VehicleEventRow = {
   id: string;
@@ -47,8 +50,10 @@ export default function VehicleDetailPage() {
   const router = useRouter();
   const id = String((params as any)?.id ?? "");
 
-  const { role } = useAuth();
+  const { role, userId } = useAuth();
   const isAdmin = role === "admin" || role === "manager";
+
+  const { assignees } = useAssignees();
 
   const [vehicle, setVehicle] = useState<VehicleRow | null>(null);
   const [events, setEvents] = useState<VehicleEventRow[]>([]);
@@ -57,6 +62,17 @@ export default function VehicleDetailPage() {
   const [err, setErr] = useState<string | null>(null);
 
   const [editOpen, setEditOpen] = useState(false);
+
+  const [taskOpen, setTaskOpen] = useState(false);
+  const [taskPrefill, setTaskPrefill] = useState<{
+    title?: string;
+    description?: string | null;
+    priority?: TaskPriority;
+    dueDate?: string;
+    assignedTo?: string;
+    entity_type?: any;
+    entity_id?: string;
+  } | null>(null);
 
   async function load() {
     if (!id) return;
@@ -168,6 +184,27 @@ export default function VehicleDetailPage() {
           <Button onClick={() => setEditOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Editar
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              const now = new Date();
+              const y = now.getFullYear();
+              const m = String(now.getMonth() + 1).padStart(2, "0");
+              const d = String(now.getDate()).padStart(2, "0");
+              setTaskPrefill({
+                title: `Seguimiento: ${vehicle.title}`,
+                description: null,
+                priority: "medium",
+                dueDate: `${y}-${m}-${d}`,
+                assignedTo: "team",
+                entity_type: "vehicle",
+                entity_id: vehicle.id,
+              });
+              setTaskOpen(true);
+            }}
+          >
+            + Tarea
           </Button>
           {canPublish ? (
             <button className={ui.button("primary")} onClick={() => setStatus("published")}>
@@ -298,6 +335,23 @@ export default function VehicleDetailPage() {
       </div>
 
       <EditVehicleModal open={editOpen} onClose={() => setEditOpen(false)} vehicle={vehicle} onSaved={load} />
+
+      <TaskFormModal
+        open={taskOpen}
+        onClose={() => {
+          setTaskOpen(false);
+          setTaskPrefill(null);
+        }}
+        onSaved={() => {
+          setTaskOpen(false);
+          setTaskPrefill(null);
+        }}
+        editing={null}
+        myRole={(role ?? "seller") as any}
+        userId={userId}
+        assignees={assignees as any}
+        prefill={(taskPrefill ?? undefined) as any}
+      />
     </div>
   );
 }
