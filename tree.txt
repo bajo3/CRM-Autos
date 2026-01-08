@@ -44,6 +44,11 @@ Responsive (fixes aplicados)
   - main con min-w-0 + overflow-x-hidden
   - sidebar más angosta en md (md:w-64) y normal en lg (lg:w-72)
   - topbar con wrap (no corta en pantallas medianas)
+- Leads (listas):
+  - Sin scroll horizontal (optimizado para 1366×768)
+  - Tabla compacta en LG+ con columnas esenciales
+  - Cards en pantallas < LG
+  - Indicadores visuales: borde por etapa + pill de seguimiento (Vencido/Hoy/Mañana)
 
 Estructura (resumen)
 src/

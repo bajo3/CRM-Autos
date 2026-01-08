@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { MessageCircle } from "lucide-react";
+import { CheckCircle2, MessageCircle, Pencil, Phone } from "lucide-react";
 
 import type { LeadRow, LeadStage } from "../leads.types";
 import { LeadStageBadge } from "./LeadStageBadge";
@@ -26,6 +26,68 @@ function fmt(iso: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(d);
+}
+
+function startOfLocalDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function diffDaysLocal(a: Date, b: Date) {
+  // a - b en días, normalizado a inicio de día local
+  const aa = startOfLocalDay(a).getTime();
+  const bb = startOfLocalDay(b).getTime();
+  return Math.round((aa - bb) / 86400000);
+}
+
+
+
+function followUpPill(iso: string | null): { label: string; className: string } {
+  if (!iso) {
+    return {
+      label: "Sin seguimiento",
+      className: "border-slate-200 bg-slate-50 text-slate-700",
+    };
+  }
+
+  const d = new Date(iso);
+  const days = diffDaysLocal(d, new Date());
+
+  if (days < 0) {
+    return {
+      label: "Vencido",
+      className: "border-rose-200 bg-rose-50 text-rose-700",
+    };
+  }
+  if (days === 0) {
+    return {
+      label: "Hoy",
+      className: "border-amber-200 bg-amber-50 text-amber-800",
+    };
+  }
+  if (days === 1) {
+    return {
+      label: "Mañana",
+      className: "border-blue-200 bg-blue-50 text-blue-700",
+    };
+  }
+  return {
+    label: `En ${days} días`,
+    className: "border-slate-200 bg-white text-slate-700",
+  };
+}
+
+function rowAccent(stage: LeadStage, nextFollowUpIso: string | null) {
+  const pill = followUpPill(nextFollowUpIso);
+  // Si está vencido, siempre rojo (prioridad operativa)
+  if (pill.label === "Vencido") return "border-l-rose-300";
+  if (stage === "won") return "border-l-emerald-300";
+  if (stage === "lost") return "border-l-slate-200";
+  if (stage === "negotiation") return "border-l-fuchsia-200";
+  if (stage === "interested") return "border-l-sky-200";
+  if (stage === "contacted") return "border-l-amber-200";
+  return "border-l-slate-100";
 }
 
 function digitsOnly(v: string) {
@@ -82,6 +144,25 @@ function whatsappUrl(phone: string | null) {
   const num = toWhatsAppNumberAR(phone);
   if (!num) return null;
   return `https://wa.me/${num}`;
+}
+
+
+function daysDiffFromToday(iso: string | null) {
+  if (!iso) return null;
+  // 0 = hoy, 1 = mañana, -1 = ayer (en días locales)
+  return diffDaysLocal(new Date(iso), new Date());
+}
+
+
+
+function telUrl(raw: string | null) {
+  if (!raw) return null;
+  const d = digitsOnly(raw);
+  if (!d) return null;
+  // Si ya viene con prefijo internacional, agregamos +
+  if (d.startsWith("54")) return `tel:+${d}`;
+  // Formato local: lo dejamos tal cual (en móvil suele funcionar)
+  return `tel:${d}`;
 }
 
 export function LeadsTable(props: {
@@ -152,46 +233,63 @@ export function LeadsTable(props: {
 
   return (
     <>
-      {/* DESKTOP TABLE */}
-      <div className={cn("hidden overflow-hidden md:block", ui.card())}>
-        <table className="w-full text-sm">
+      {/* TABLE (LG+) — sin scroll horizontal: se achica por diseño */}
+      <div className={cn("hidden lg:block", ui.card("overflow-hidden"))}>
+        <table className="w-full table-fixed text-sm">
           <thead className={ui.cardHeader("text-slate-600")}>
             <tr>
               <th className="px-4 py-3 text-left font-medium">Lead</th>
-              <th className="px-4 py-3 text-left font-medium">Etapa</th>
-              <th className="px-4 py-3 text-left font-medium">Asignado</th>
-              <th className="px-4 py-3 text-left font-medium">Interés</th>
-              <th className="px-4 py-3 text-left font-medium">Último</th>
-              <th className="px-4 py-3 text-left font-medium">Próximo</th>
-              <th className="px-4 py-3 text-right font-medium">Acciones</th>
+              <th className="w-[180px] px-4 py-3 text-left font-medium">Etapa</th>
+              <th className="w-[180px] px-4 py-3 text-left font-medium">Asignado</th>
+              <th className="w-[300px] px-4 py-3 text-left font-medium">Seguimiento</th>
+              <th className="w-[180px] px-4 py-3 text-right font-medium">Acciones</th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-slate-100">
             {items.map((it) => {
               const wa = waById.get(it.id) ?? null;
-              return (
-                <tr key={it.id} className="hover:bg-slate-50/60">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={(`/leads/${it.id}` as unknown) as Route}
-                      className="text-left font-medium text-slate-900 hover:underline"
-                      aria-label={`Abrir lead ${it.name}`}
-                    >
-                      {it.name}
-                    </Link>
+              const tel = telUrl(it.phone);
+              const pill = followUpPill(it.next_follow_up_at);
+              const accent = rowAccent(it.stage, it.next_follow_up_at);
+              const isOverdue = daysDiffFromToday(it.next_follow_up_at);
 
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-600">
-                      <span>{it.phone ?? "—"}</span>
-                 
+              return (
+                <tr
+                  key={it.id}
+                  className={cn(
+                    "border-l-4 hover:bg-slate-50/60",
+                    accent,
+                    isOverdue !== null && isOverdue < 0 ? "bg-red-50/20" : ""
+                  )}
+                >
+                  <td className="px-4 py-3 align-top">
+                    <div className="min-w-0">
+                      <Link
+                        href={(`/leads/${it.id}` as unknown) as Route}
+                        className="block min-w-0 truncate text-left font-medium text-slate-900 hover:underline"
+                        aria-label={`Abrir lead ${it.name}`}
+                      >
+                        {it.name}
+                      </Link>
+
+                      <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-600">
+                        <span className="truncate">{it.phone ?? "—"}</span>
+                        {it.interest && <span className="hidden xl:inline">•</span>}
+                        {it.interest && (
+                          <span className="hidden xl:block min-w-0 truncate" title={it.interest}>
+                            {it.interest}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
 
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex flex-col gap-2">
                       <LeadStageBadge stage={it.stage} />
                       <select
-                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900"
+                        className="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                         value={it.stage}
                         onChange={(e) => onChangeStage(it.id, e.target.value as LeadStage)}
                         onClick={(e) => e.stopPropagation()}
@@ -202,16 +300,16 @@ export function LeadsTable(props: {
                           </option>
                         ))}
                       </select>
+                      {it.stage === "lost" && (
+                        <div className="text-xs text-slate-600">Motivo: {it.lost_reason ?? "—"}</div>
+                      )}
                     </div>
-                    {it.stage === "lost" && (
-                      <div className="mt-1 text-xs text-slate-600">Motivo: {it.lost_reason ?? "—"}</div>
-                    )}
                   </td>
 
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 align-top">
                     {isAdmin ? (
                       <select
-                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900"
+                        className="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                         value={it.assigned_to ?? ""}
                         onChange={(e) => onAssign(it.id, e.target.value || null)}
                         onClick={(e) => e.stopPropagation()}
@@ -228,33 +326,20 @@ export function LeadsTable(props: {
                     )}
                   </td>
 
-                  <td className="px-4 py-3 text-slate-800">{it.interest ?? "—"}</td>
-                  <td className="px-4 py-3 text-slate-800">{fmt(it.last_contact_at)}</td>
-
-                  <td className="px-4 py-3">
-                    <div className="text-slate-800">{fmt(it.next_follow_up_at)}</div>
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-xs", pill.className)}>
+                        {pill.label}
+                      </span>
+                      <span className="text-xs text-slate-700" title={it.next_follow_up_at ?? ""}>
+                        {fmt(it.next_follow_up_at)}
+                      </span>
+                    </div>
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <input
-                        key={`${it.id}-${it.next_follow_up_at ?? ""}`}
-                        type="datetime-local"
-                        className="w-[170px] rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900"
-                        defaultValue={isoToLocalInput(it.next_follow_up_at)}
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                        }}
-                        onBlur={(e) => {
-                          const v = e.currentTarget.value;
-                          const iso = v ? localInputToIso(v) : null;
-                          onSetFollowUp(it.id, iso);
-                        }}
-                        aria-label={`Próximo seguimiento para ${it.name}`}
-                      />
-
                       <button
                         type="button"
-                        className={ui.button("secondary", "px-2 py-1 text-xs rounded-lg")}
+                        className={ui.button("secondary", "h-8 px-2 text-xs rounded-lg")}
                         onClick={(e) => {
                           e.stopPropagation();
                           onSetFollowUp(it.id, tomorrowAt10Iso());
@@ -266,51 +351,88 @@ export function LeadsTable(props: {
 
                       <button
                         type="button"
-                        className={ui.button("secondary", "px-2 py-1 text-xs rounded-lg")}
+                        className={ui.button("secondary", "h-8 px-2 text-xs rounded-lg")}
                         onClick={(e) => {
                           e.stopPropagation();
                           onSetFollowUp(it.id, null);
                         }}
+                        title="Quitar seguimiento"
                       >
                         Limpiar
                       </button>
+
+                      {/* Selector fino solo en pantallas muy grandes (evita romper 1366x768) */}
+                      <div className="hidden 2xl:flex items-center gap-2">
+                        <input
+                          key={`${it.id}-${it.next_follow_up_at ?? ""}`}
+                          type="datetime-local"
+                          className="h-8 w-[170px] rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
+                          defaultValue={isoToLocalInput(it.next_follow_up_at)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                          }}
+                          onBlur={(e) => {
+                            const v = e.currentTarget.value;
+                            const iso = v ? localInputToIso(v) : null;
+                            onSetFollowUp(it.id, iso);
+                          }}
+                          aria-label={`Próximo seguimiento para ${it.name}`}
+                        />
+                      </div>
                     </div>
+
+                    <div className="mt-2 hidden xl:block text-xs text-slate-500">Último: {fmt(it.last_contact_at)}</div>
                   </td>
 
-                  <td className="px-4 py-3 text-right">
-                    <div className="inline-flex items-center gap-2">
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                       {wa && (
                         <a
                           href={wa}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={ui.button("secondary", "px-3 py-1.5 text-xs")}
+                          className={cn(ui.button("secondary", "h-8 w-8 p-0"))}
+                          title="WhatsApp"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          WhatsApp
+                          <MessageCircle className="h-4 w-4" />
+                        </a>
+                      )}
+
+                      {tel && (
+                        <a
+                          href={tel}
+                          className={cn(ui.button("secondary", "h-8 w-8 p-0"))}
+                          title="Llamar"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Phone className="h-4 w-4" />
                         </a>
                       )}
 
                       <button
                         type="button"
-                        className={ui.button("secondary", "px-3 py-1.5 text-xs")}
+                        className={cn(ui.button("secondary", "h-8 w-8 p-0"))}
+                        title="Marcar contactado hoy"
                         onClick={(e) => {
                           e.stopPropagation();
                           onMarkContacted(it.id);
                         }}
                       >
-                        Contactado hoy
+                        <CheckCircle2 className="h-4 w-4" />
                       </button>
 
                       <button
                         type="button"
-                        className={ui.button("primary", "px-3 py-1.5 text-xs")}
+                        className={cn(ui.button("primary", "h-8 w-8 p-0"))}
+                        title="Editar"
                         onClick={(e) => {
                           e.stopPropagation();
                           onEdit(it);
                         }}
                       >
-                        Editar
+                        <Pencil className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -322,11 +444,14 @@ export function LeadsTable(props: {
       </div>
 
       {/* MOBILE CARDS */}
-      <div className="grid gap-2 md:hidden">
+      <div className="grid gap-2 lg:hidden">
         {items.map((it) => {
           const wa = waById.get(it.id) ?? null;
+          const tel = telUrl(it.phone);
+          const pill = followUpPill(it.next_follow_up_at);
+          const accent = rowAccent(it.stage, it.next_follow_up_at);
           return (
-            <div key={it.id} className="rounded-2xl border border-slate-200 bg-white p-3">
+            <div key={it.id} className={cn("rounded-2xl border border-slate-200 bg-white p-3 border-l-4", accent)}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <Link
@@ -351,6 +476,16 @@ export function LeadsTable(props: {
                         WhatsApp
                       </a>
                     )}
+                    {tel && (
+                      <a
+                        href={tel}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-900 hover:bg-slate-50"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Phone className="h-3.5 w-3.5" />
+                        Llamar
+                      </a>
+                    )}
                   </div>
                 </div>
 
@@ -360,6 +495,11 @@ export function LeadsTable(props: {
               <div className="mt-2 space-y-1 text-xs text-slate-700">
                 <div>
                   <span className="text-slate-500">Interés:</span> {it.interest ?? "—"}
+                </div>
+                <div>
+                  <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-xs", pill.className)}>
+                    {pill.label}
+                  </span>
                 </div>
                 <div>
                   <span className="text-slate-500">Último:</span> {fmt(it.last_contact_at)}
