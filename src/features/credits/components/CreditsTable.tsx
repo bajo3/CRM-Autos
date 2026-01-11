@@ -6,8 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { MessageCircle } from "lucide-react";
-import { Phone } from "lucide-react";
+import { MessageCircle, Phone, Pencil, XCircle } from "lucide-react";
 
 import {
   buildWhatsAppMessage,
@@ -25,7 +24,7 @@ function vehicleLabel(c: CreditRow) {
   return parts.join(" ");
 }
 
-function statusPill(remaining: number | null) {
+function remainingPill(remaining: number | null) {
   if (remaining == null) return null;
 
   if (remaining === 0) {
@@ -38,7 +37,7 @@ function statusPill(remaining: number | null) {
 
   const cls =
     remaining <= 1
-      ? "bg-red-50 text-red-700 border-red-200"
+      ? "bg-rose-50 text-rose-700 border-rose-200"
       : remaining <= 3
         ? "bg-amber-50 text-amber-700 border-amber-200"
         : "bg-slate-50 text-slate-700 border-slate-200";
@@ -48,6 +47,16 @@ function statusPill(remaining: number | null) {
       Faltan {remaining} cuota{remaining === 1 ? "" : "s"}
     </span>
   );
+}
+
+function urgencyBadge(c: CreditRow) {
+  const sched = computeCreditSchedule(c.start_date, c.installment_count, c.status);
+  if (c.status === "closed") return <Badge variant="outline">Cerrado</Badge>;
+  if (!sched) return <Badge variant="muted">—</Badge>;
+  if (sched.daysToEnd < 0 || sched.remaining === 0) return <Badge variant="danger">🔴 Vencido</Badge>;
+  if (sched.daysToEnd <= 30) return <Badge variant="danger">🔴 ≤ 1 mes</Badge>;
+  if (sched.daysToEnd <= 90) return <Badge variant="warning">🟡 ≤ 3 meses</Badge>;
+  return <Badge variant="success">🟢 OK</Badge>;
 }
 
 function whatsAppHref(c: CreditRow) {
@@ -62,11 +71,20 @@ function whatsAppHref(c: CreditRow) {
     vehicleLabel: vehicle,
     installmentAmountArs: moneyArs(c.installment_amount),
     nextDueText: sched ? fmtDate(sched.nextDue) : "—",
-    remainingText: sched ? (sched.remaining === 0 ? "Plan vencido" : `Te quedan ${sched.remaining} cuota${sched.remaining === 1 ? "" : "s"}`) : "—",
+    remainingText: sched
+      ? sched.remaining === 0
+        ? "Plan vencido"
+        : `Te quedan ${sched.remaining} cuota${sched.remaining === 1 ? "" : "s"}`
+      : "—",
     endText: sched ? fmtDate(sched.lastDue) : "—",
   });
 
   return `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
+}
+
+function telHref(phone: string | null) {
+  if (!phone) return null;
+  return `tel:${String(phone).replace(/\s+/g, "")}`;
 }
 
 export function CreditsTable(props: {
@@ -80,42 +98,48 @@ export function CreditsTable(props: {
 
   const rows = useMemo(() => items, [items]);
 
-  return (
-    <div className="overflow-x-auto">
-      <Table>
-        <THead>
-          <TR>
-            <TH>Cliente</TH>
-            <TH>Vehículo</TH>
-            <TH>Cuota</TH>
-            <TH>Próximo venc.</TH>
-            <TH>Fin</TH>
-            <TH>Estado</TH>
-            <TH className="text-right">Acciones</TH>
-          </TR>
-        </THead>
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Cargando créditos…</div>
+    );
+  }
 
-        <TBody>
-          {loading ? (
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="text-sm font-medium text-slate-900">No hay créditos para mostrar</div>
+        <div className="mt-1 text-sm text-slate-600">
+          Creá un crédito cuando el cliente entra en plan, para que el equipo tenga alertas de vencimiento y seguimiento.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* TABLE (MD+) */}
+      <div className="hidden md:block overflow-x-auto">
+        <Table>
+          <THead>
             <TR>
-              <TD colSpan={7} className="py-10 text-center text-sm text-slate-600">
-                Cargando…
-              </TD>
+              <TH>Cliente</TH>
+              <TH>Vehículo</TH>
+              <TH>Cuota</TH>
+              <TH>Próximo venc.</TH>
+              <TH>Fin</TH>
+              <TH>Prioridad</TH>
+              <TH className="text-right">Acciones</TH>
             </TR>
-          ) : rows.length === 0 ? (
-            <TR>
-              <TD colSpan={7} className="py-10 text-center text-sm text-slate-600">
-                Sin créditos.
-              </TD>
-            </TR>
-          ) : (
-            rows.map((c) => {
+          </THead>
+
+          <TBody>
+            {rows.map((c) => {
               const sched = computeCreditSchedule(c.start_date, c.installment_count, c.status);
-              const waHref = whatsAppHref(c);
+              const wa = whatsAppHref(c);
+              const tel = telHref(c.client_phone);
 
               const nextDueLabel = sched ? fmtDate(sched.nextDue) : "—";
               const endLabel = sched ? fmtDate(sched.lastDue) : "—";
-              const telHref = c.client_phone ? `tel:${String(c.client_phone).replace(/\s+/g, "")}` : null;
 
               return (
                 <TR key={c.id}>
@@ -140,72 +164,61 @@ export function CreditsTable(props: {
 
                   <TD>
                     <div className="text-sm text-slate-900">{nextDueLabel}</div>
-                    <div className="mt-1">{statusPill(sched?.remaining ?? null)}</div>
+                    <div className="mt-1">{remainingPill(sched?.remaining ?? null)}</div>
                   </TD>
 
                   <TD>
                     <div className="text-sm text-slate-900">{endLabel}</div>
                     {sched ? (
                       <div className="text-xs text-slate-500">
-                        {sched.daysToEnd >= 0 ? `En ${sched.daysToEnd} día${sched.daysToEnd === 1 ? "" : "s"}` : `Hace ${Math.abs(sched.daysToEnd)} día${Math.abs(sched.daysToEnd) === 1 ? "" : "s"}`}
+                        {sched.daysToEnd >= 0
+                          ? `En ${sched.daysToEnd} día${sched.daysToEnd === 1 ? "" : "s"}`
+                          : `Hace ${Math.abs(sched.daysToEnd)} día${Math.abs(sched.daysToEnd) === 1 ? "" : "s"}`}
                       </div>
                     ) : (
                       <div className="text-xs text-slate-500">—</div>
                     )}
                   </TD>
 
-                  <TD>
-                    {c.status === "closed" ? (
-                      <Badge variant="outline">⚪ Cerrado</Badge>
-                    ) : !sched ? (
-                      <Badge variant="muted">—</Badge>
-                    ) : sched.daysToEnd < 0 || sched.remaining === 0 ? (
-                      <Badge variant="danger">🔴 Vencido</Badge>
-                    ) : sched.daysToEnd <= 30 ? (
-                      <Badge variant="danger">🔴 ≤ 1 mes</Badge>
-                    ) : sched.daysToEnd <= 90 ? (
-                      <Badge variant="warning">🟡 ≤ 3 meses</Badge>
-                    ) : (
-                      <Badge variant="success">🟢 OK</Badge>
-                    )}
-                  </TD>
+                  <TD>{urgencyBadge(c)}</TD>
 
                   <TD className="text-right">
                     <div className="flex justify-end gap-2">
                       <a
-                        href={telHref ?? "#"}
+                        href={tel ?? "#"}
                         className={cn(
                           "inline-flex h-9 items-center justify-center whitespace-nowrap rounded-2xl border px-3 text-sm font-medium transition",
-                          telHref
+                          tel
                             ? "border-slate-200 text-slate-900 hover:bg-slate-50"
                             : "pointer-events-none border-slate-100 text-slate-300"
                         )}
                         onClick={(e) => {
-                          if (!telHref) e.preventDefault();
+                          if (!tel) e.preventDefault();
                         }}
-                        title={telHref ? "Llamar" : "Sin teléfono"}
+                        title={tel ? "Llamar" : "Sin teléfono"}
                       >
                         <Phone className="mr-2 h-4 w-4" />
                         Llamar
                       </a>
 
                       <a
-                        href={waHref ?? "#"}
-                        target={waHref ? "_blank" : undefined}
-                        rel={waHref ? "noopener noreferrer" : undefined}
+                        href={wa ?? "#"}
+                        target={wa ? "_blank" : undefined}
+                        rel={wa ? "noopener noreferrer" : undefined}
                         className={cn(
                           "inline-flex h-9 items-center justify-center whitespace-nowrap rounded-2xl border px-3 text-sm font-medium transition",
-                          waHref
+                          wa
                             ? "border-slate-200 text-slate-900 hover:bg-slate-50"
                             : "pointer-events-none border-slate-100 text-slate-300"
                         )}
-                        title={waHref ? "Enviar WhatsApp" : "Sin teléfono"}
+                        title={wa ? "Enviar WhatsApp" : "Sin teléfono"}
                       >
                         <MessageCircle className="mr-2 h-4 w-4" />
                         WhatsApp
                       </a>
 
                       <Button variant="outline" size="sm" onClick={() => onEdit(c)}>
+                        <Pencil className="mr-2 h-4 w-4" />
                         Editar
                       </Button>
 
@@ -230,10 +243,91 @@ export function CreditsTable(props: {
                   </TD>
                 </TR>
               );
-            })
-          )}
-        </TBody>
-      </Table>
-    </div>
+            })}
+          </TBody>
+        </Table>
+      </div>
+
+      {/* MOBILE CARDS */}
+      <div className="grid gap-2 md:hidden">
+        {rows.map((c) => {
+          const sched = computeCreditSchedule(c.start_date, c.installment_count, c.status);
+          const wa = whatsAppHref(c);
+          const tel = telHref(c.client_phone);
+
+          const nextDueLabel = sched ? fmtDate(sched.nextDue) : "—";
+          const endLabel = sched ? fmtDate(sched.lastDue) : "—";
+
+          return (
+            <div key={c.id} className="rounded-2xl border border-slate-200 bg-white p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-slate-900">{c.client_name}</div>
+                  <div className="mt-0.5 text-xs text-slate-600">{c.client_phone ?? "—"}</div>
+                </div>
+                {urgencyBadge(c)}
+              </div>
+
+              <div className="mt-2 space-y-1 text-xs text-slate-700">
+                <div>
+                  <span className="text-slate-500">Vehículo:</span> {vehicleLabel(c) || "—"}
+                </div>
+                <div>
+                  <span className="text-slate-500">Cuota:</span> {moneyArs(c.installment_amount)} · {c.installment_count} cuotas
+                </div>
+                <div>
+                  <span className="text-slate-500">Próximo venc.:</span> {nextDueLabel}
+                </div>
+                <div className="flex items-center gap-2">
+                  {remainingPill(sched?.remaining ?? null)}
+                  <span className="text-slate-500">Fin:</span> {endLabel}
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button asChild size="sm" variant="outline" disabled={!tel}>
+                  <a href={tel ?? "#"} onClick={(e) => (!tel ? e.preventDefault() : null)}>
+                    <Phone className="mr-2 h-4 w-4" />
+                    Llamar
+                  </a>
+                </Button>
+
+                <Button asChild size="sm" variant="outline" disabled={!wa}>
+                  <a href={wa ?? "#"} target={wa ? "_blank" : undefined} rel={wa ? "noopener noreferrer" : undefined}>
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    WhatsApp
+                  </a>
+                </Button>
+
+                <Button size="sm" variant="secondary" onClick={() => onEdit(c)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar
+                </Button>
+
+                {c.status === "active" ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto"
+                    disabled={busyId === c.id}
+                    onClick={async () => {
+                      try {
+                        setBusyId(c.id);
+                        await onClose(c.id);
+                      } finally {
+                        setBusyId(null);
+                      }
+                    }}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    {busyId === c.id ? "Cerrando…" : "Cerrar"}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

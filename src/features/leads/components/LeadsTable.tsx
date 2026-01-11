@@ -46,7 +46,7 @@ function diffDaysLocal(a: Date, b: Date) {
 function followUpPill(iso: string | null): { label: string; className: string } {
   if (!iso) {
     return {
-      label: "Sin seguimiento",
+      label: "Sin próximo paso",
       className: "border-slate-200 bg-slate-50 text-slate-700",
     };
   }
@@ -146,11 +146,11 @@ function whatsappUrl(phone: string | null) {
   return `https://wa.me/${num}`;
 }
 
-
 function daysDiffFromToday(iso: string | null) {
   if (!iso) return null;
-  // 0 = hoy, 1 = mañana, -1 = ayer (en días locales)
-  return diffDaysLocal(new Date(iso), new Date());
+  const target = startOfLocalDay(new Date(iso)).getTime();
+  const today = startOfLocalDay(new Date()).getTime();
+  return Math.round((target - today) / 86400000);
 }
 
 
@@ -228,7 +228,14 @@ export function LeadsTable(props: {
   }
 
   if (items.length === 0) {
-    return <div className={ui.card("p-4 text-sm text-slate-700")}>No hay leads con esos filtros.</div>;
+    return (
+      <div className={ui.card("p-5")}> 
+        <div className="text-sm font-medium text-slate-900">No hay leads con esos filtros</div>
+        <div className="mt-1 text-sm text-slate-600">
+          Probá limpiar filtros o crear un lead nuevo. Si estabas esperando respuesta, activá un próximo seguimiento.
+        </div>
+      </div>
+    );
   }
 
   return (

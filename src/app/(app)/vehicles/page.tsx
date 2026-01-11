@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseBrowser";
+import { cn } from "@/lib/utils";
 import { Topbar } from "@/components/app-shell/topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
@@ -34,8 +35,8 @@ type VehicleRow = {
 
 const STATUS_LABEL: Record<VehicleStatus, string> = {
   draft: "Pendiente",
-  incoming: "Ingreso",
-  preparing: "Preparación",
+  incoming: "Por ingresar",
+  preparing: "En preparación",
   published: "Disponible",
   reserved: "Reservado",
   sold: "Vendido",
@@ -46,8 +47,10 @@ function statusBadge(status: VehicleStatus) {
   if (status === "published") return <Badge variant="success">🟢 {label}</Badge>;
   if (status === "reserved") return <Badge variant="warning">🟡 {label}</Badge>;
   if (status === "sold") return <Badge variant="danger">🔴 {label}</Badge>;
+
+  // estados operativos
   if (status === "incoming") return <Badge variant="outline">🔵 {label}</Badge>;
-  if (status === "preparing") return <Badge variant="warning">🟡 {label}</Badge>;
+  if (status === "preparing") return <Badge variant="secondary">🟠 {label}</Badge>;
   return <Badge variant="muted">⚪ {label}</Badge>;
 }
 
@@ -217,13 +220,13 @@ export default function VehiclesPage() {
           <RefreshCw className="h-4 w-4" /> Refrescar
         </Button>
 
-        <div className="ml-auto flex flex-wrap gap-2">
+        <div className="ml-auto flex w-full flex-nowrap gap-2 overflow-x-auto pb-1 md:w-auto md:overflow-visible">
           {(["all", "draft", "incoming", "preparing", "published", "reserved", "sold"] as const).map((t) => (
             <Button
               key={t}
               variant={tab === t ? "default" : "secondary"}
               onClick={() => setTab(t)}
-              className="gap-2"
+              className="gap-2 shrink-0"
             >
               {t === "all" ? "Todos" : STATUS_LABEL[t]}
               <Badge variant="secondary">{counts[t] ?? 0}</Badge>
@@ -297,90 +300,167 @@ export default function VehiclesPage() {
           {loading ? (
             <div className="text-sm text-slate-600">Cargando…</div>
           ) : (
-            <div className="overflow-auto">
-              <Table>
-                <THead>
-                  <TR>
-                    <TH>Unidad</TH>
-                    <TH>Año</TH>
-                    <TH>KM</TH>
-                    <TH>Precio</TH>
-                    <TH>Estado</TH>
-                    <TH>Cargado por</TH>
-                    <TH className="text-right">Acciones</TH>
-                  </TR>
-                </THead>
-                <TBody>
-                  {items.length === 0 ? (
+            <>
+              {/* Desktop/tablet */}
+              <div className="hidden lg:block overflow-auto">
+                <Table>
+                  <THead>
                     <TR>
-                      <TD colSpan={7} className="text-center text-sm text-slate-500 py-6">
-                        Sin vehículos.
-                      </TD>
+                      <TH>Unidad</TH>
+                      <TH>Año</TH>
+                      <TH>KM</TH>
+                      <TH>Precio</TH>
+                      <TH>Estado</TH>
+                      <TH>Cargado por</TH>
+                      <TH className="text-right">Acciones</TH>
                     </TR>
-                  ) : null}
-
-                  {items.map((v) => {
-                    const creator = v.created_by ? nameByUserId[v.created_by] : null;
-
-                    const sellerCanChange = !isAdmin && canSellerChangeStatusFrom(v.status);
-                    const disabledStatus = !isAdmin && !sellerCanChange;
-
-                    const options = allowedStatusOptions(v);
-
-                    return (
-                      <TR key={v.id}>
-                        <TD className="min-w-[260px]">
-                          <div className="font-medium">{v.title}</div>
-                          <div className="text-xs text-slate-500">
-                            {(v.brand ?? "—") + " " + (v.model ?? "") + (v.version ? " • " + v.version : "")}
-                          </div>
-                        </TD>
-                        <TD>{v.year ?? "—"}</TD>
-                        <TD>{v.km != null ? v.km.toLocaleString("es-AR") : "—"}</TD>
-                        <TD>
-                          {v.price_ars != null ? (
-                            <span>
-                              {new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(v.price_ars)}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </TD>
-                        <TD>
-                          {disabledStatus ? (
-                            <div className="flex items-center gap-2">
-                              {statusBadge(v.status)}
-                              <span className="text-xs text-slate-500">Pendiente</span>
-                            </div>
-                          ) : (
-                            <Select
-                              value={v.status}
-                              onChange={(e) => updateStatus(v.id, e.target.value as VehicleStatus)}
-                            >
-                              {options.map((st) => (
-                                <option key={st} value={st}>
-                                  {STATUS_LABEL[st]}
-                                </option>
-                              ))}
-                            </Select>
-                          )}
-                        </TD>
-                        <TD className="text-sm text-slate-700">{creator ?? (v.created_by ?? "—")}</TD>
-                        <TD className="text-right">
-                          {isAdmin ? (
-                            <Button variant="secondary" onClick={() => openEditPrice(v)}>
-                              Editar precio
-                            </Button>
-                          ) : (
-                            <span className="text-xs text-slate-400">—</span>
-                          )}
+                  </THead>
+                  <TBody>
+                    {items.length === 0 ? (
+                      <TR>
+                        <TD colSpan={7} className="text-center text-sm text-slate-500 py-10">
+                          No hay unidades para mostrar con esos filtros.
                         </TD>
                       </TR>
-                    );
-                  })}
-                </TBody>
-              </Table>
-            </div>
+                    ) : null}
+
+                    {items.map((v) => {
+                      const creator = v.created_by ? nameByUserId[v.created_by] : null;
+                      const sellerCanChange = !isAdmin && canSellerChangeStatusFrom(v.status);
+                      const disabledStatus = !isAdmin && !sellerCanChange;
+                      const options = allowedStatusOptions(v);
+
+                      return (
+                        <TR key={v.id}>
+                          <TD className="min-w-[260px]">
+                            <div className="font-medium">{v.title}</div>
+                            <div className="text-xs text-slate-500">
+                              {(v.brand ?? "—") + " " + (v.model ?? "") + (v.version ? " • " + v.version : "")}
+                            </div>
+                          </TD>
+                          <TD>{v.year ?? "—"}</TD>
+                          <TD>{v.km != null ? v.km.toLocaleString("es-AR") : "—"}</TD>
+                          <TD>
+                            {v.price_ars != null ? (
+                              <span>
+                                {new Intl.NumberFormat("es-AR", {
+                                  style: "currency",
+                                  currency: "ARS",
+                                  maximumFractionDigits: 0,
+                                }).format(v.price_ars)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </TD>
+                          <TD>
+                            {disabledStatus ? (
+                              <div className="flex items-center gap-2">
+                                {statusBadge(v.status)}
+                                <span className="text-xs text-slate-500">Solo admin/manager</span>
+                              </div>
+                            ) : (
+                              <Select value={v.status} onChange={(e) => updateStatus(v.id, e.target.value as VehicleStatus)}>
+                                {options.map((st) => (
+                                  <option key={st} value={st}>
+                                    {STATUS_LABEL[st]}
+                                  </option>
+                                ))}
+                              </Select>
+                            )}
+                          </TD>
+                          <TD className="text-sm text-slate-700">{creator ?? (v.created_by ?? "—")}</TD>
+                          <TD className="text-right">
+                            {isAdmin ? (
+                              <Button variant="secondary" onClick={() => openEditPrice(v)}>
+                                Editar precio
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-slate-400">—</span>
+                            )}
+                          </TD>
+                        </TR>
+                      );
+                    })}
+                  </TBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="grid gap-3 lg:hidden">
+                {items.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-sm font-medium text-slate-900">No hay unidades</div>
+                    <div className="mt-1 text-sm text-slate-600">Probá limpiar filtros o cambiar de pestaña de estado.</div>
+                  </div>
+                ) : null}
+
+                {items.map((v) => {
+                  const creator = v.created_by ? nameByUserId[v.created_by] : null;
+                  const sellerCanChange = !isAdmin && canSellerChangeStatusFrom(v.status);
+                  const disabledStatus = !isAdmin && !sellerCanChange;
+                  const options = allowedStatusOptions(v);
+                  const priceLabel = v.price_ars != null
+                    ? new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(v.price_ars)
+                    : "—";
+
+                  return (
+                    <div key={v.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-slate-900">{v.title}</div>
+                          <div className="mt-0.5 text-xs text-slate-600">
+                            {(v.brand ?? "—") + " " + (v.model ?? "") + (v.version ? " • " + v.version : "")}
+                          </div>
+                        </div>
+                        <div className="shrink-0">{statusBadge(v.status)}</div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                          <div className="text-slate-500">Año</div>
+                          <div className="font-medium text-slate-900">{v.year ?? "—"}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                          <div className="text-slate-500">KM</div>
+                          <div className="font-medium text-slate-900">{v.km != null ? v.km.toLocaleString("es-AR") : "—"}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                          <div className="text-slate-500">Precio</div>
+                          <div className={cn("font-medium", v.price_ars != null ? "text-slate-900" : "text-slate-400")}>{priceLabel}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 text-xs text-slate-600">
+                        <span className="text-slate-500">Cargado por:</span> {creator ?? (v.created_by ?? "—")}
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {disabledStatus ? (
+                          <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                            Estado: <span className="font-medium text-slate-900">{STATUS_LABEL[v.status]}</span> <span className="text-slate-400">· Solo admin/manager</span>
+                          </div>
+                        ) : (
+                          <Select value={v.status} onChange={(e) => updateStatus(v.id, e.target.value as VehicleStatus)}>
+                            {options.map((st) => (
+                              <option key={st} value={st}>
+                                {STATUS_LABEL[st]}
+                              </option>
+                            ))}
+                          </Select>
+                        )}
+
+                        {isAdmin ? (
+                          <Button size="sm" variant="secondary" onClick={() => openEditPrice(v)} className="ml-auto">
+                            Editar precio
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

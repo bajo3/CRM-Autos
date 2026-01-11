@@ -178,27 +178,156 @@ export function TasksTable({ items, loading, myRole, userId, assignees, onEdit, 
   }
 
   return (
-    <Table>
-      <THead>
-        <TR>
-          <TH>Estado</TH>
-          <TH>Tarea</TH>
-          <TH>Vence</TH>
-          <TH>Prioridad</TH>
-          <TH>Asignado</TH>
-          <TH className="text-right">Acciones</TH>
-        </TR>
-      </THead>
+    <>
+      {/* Desktop/tablet */}
+      <div className="hidden md:block">
+        <Table>
+          <THead>
+            <TR>
+              <TH>Estado</TH>
+              <TH>Tarea</TH>
+              <TH>Vence</TH>
+              <TH>Prioridad</TH>
+              <TH>Asignado</TH>
+              <TH className="text-right">Acciones</TH>
+            </TR>
+          </THead>
 
-      <TBody>
+          <TBody>
+            {loading ? (
+              <TR>
+                <TD colSpan={6} className="py-10 text-center text-sm text-slate-600">
+                  Cargando…
+                </TD>
+              </TR>
+            ) : items.length === 0 ? (
+              <TR>
+                <TD colSpan={6} className="py-10 text-center text-sm text-slate-600">
+                  No hay tareas para este filtro.
+                </TD>
+              </TR>
+            ) : (
+              items.map((t) => {
+                const assignee = assignees.find((a) => a.user_id === t.assigned_to);
+                const href = entityHref(t);
+                const label = entityLabel(t);
+
+                const leadInfo = t.entity_type === "lead" && t.entity_id ? leadMeta[t.entity_id] : undefined;
+                const vehicleInfo = t.entity_type === "vehicle" && t.entity_id ? vehicleMeta[t.entity_id] : undefined;
+                const wa = leadInfo?.phone ? waLink(leadInfo.phone) : null;
+                const tel = leadInfo?.phone ? telLink(leadInfo.phone) : null;
+
+                return (
+                  <TR key={t.id}>
+                    <TD>{statusBadge(t)}</TD>
+
+                    <TD>
+                      <div className="flex items-start gap-2">
+                        {href ? (
+                          <Link className="font-medium hover:underline" href={(href as unknown) as Route}>
+                            {t.title}
+                          </Link>
+                        ) : (
+                          <div className="font-medium">{t.title}</div>
+                        )}
+                      </div>
+
+                      {href && label ? (
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">{label}</Badge>
+                          {t.entity_type === "lead" && leadInfo?.name ? (
+                            <span className="text-xs text-slate-600">{leadInfo.name}</span>
+                          ) : null}
+                          {t.entity_type === "vehicle" && vehicleInfo?.title ? (
+                            <span className="text-xs text-slate-600">{vehicleInfo.title}</span>
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      {t.description ? <div className="mt-1 line-clamp-2 text-xs text-slate-600">{t.description}</div> : null}
+                    </TD>
+
+                    <TD>
+                      <div className="text-sm">{fmtShort(t.due_at)}</div>
+                      <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
+                        <Clock className="h-3.5 w-3.5" />
+                        {dueLabel(t.due_at)}
+                      </div>
+                    </TD>
+
+                    <TD>{prioBadge(t.priority)}</TD>
+
+                    <TD className="text-sm">{assignee?.full_name ?? (t.assigned_to ? t.assigned_to.slice(0, 8) : "—")}</TD>
+
+                    <TD className="text-right">
+                      <div className="inline-flex flex-wrap justify-end gap-2">
+                        {wa ? (
+                          <Button asChild size="sm" variant="outline" title="WhatsApp">
+                            <a href={wa} target="_blank" rel="noreferrer">
+                              <MessageCircle className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        ) : null}
+
+                        {tel ? (
+                          <Button asChild size="sm" variant="outline" title="Llamar">
+                            <a href={tel}>
+                              <Phone className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        ) : null}
+
+                        {t.status === "open" ? (
+                          <Button size="sm" variant="secondary" onClick={() => run(() => completeTask(t.id))} title="Marcar hecha">
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="secondary" onClick={() => run(() => reopenTask(t.id))} title="Reabrir">
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        )}
+
+                        {t.status === "open" ? (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => run(() => postpone(t, 1))} title="Posponer 1 día">
+                              +1d
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => run(() => postpone(t, 7))} title="Posponer 1 semana">
+                              +7d
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => onEdit(t)} title="Editar">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => run(() => cancelTask(t.id))} title="Cancelar">
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : null}
+
+                        {myRole === "admin" || t.created_by === userId ? (
+                          <Button size="sm" variant="destructive" onClick={() => run(() => deleteTask(t.id))} title="Eliminar">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                      </div>
+                    </TD>
+                  </TR>
+                );
+              })
+            )}
+          </TBody>
+        </Table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="grid gap-3 md:hidden">
         {loading ? (
-          <TR>
-            <TD colSpan={6}>Cargando…</TD>
-          </TR>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">Cargando…</div>
         ) : items.length === 0 ? (
-          <TR>
-            <TD colSpan={6}>Sin tareas.</TD>
-          </TR>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="text-sm font-medium text-slate-900">No hay tareas</div>
+            <div className="mt-1 text-sm text-slate-600">Cambiá la vista (Hoy/Vencidas/Semana) o limpiá la búsqueda.</div>
+          </div>
         ) : (
           items.map((t) => {
             const assignee = assignees.find((a) => a.user_id === t.assigned_to);
@@ -211,104 +340,97 @@ export function TasksTable({ items, loading, myRole, userId, assignees, onEdit, 
             const tel = leadInfo?.phone ? telLink(leadInfo.phone) : null;
 
             return (
-              <TR key={t.id}>
-                <TD>{statusBadge(t)}</TD>
-
-                <TD>
-                  <div className="flex items-start gap-2">
+              <div key={t.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
                     {href ? (
-                      <Link className="font-medium hover:underline" href={(href as unknown) as Route}>
+                      <Link className="block truncate text-sm font-semibold text-slate-900 hover:underline" href={(href as unknown) as Route}>
                         {t.title}
                       </Link>
                     ) : (
-                      <div className="font-medium">{t.title}</div>
+                      <div className="truncate text-sm font-semibold text-slate-900">{t.title}</div>
                     )}
+
+                    {href && label ? (
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">{label}</Badge>
+                        {t.entity_type === "lead" && leadInfo?.name ? <span className="text-xs text-slate-600">{leadInfo.name}</span> : null}
+                        {t.entity_type === "vehicle" && vehicleInfo?.title ? <span className="text-xs text-slate-600">{vehicleInfo.title}</span> : null}
+                      </div>
+                    ) : null}
+
+                    {t.description ? <div className="mt-1 line-clamp-2 text-xs text-slate-600">{t.description}</div> : null}
                   </div>
-                  {href && label ? (
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{label}</Badge>
-                      {t.entity_type === "lead" && leadInfo?.name ? (
-                        <span className="text-xs text-slate-600">{leadInfo.name}</span>
-                      ) : null}
-                      {t.entity_type === "vehicle" && vehicleInfo?.title ? (
-                        <span className="text-xs text-slate-600">{vehicleInfo.title}</span>
-                      ) : null}
-                    </div>
+                  <div className="shrink-0">{statusBadge(t)}</div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                    <div className="text-xs text-slate-500">Vence</div>
+                    <div className="text-sm font-medium text-slate-900">{fmtShort(t.due_at)}</div>
+                    <div className="mt-0.5 text-xs text-slate-600">{dueLabel(t.due_at)}</div>
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                    <div className="text-xs text-slate-500">Asignado</div>
+                    <div className="text-sm font-medium text-slate-900">{assignee?.full_name ?? (t.assigned_to ? t.assigned_to.slice(0, 8) : "—")}</div>
+                    <div className="mt-1">{prioBadge(t.priority)}</div>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {wa ? (
+                    <Button asChild size="sm" variant="outline">
+                      <a href={wa} target="_blank" rel="noreferrer">
+                        <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
+                      </a>
+                    </Button>
                   ) : null}
-                  {t.description ? <div className="text-xs text-slate-600 mt-1 line-clamp-2">{t.description}</div> : null}
-                </TD>
+                  {tel ? (
+                    <Button asChild size="sm" variant="outline">
+                      <a href={tel}>
+                        <Phone className="mr-2 h-4 w-4" /> Llamar
+                      </a>
+                    </Button>
+                  ) : null}
 
-                <TD>
-                  <div className="text-sm">{fmtShort(t.due_at)}</div>
-                  <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                    <Clock className="h-3.5 w-3.5" />
-                    {dueLabel(t.due_at)}
-                  </div>
-                </TD>
+                  {t.status === "open" ? (
+                    <Button size="sm" variant="secondary" onClick={() => run(() => completeTask(t.id))}>
+                      <CheckCircle2 className="mr-2 h-4 w-4" /> Hecha
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="secondary" onClick={() => run(() => reopenTask(t.id))}>
+                      <RotateCcw className="mr-2 h-4 w-4" /> Reabrir
+                    </Button>
+                  )}
 
-                <TD>{prioBadge(t.priority)}</TD>
-
-                <TD className="text-sm">
-                  {assignee?.full_name ?? (t.assigned_to ? t.assigned_to.slice(0, 8) : "—")}
-                </TD>
-
-                <TD className="text-right">
-                  <div className="inline-flex flex-wrap justify-end gap-2">
-                    {wa ? (
-                      <Button asChild size="sm" variant="outline" title="WhatsApp">
-                        <a href={wa} target="_blank" rel="noreferrer">
-                          <MessageCircle className="h-4 w-4" />
-                        </a>
+                  {t.status === "open" ? (
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => run(() => postpone(t, 1))}>
+                        +1d
                       </Button>
-                    ) : null}
-
-                    {tel ? (
-                      <Button asChild size="sm" variant="outline" title="Llamar">
-                        <a href={tel}>
-                          <Phone className="h-4 w-4" />
-                        </a>
+                      <Button size="sm" variant="outline" onClick={() => run(() => postpone(t, 7))}>
+                        +7d
                       </Button>
-                    ) : null}
-
-                    {t.status === "open" ? (
-                      <Button size="sm" variant="secondary" onClick={() => run(() => completeTask(t.id))} title="Marcar hecha">
-                        <CheckCircle2 className="h-4 w-4" />
+                      <Button size="sm" variant="outline" onClick={() => onEdit(t)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Editar
                       </Button>
-                    ) : (
-                      <Button size="sm" variant="secondary" onClick={() => run(() => reopenTask(t.id))} title="Reabrir">
-                        <RotateCcw className="h-4 w-4" />
+                      <Button size="sm" variant="outline" onClick={() => run(() => cancelTask(t.id))}>
+                        <XCircle className="mr-2 h-4 w-4" /> Cancelar
                       </Button>
-                    )}
+                    </>
+                  ) : null}
 
-                    {t.status === "open" ? (
-                      <>
-                        <Button size="sm" variant="outline" onClick={() => run(() => postpone(t, 1))} title="Posponer 1 día">
-                          +1d
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => run(() => postpone(t, 7))} title="Posponer 1 semana">
-                          +7d
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => onEdit(t)} title="Editar">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => run(() => cancelTask(t.id))} title="Cancelar">
-                          <XCircle className="h-4 w-4" />
-                        </Button>
-                      </>
-                    ) : null}
-
-                    {(myRole === "admin" || t.created_by === userId) ? (
-                      <Button size="sm" variant="destructive" onClick={() => run(() => deleteTask(t.id))} title="Eliminar">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </TD>
-              </TR>
+                  {myRole === "admin" || t.created_by === userId ? (
+                    <Button size="sm" variant="destructive" onClick={() => run(() => deleteTask(t.id))}>
+                      <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
             );
           })
         )}
-      </TBody>
-    </Table>
+      </div>
+    </>
   );
 }
