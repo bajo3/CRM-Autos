@@ -30,6 +30,7 @@ export type Permiso =
   | "whatsapp.enviar"
   | "mercadolibre.publicar"
   | "reportes.ver"
+  | "creditos.cobrar"
   | "usuarios.crear"
   | "empresa.configurar";
 
@@ -38,7 +39,7 @@ const TODOS: Permiso[] = [
   "clientes.ver", "clientes.ver_todos", "ventas.crear", "costos.ver",
   "margenes.ver", "precios.cambiar", "documentos.generar", "catalogo.generar",
   "whatsapp.enviar", "mercadolibre.publicar", "reportes.ver",
-  "usuarios.crear", "empresa.configurar",
+  "creditos.cobrar", "usuarios.crear", "empresa.configurar",
 ];
 
 const MATRIZ: Record<Rol, Permiso[]> = {
@@ -47,7 +48,8 @@ const MATRIZ: Record<Rol, Permiso[]> = {
     "stock.ver", "stock.crear", "stock.editar", "stock.eliminar",
     "clientes.ver", "clientes.ver_todos", "ventas.crear", "costos.ver",
     "margenes.ver", "precios.cambiar", "documentos.generar", "catalogo.generar",
-    "whatsapp.enviar", "mercadolibre.publicar", "reportes.ver", "usuarios.crear",
+    "whatsapp.enviar", "mercadolibre.publicar", "reportes.ver",
+    "creditos.cobrar", "usuarios.crear",
   ],
   vendedor: [
     "stock.ver", "stock.crear", "stock.editar",
@@ -57,6 +59,7 @@ const MATRIZ: Record<Rol, Permiso[]> = {
   administrativo: [
     "stock.ver", "clientes.ver", "clientes.ver_todos",
     "documentos.generar", "catalogo.generar", "whatsapp.enviar", "reportes.ver",
+    "creditos.cobrar",
   ],
   gestoria: ["stock.ver", "documentos.generar"],
   solo_lectura: ["stock.ver", "clientes.ver", "reportes.ver"],
