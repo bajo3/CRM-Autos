@@ -69,7 +69,7 @@ export const NAV: NavSection[] = [
     title: "Administración",
     items: [
       { href: "/usuarios", label: "Usuarios y roles", icon: UserCog },
-      { href: "/configuracion", label: "Configuración", icon: Settings, pendiente: true },
+      { href: "/configuracion", label: "Configuración", icon: Settings },
     ],
   },
 ];
