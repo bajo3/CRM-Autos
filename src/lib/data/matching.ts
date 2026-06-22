@@ -1,0 +1,40 @@
+import { createClient } from "@/lib/supabase/server";
+import { rel, type Rel } from "@/lib/rel";
+
+type Vehiculo = {
+  marca: string; modelo: string; anio: number | null;
+  kilometros: number | null; precio_venta: number | null;
+};
+
+type EncargoRow = {
+  id: string; marca_buscada: string | null; modelo_buscado: string | null;
+  anio_min: number | null; anio_max: number | null; km_max: number | null;
+  presupuesto_max: number | null; urgencia: string; estado: string;
+  cliente: Rel<{ nombre: string; apellido: string; telefono: string | null }>;
+};
+
+const includesCI = (haystack: string, needle: string) =>
+  haystack.toLowerCase().includes(needle.toLowerCase());
+
+/**
+ * Encargos activos compatibles con un vehículo dado.
+ * Filtra en JS: cada criterio del encargo solo restringe si está definido.
+ */
+export async function matchEncargosParaVehiculo(vehiculoId: string, vehiculo: Vehiculo) {
+  const sb = createClient();
+  const { data } = await sb
+    .from("encargo")
+    .select("id,marca_buscada,modelo_buscado,anio_min,anio_max,km_max,presupuesto_max,urgencia,estado,cliente:cliente_id(nombre,apellido,telefono)")
+    .in("estado", ["buscando", "unidad_encontrada", "ofrecido"])
+    .returns<EncargoRow[]>();
+
+  return (data ?? []).filter((e) => {
+    if (e.marca_buscada && !includesCI(vehiculo.marca, e.marca_buscada)) return false;
+    if (e.modelo_buscado && !includesCI(vehiculo.modelo, e.modelo_buscado)) return false;
+    if (e.anio_min != null && vehiculo.anio != null && vehiculo.anio < e.anio_min) return false;
+    if (e.anio_max != null && vehiculo.anio != null && vehiculo.anio > e.anio_max) return false;
+    if (e.km_max != null && vehiculo.kilometros != null && vehiculo.kilometros > e.km_max) return false;
+    if (e.presupuesto_max != null && vehiculo.precio_venta != null && vehiculo.precio_venta > e.presupuesto_max) return false;
+    return true;
+  }).map((e) => ({ ...e, clienteData: rel(e.cliente) }));
+}
