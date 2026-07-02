@@ -10,4 +10,5 @@ export async function cambiarEstadoSeguimiento(id: string, estado: EstadoSeguimi
   const { error } = await sb.from("seguimiento").update({ estado }).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/seguimientos");
+  revalidatePath("/");
 }

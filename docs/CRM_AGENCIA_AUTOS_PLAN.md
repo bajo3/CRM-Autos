@@ -27,7 +27,7 @@
 - [x] Ocultar Garantías y Reclamos
 - [ ] Documentos
 - [ ] Catálogo *(base funcional hecha; faltan mejoras de PDF y vitrina)*
-- [ ] Dashboard Centro de Acción Comercial
+- [x] Dashboard Centro de Acción Comercial
 
 ---
 
@@ -163,19 +163,20 @@
 - [ ] Mejorar vitrina pública: filtros para el visitante, botón de consulta por WhatsApp por vehículo
 - [ ] Probar flujo completo (generar → compartir → abrir como cliente)
 
-## Dashboard Centro de Acción Comercial
+## Dashboard Centro de Acción Comercial ✅ (2026-07-02)
 
 > Objetivo: abrir el CRM y saber al instante **a quién contactar hoy** y qué está por vencerse.
 
-- [ ] Lista unificada accionable: seguimientos vencidos y de hoy
-- [ ] Presupuestos enviados por vencer / vencidos (por fecha de validez)
-- [ ] Créditos por terminar (últimas cuotas) y cuotas impagas
-- [ ] Encargos activos con coincidencias potenciales en stock
-- [ ] Reservas activas y VTV por vencer
-- [ ] Acciones rápidas en cada ítem: WhatsApp, llamar, abrir ficha, marcar resuelto
-- [ ] Alertas de fidelización integradas (ver módulo Fidelización)
-- [ ] Sin migración: derivar todo de tablas existentes
-- [ ] Probar con datos reales de demo
+- [x] Lista unificada accionable: seguimientos vencidos y de hoy (`src/lib/data/acciones-comerciales.ts` + `src/components/dashboard/centro-accion.tsx`)
+- [x] Presupuestos enviados por vencer / vencidos (por fecha de `validez`)
+- [x] Créditos por terminar (cuota_actual ≥ cantidad_cuotas − 1 o estado `por_terminar`)
+- [x] Reservas activas por vencer / vencidas
+- [x] Encargos urgentes (`urgencia = alta`) activos
+- [x] Acciones rápidas en cada ítem: llamar (`tel:`), WhatsApp (mensaje prearmado por tipo), abrir ficha, marcar resuelto (solo seguimientos, reutiliza `cambiarEstadoSeguimiento`)
+- [x] Sin migración: todo derivado de tablas existentes, 5 queries en paralelo
+- [x] Probado con datos reales de demo (empresa Jesús Díaz): 6 ítems mezclados por urgencia (vencido → hoy → oportunidad), acción "marcar realizado" verificada end-to-end en navegador
+- [x] Dashboard existente (`src/app/(app)/page.tsx`) reordenado: el centro de acción va primero; se sacaron los paneles "Seguimientos para hoy" y "Reservas por vencer" (quedaban duplicados con la lista nueva); VTV a controlar se mantiene aparte porque es una alerta documental del vehículo, no un contacto con cliente
+- Nota: "coincidencias potenciales en stock" para encargos (cruzar cada encargo activo contra el stock disponible) y las alertas de fidelización (cumpleaños, aniversario) quedaron fuera de este bloque — ver módulos Vehículos en stock y Fidelización.
 
 ---
 
@@ -213,3 +214,10 @@
 - **Migraciones agregadas:** `13_pago_cuota.sql` y `14_presupuesto_estructura.sql` (ambas aditivas, aplicadas en remoto).
 - **Qué falta revisar:** todo lo marcado `[ ]` arriba; próximos bloques sugeridos: (1) Ocultar Garantías/Reclamos (rápido), (2) Formato de dinero (transversal), (3) Dashboard Centro de Acción Comercial.
 - **Pruebas hechas:** `npm run typecheck` (0 errores), `npm run lint` (limpio), `npm run build` (38/38 rutas OK) después de cada ciclo.
+
+### Fecha: 2026-07-02 (bloque 2)
+- **Qué se implementó:** Ocultar Garantías/Reclamos del menú, Formato de dinero (componente `MoneyInput` + aplicado en 9 formularios), Dashboard Centro de Acción Comercial (lista unificada accionable).
+- **Archivos principales tocados:** `src/lib/nav.ts`; `src/components/ui/money-input.tsx` (nuevo) + `vehiculo-form.tsx`, `cliente-form.tsx`, `reserva-form.tsx`, `encargo-form.tsx`, `venta-form.tsx`, `registrar-pago.tsx`, `presupuesto-form.tsx`, `documentos/page.tsx`, `stock/[id]/page.tsx`; `src/lib/data/acciones-comerciales.ts` (nuevo), `src/components/dashboard/centro-accion.tsx` (nuevo), `src/app/(app)/page.tsx` (reordenado), `src/lib/data/dashboard.ts` (recortado, sin queries duplicadas), `src/app/(app)/seguimientos/actions.ts` (revalidatePath("/")).
+- **Migraciones agregadas:** ninguna (los tres bloques son aditivos en código, sin cambios de esquema).
+- **Qué falta revisar:** el resto de los módulos `[ ]` del plan (performance general del resto de listados, fidelización, mejoras de presupuestos/stock/catálogo, y los módulos nuevos test drive/permutas/tasaciones/taller/consignados).
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde después de cada uno de los 3 bloques. Verificación manual en navegador (login demo, Jesús Díaz Automotores): `MoneyInput` probado end-to-end en `/stock/nuevo` (precio con separador de miles) y en el gasto de `/stock/[id]` (alta y borrado real de un gasto de $85.000); Centro de Acción Comercial probado en `/` con datos reales — 6 ítems mostrados correctamente ordenados por urgencia, acción "marcar como realizado" verificada end-to-end (el ítem resuelto desaparece de la lista), dato de demo restaurado después vía SQL.
