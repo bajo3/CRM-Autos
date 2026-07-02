@@ -149,7 +149,6 @@ export async function generarPdfPresupuesto(id: string): Promise<void> {
   await sb.from("presupuesto").update({ pdf_url: path, updated_at: new Date().toISOString() }).eq("id", id);
   revalidatePath(`/presupuestos/${id}`);
   revalidatePath("/presupuestos");
-  redirect(`/presupuestos/${id}/abrir`);
 }
 
 /** Cambia el estado comercial del presupuesto. */

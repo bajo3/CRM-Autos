@@ -17,7 +17,7 @@
 - [ ] Performance general *(ficha de cliente hecha; falta auditar el resto de listados pesados)*
 - [x] Formato de dinero
 - [ ] Fidelización y alertas comerciales
-- [ ] Presupuestos *(base funcional hecha; faltan mejoras UX/PDF/modal)*
+- [ ] Presupuestos *(base + casi todas las mejoras hechas; falta rediseño visual del form y del PDF)*
 - [ ] Vehículos en stock *(paginación + acciones rápidas hechas; falta auditoría del ciclo de estados completo)*
 - [ ] Test Drive
 - [ ] Permutas
@@ -74,14 +74,15 @@
 - [x] Quitar "PRONTO" del menú
 
 **Mejoras pendientes:**
-- [ ] Abrir presupuesto en modal, popup o nueva pestaña sin sacar al usuario de la página actual
+- [x] Abrir presupuesto en modal, popup o nueva pestaña sin sacar al usuario de la página actual — el botón "Generar/Regenerar PDF" hacía `redirect()` a la URL firmada, sacando al usuario del CRM; ahora solo revalida y se queda en la ficha, y "Abrir PDF" (que ya abría en pestaña nueva) es un paso separado
 - [ ] Mejorar diseño visual del formulario (agrupación clara: vehículo / condiciones / financiación / extras)
-- [ ] Mejorar resumen financiero (precio − bonificación − anticipo = saldo; cuotas destacadas)
+- [x] Mejorar resumen financiero — ya estaba bien resuelto en la ficha (card "Condiciones" con precio/bonificación/anticipo/saldo en negrita/cuotas×valor/gastos, todo con `formatARS`); no requirió cambios
 - [ ] Mejorar PDF comercial (branding de agencia, jerarquía visual, condiciones legibles)
-- [ ] Aplicar formato de moneda en inputs (ver módulo Formato de dinero)
-- [ ] Mejorar mensaje de WhatsApp (más vendedor, con resumen de la operación)
-- [ ] Vencimiento automático: marcar `vencido` cuando pasa la validez
-- [ ] Probar flujo completo de punta a punta
+- [x] Aplicar formato de moneda en inputs (bloque anterior, `MoneyInput`)
+- [x] Mejorar mensaje de WhatsApp — ya estaba bien armado (precio/anticipo/saldo/cuotas/validez); no requirió cambios
+- [x] Vencimiento automático: `crm_run_daily_jobs()` ahora también marca `vencido` los presupuestos `enviado` con `validez` pasada (migración 15, aditiva — `create or replace function`, no destructiva)
+- [ ] Probar flujo completo de punta a punta (crear → enviar → aceptar/rechazar → PDF)
+- **Bug real encontrado y corregido:** el bucket de Storage `documentos` (y `catalogos`) no tenía policy de `UPDATE` en `storage.objects` — cualquier regeneración de PDF con `upsert:true` sobre un archivo ya existente fallaba con "row violates row-level security policy". Corregido con migración 16 (aditiva, agrega las dos policies faltantes). Verificado en navegador: "Regenerar PDF" ahora funciona sin error.
 
 ## Vehículos en stock ✅ parcial (2026-07-02)
 
@@ -230,3 +231,10 @@
 - **Migraciones agregadas:** ninguna.
 - **Qué falta revisar:** ciclo de estados completo del vehículo (en_preparacion→disponible→reservado→vendido) no auditado; sección de reservas/presupuestos asociados en la ficha del vehículo pendiente.
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Verificación manual en navegador: botón "Presupuestar" prellena vehículo en `/presupuestos/nuevo`, botón "Reservar" prellena vehículo en `/reservas/nuevo`, botón "Compartir por WhatsApp" arma el mensaje correcto con nombre de empresa/unidad/precio, listado de stock muestra "1–5 de 5 autos" y oculta controles de paginación al haber una sola página.
+
+### Fecha: 2026-07-02 (bloque 4)
+- **Qué se implementó:** Presupuestos — casi todas las mejoras pendientes cerradas (generar PDF sin salir de la página, vencimiento automático). De paso, probando el flujo en vivo se encontró y corrigió un **bug real de producción**: el bucket `documentos` no tenía policy de `UPDATE` en `storage.objects`, así que regenerar el PDF de un presupuesto ya generado fallaba siempre con error de RLS. Se corrigió agregando las policies de `UPDATE` faltantes en `documentos` y `catalogos` (mismo bug latente ahí, sin ejercitar aún).
+- **Archivos principales tocados:** `src/app/(app)/presupuestos/actions.ts` (se sacó el `redirect()` de `generarPdfPresupuesto`).
+- **Migraciones agregadas:** `15_presupuesto_vencimiento_automatico.sql` (extiende `crm_run_daily_jobs()` con el vencimiento de presupuestos, `create or replace function`, aditiva) y `16_storage_update_policies.sql` (agrega policies `documentos_update`/`catalogos_update` en `storage.objects`, aditiva). Ambas aplicadas en remoto vía Supabase MCP.
+- **Qué falta revisar:** rediseño visual del formulario de presupuesto y del PDF comercial (branding); flujo completo de punta a punta (crear → enviar → aceptar/rechazar) no recorrido en este bloque.
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. `select crm_run_daily_jobs()` ejecutado manualmente sin error. En navegador: clic en "Regenerar PDF" sobre un presupuesto con PDF previo — reprodujo el error 500 de RLS, se aplicó la migración de policies, se reintentó y esta vez devolvió 200 y el `updated_at` del presupuesto cambió (confirmado por SQL); la página se quedó en la ficha del presupuesto en vez de navegar afuera.
