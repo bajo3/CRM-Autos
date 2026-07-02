@@ -7,7 +7,11 @@ import { crearReserva } from "../actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function NuevaReservaPage() {
+export default async function NuevaReservaPage({
+  searchParams,
+}: {
+  searchParams: { cliente?: string; vehiculo?: string };
+}) {
   const { clientes, vehiculos } = await getFormOptions();
   return (
     <div className="mx-auto max-w-3xl">
@@ -15,7 +19,13 @@ export default async function NuevaReservaPage() {
         <ArrowLeft className="h-4 w-4" /> Volver a reservas
       </Link>
       <PageHeader title="Nueva reserva" description="Tomá una seña sobre una unidad." />
-      <ReservaForm action={crearReserva} clientes={clientes} vehiculos={vehiculos} />
+      <ReservaForm
+        action={crearReserva}
+        clientes={clientes}
+        vehiculos={vehiculos}
+        clienteId={searchParams.cliente}
+        vehiculoId={searchParams.vehiculo}
+      />
     </div>
   );
 }

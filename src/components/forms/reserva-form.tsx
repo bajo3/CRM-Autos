@@ -18,10 +18,10 @@ function Submit() {
 const hoy = new Date().toISOString().slice(0, 10);
 
 export function ReservaForm({
-  action, clientes, vehiculos,
+  action, clientes, vehiculos, clienteId, vehiculoId,
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
-  clientes: Option[]; vehiculos: Option[];
+  clientes: Option[]; vehiculos: Option[]; clienteId?: string; vehiculoId?: string;
 }) {
   const [state, formAction] = useFormState<FormState, FormData>(action, {});
 
@@ -31,14 +31,14 @@ export function ReservaForm({
         <CardContent className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
           <div>
             <Label htmlFor="cliente_id">Cliente</Label>
-            <Select id="cliente_id" name="cliente_id" defaultValue="">
+            <Select id="cliente_id" name="cliente_id" defaultValue={clienteId ?? ""}>
               <option value="">— Elegir —</option>
               {clientes.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
             </Select>
           </div>
           <div>
             <Label htmlFor="vehiculo_id">Vehículo reservado</Label>
-            <Select id="vehiculo_id" name="vehiculo_id" defaultValue="">
+            <Select id="vehiculo_id" name="vehiculo_id" defaultValue={vehiculoId ?? ""}>
               <option value="">— Elegir —</option>
               {vehiculos.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
             </Select>

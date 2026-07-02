@@ -25,20 +25,27 @@ const ESTADOS = [
   "pausado", "reservado", "en_negociacion", "vendido", "consignado",
 ];
 
+const PAGE_SIZE = 30;
+
 export default async function StockPage({
   searchParams,
 }: {
-  searchParams: { estado?: string; q?: string };
+  searchParams: { estado?: string; q?: string; page?: string };
 }) {
   const sb = createClient();
   const ctx = await getSessionContext();
   const rol = ctx?.profile?.rol;
   const verMargen = can(rol, "margenes.ver");
 
+  const page = Math.max(1, Number(searchParams.page) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
   let query = sb
     .from("vehiculo")
-    .select("id, marca, modelo, version, anio, kilometros, patente, precio_venta, margen_estimado, estado, estado_documental, publicado_web, publicado_ml")
-    .order("created_at", { ascending: false });
+    .select("id, marca, modelo, version, anio, kilometros, patente, precio_venta, margen_estimado, estado, estado_documental, publicado_web, publicado_ml", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
   if (searchParams.estado && ESTADOS.includes(searchParams.estado)) {
     query = query.eq("estado", searchParams.estado as never);
@@ -49,7 +56,16 @@ export default async function StockPage({
     );
   }
 
-  const { data: autos } = await query.returns<VehiculoRow[]>();
+  const { data: autos, count } = await query.returns<VehiculoRow[]>();
+  const total = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const qs = (p: number) => {
+    const sp = new URLSearchParams();
+    if (searchParams.q) sp.set("q", searchParams.q);
+    if (searchParams.estado) sp.set("estado", searchParams.estado);
+    sp.set("page", String(p));
+    return `/stock?${sp.toString()}`;
+  };
 
   return (
     <div>
@@ -135,6 +151,29 @@ export default async function StockPage({
               ))}
             </TBody>
           </Table>
+        </div>
+      )}
+
+      {total > 0 && (
+        <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {from + 1}–{Math.min(from + PAGE_SIZE, total)} de {total} auto{total === 1 ? "" : "s"}
+          </span>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              {page > 1 ? (
+                <Link href={qs(page - 1)} className="rounded-md border px-3 py-1 hover:bg-muted">Anterior</Link>
+              ) : (
+                <span className="rounded-md border px-3 py-1 opacity-40">Anterior</span>
+              )}
+              <span>Página {page} de {totalPages}</span>
+              {page < totalPages ? (
+                <Link href={qs(page + 1)} className="rounded-md border px-3 py-1 hover:bg-muted">Siguiente</Link>
+              ) : (
+                <span className="rounded-md border px-3 py-1 opacity-40">Siguiente</span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

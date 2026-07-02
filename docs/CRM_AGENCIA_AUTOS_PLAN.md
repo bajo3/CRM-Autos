@@ -18,7 +18,7 @@
 - [x] Formato de dinero
 - [ ] Fidelización y alertas comerciales
 - [ ] Presupuestos *(base funcional hecha; faltan mejoras UX/PDF/modal)*
-- [ ] Vehículos en stock
+- [ ] Vehículos en stock *(paginación + acciones rápidas hechas; falta auditoría del ciclo de estados completo)*
 - [ ] Test Drive
 - [ ] Permutas
 - [ ] Tasaciones
@@ -83,14 +83,16 @@
 - [ ] Vencimiento automático: marcar `vencido` cuando pasa la validez
 - [ ] Probar flujo completo de punta a punta
 
-## Vehículos en stock
+## Vehículos en stock ✅ parcial (2026-07-02)
 
-- [ ] Auditar listado: filtros, orden, paginación, velocidad
-- [ ] Ficha de vehículo: fotos, datos completos, historial (reservas, presupuestos, consultas asociadas)
-- [ ] Acciones rápidas desde el vehículo: presupuestar, reservar, publicar, compartir por WhatsApp
-- [ ] Estados del ciclo (en preparación → disponible → reservado → vendido) consistentes en toda la app
-- [ ] Formato de moneda en alta/edición
-- [ ] Probar flujo completo (alta → preparación → publicado → reservado → vendido)
+- [x] Auditar listado: filtros y orden ya existían; se agregó paginación (30/página, mismo patrón que clientes) y `loading.tsx`
+- [ ] Ficha de vehículo: fotos, datos completos e historial ya existen (gastos, VTV, interesados, documentos, historial de cambios, matching de encargos); falta agregar reservas y presupuestos asociados a la unidad como sección propia
+- [x] Acciones rápidas desde el vehículo: Presupuestar (`/presupuestos/nuevo?vehiculo=`), Reservar (`/reservas/nuevo?vehiculo=`, se agregó soporte de prefill al `ReservaForm`), Compartir por WhatsApp (`mensajeVehiculo`); "publicar" ya vive en `/publicaciones`
+- [ ] Estados del ciclo (en preparación → disponible → reservado → vendido) consistentes en toda la app — no auditado en este bloque
+- [x] Formato de moneda en alta/edición (bloque anterior, `MoneyInput`)
+- [x] `loading.tsx` en `/stock` y `/stock/[id]` (la ficha es la ruta más pesada de la app, 69.9 kB)
+- [ ] Probar flujo completo (alta → preparación → publicado → reservado → vendido) — no recorrido de punta a punta en este bloque, solo se probaron las acciones rápidas nuevas
+- Nota: quedó pendiente para un próximo bloque el resto del ciclo de vida completo y la sección de reservas/presupuestos en la ficha.
 
 ## Test Drive
 
@@ -221,3 +223,10 @@
 - **Migraciones agregadas:** ninguna (los tres bloques son aditivos en código, sin cambios de esquema).
 - **Qué falta revisar:** el resto de los módulos `[ ]` del plan (performance general del resto de listados, fidelización, mejoras de presupuestos/stock/catálogo, y los módulos nuevos test drive/permutas/tasaciones/taller/consignados).
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde después de cada uno de los 3 bloques. Verificación manual en navegador (login demo, Jesús Díaz Automotores): `MoneyInput` probado end-to-end en `/stock/nuevo` (precio con separador de miles) y en el gasto de `/stock/[id]` (alta y borrado real de un gasto de $85.000); Centro de Acción Comercial probado en `/` con datos reales — 6 ítems mostrados correctamente ordenados por urgencia, acción "marcar como realizado" verificada end-to-end (el ítem resuelto desaparece de la lista), dato de demo restaurado después vía SQL.
+
+### Fecha: 2026-07-02 (bloque 3)
+- **Qué se implementó:** Vehículos en stock (parcial): paginación en `/stock`, `loading.tsx` en `/stock` y `/stock/[id]`, acciones rápidas (Presupuestar/Reservar/Compartir por WhatsApp) en la ficha del vehículo, prefill de vehículo en `ReservaForm`.
+- **Archivos principales tocados:** `src/app/(app)/stock/page.tsx` (paginación), `src/app/(app)/stock/loading.tsx` (nuevo), `src/app/(app)/stock/[id]/loading.tsx` (nuevo), `src/app/(app)/stock/[id]/page.tsx` (botones de acción rápida), `src/components/forms/reserva-form.tsx` (props `clienteId`/`vehiculoId`), `src/app/(app)/reservas/nuevo/page.tsx` (lee `searchParams.vehiculo`).
+- **Migraciones agregadas:** ninguna.
+- **Qué falta revisar:** ciclo de estados completo del vehículo (en_preparacion→disponible→reservado→vendido) no auditado; sección de reservas/presupuestos asociados en la ficha del vehículo pendiente.
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Verificación manual en navegador: botón "Presupuestar" prellena vehículo en `/presupuestos/nuevo`, botón "Reservar" prellena vehículo en `/reservas/nuevo`, botón "Compartir por WhatsApp" arma el mensaje correcto con nombre de empresa/unidad/precio, listado de stock muestra "1–5 de 5 autos" y oculta controles de paginación al haber una sola página.

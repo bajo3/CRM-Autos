@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageCircle, Pencil, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, MessageCircle, Pencil, FileText, ExternalLink, Receipt, BookmarkPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
+import { waUrl, mensajeVehiculo } from "@/lib/data/whatsapp";
 import { DeleteAutoButton } from "@/components/stock/delete-auto-button";
 import { FotosManager } from "@/components/stock/fotos-manager";
 import { EstadoDocumentalSelect } from "@/components/stock/estado-documental-select";
@@ -126,6 +127,27 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
           <Badge tone="info">{humanize(v.titularidad)}</Badge>
         </div>
       </div>
+
+      {v.estado !== "vendido" && (
+        <div className="mb-5 flex flex-wrap gap-2">
+          {can(rol, "documentos.generar") && (
+            <Link href={`/presupuestos/nuevo?vehiculo=${v.id}`}>
+              <Button variant="outline" size="sm"><Receipt className="h-4 w-4" /> Presupuestar</Button>
+            </Link>
+          )}
+          <Link href={`/reservas/nuevo?vehiculo=${v.id}`}>
+            <Button variant="outline" size="sm"><BookmarkPlus className="h-4 w-4" /> Reservar</Button>
+          </Link>
+          <a
+            href={waUrl(mensajeVehiculo(ctx?.empresa?.nombre ?? "nuestra agencia", {
+              marca: v.marca, modelo: v.modelo, anio: v.anio, precio: v.precio_venta,
+            }))}
+            target="_blank"
+          >
+            <Button variant="outline" size="sm"><MessageCircle className="h-4 w-4" /> Compartir por WhatsApp</Button>
+          </a>
+        </div>
+      )}
 
       {v.estado === "vendido" && interesadosPendientes.length > 0 && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
