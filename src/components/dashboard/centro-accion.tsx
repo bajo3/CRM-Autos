@@ -1,12 +1,13 @@
 import Link from "next/link";
 import {
   Phone, MessageCircle, CalendarClock, FileText, CreditCard,
-  BookmarkCheck, PackageSearch, CheckCircle2,
+  BookmarkCheck, PackageSearch, CheckCircle2, HeartHandshake,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { waUrl } from "@/lib/data/whatsapp";
 import { getAccionesComerciales, type AccionItem, type Urgencia } from "@/lib/data/acciones-comerciales";
 import { cambiarEstadoSeguimiento } from "@/app/(app)/seguimientos/actions";
+import { marcarPostventaRealizada } from "@/app/(app)/postventa/actions";
 
 const ICONO_TIPO: Record<AccionItem["tipo"], typeof Phone> = {
   seguimiento: CalendarClock,
@@ -14,6 +15,7 @@ const ICONO_TIPO: Record<AccionItem["tipo"], typeof Phone> = {
   credito: CreditCard,
   reserva: BookmarkCheck,
   encargo: PackageSearch,
+  postventa: HeartHandshake,
 };
 
 const URGENCIA_BADGE: Record<Urgencia, { tone: "danger" | "warn" | "info"; label: string }> = {
@@ -29,7 +31,7 @@ export async function CentroAccionComercial() {
     return (
       <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
         No hay nada urgente por ahora. 🎉 Los seguimientos vencidos, presupuestos por vencer,
-        créditos por terminar, reservas y encargos urgentes van a aparecer acá.
+        créditos por terminar, reservas, encargos urgentes y recontactos de postventa van a aparecer acá.
       </div>
     );
   }
@@ -76,6 +78,17 @@ export async function CentroAccionComercial() {
                   <button
                     type="submit"
                     title="Marcar como realizado"
+                    className="rounded-md border p-1.5 text-ok hover:bg-muted"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                  </button>
+                </form>
+              )}
+              {item.tipo === "postventa" && (
+                <form action={marcarPostventaRealizada.bind(null, item.refId)}>
+                  <button
+                    type="submit"
+                    title="Marcar como realizada"
                     className="rounded-md border p-1.5 text-ok hover:bg-muted"
                   >
                     <CheckCircle2 className="h-4 w-4" />

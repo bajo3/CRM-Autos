@@ -23,9 +23,15 @@ export function mensajeVehiculo(
   return `¡Hola! Te paso info de esta unidad de ${empresaNombre}:\n\n${unidad}${link ? `\n${link}` : ""}\n\n¿Te interesa coordinar una visita?`;
 }
 
+/** Mensaje de recontacto de postventa (fidelización, a los 6 meses de la compra). */
+export function mensajePostventa(empresaNombre: string, nombreCliente?: string | null): string {
+  return `¡Hola${nombreCliente ? ` ${nombreCliente}` : ""}! Somos ${empresaNombre} 🚗 Queríamos saber cómo te está yendo con tu auto y si necesitás algo (service, repuestos, o alguna consulta). ¡Cualquier cosa estamos a disposición!`;
+}
+
 /** Plantillas “de ejemplo” mostradas en la UI (el catálogo completa el link real). */
 export const PLANTILLAS_WA: { key: string; label: string; texto: string }[] = [
   { key: "catalogo", label: "Catálogo", texto: "¡Hola! Te comparto el catálogo de {empresa} 🚗 {link}" },
   { key: "seguimiento", label: "Seguimiento", texto: "¡Hola! ¿Pudiste ver la info que te pasé? Cualquier duda quedo a disposición." },
   { key: "reserva", label: "Reserva", texto: "¡Gracias por tu seña! Tu unidad queda reservada. Coordinamos la entrega cuando quieras." },
+  { key: "postventa", label: "Postventa", texto: "¡Hola! Queríamos saber cómo te está yendo con tu auto. Cualquier consulta, estamos a disposición." },
 ];

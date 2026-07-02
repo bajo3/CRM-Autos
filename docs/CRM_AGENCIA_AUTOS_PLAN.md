@@ -16,7 +16,7 @@
 
 - [ ] Performance general *(paginación en todos los listados grandes hecha; falta auditoría de N+1/índices)*
 - [x] Formato de dinero
-- [ ] Fidelización y alertas comerciales
+- [ ] Fidelización y alertas comerciales *(postventa accionable + integrada al dashboard; cumpleaños queda para cuando haya el dato)*
 - [ ] Presupuestos *(base + casi todas las mejoras hechas; falta rediseño visual del form y del PDF)*
 - [ ] Vehículos en stock *(paginación + acciones rápidas hechas; falta auditoría del ciclo de estados completo)*
 - [ ] Test Drive
@@ -55,13 +55,14 @@
 - [x] Verificado que toda visualización de montos ya usa `formatARS` (barrido con grep, sin números crudos filtrándose a la UI)
 - Nota: el campo de comisiones (`/comisiones`, tipo % o $ fijo con decimales) se dejó como input numérico simple a propósito — `MoneyInput` es solo enteros y ese campo necesita decimales para el modo porcentaje.
 
-## Fidelización y alertas comerciales
+## Fidelización y alertas comerciales ✅ parcial (2026-07-02)
 
-- [ ] Definir alertas comerciales: cumpleaños de clientes, aniversario de compra, service/VTV por vencer, cliente sin contacto hace X días
-- [ ] Vista/sección de alertas con acción rápida (WhatsApp con mensaje prearmado por tipo de alerta)
-- [ ] Plantillas de mensajes de fidelización (post-venta, cumpleaños, recordatorio VTV)
-- [ ] Integrar estas alertas al Dashboard Centro de Acción Comercial
-- [ ] Migración aditiva solo si hace falta persistir algo (ej. fecha de nacimiento del cliente)
+- [x] Definir alertas comerciales: **aniversario de compra** (ya existía como módulo `postventa`, recontacto automático a 6 meses en ventas en efectivo — solo estaba a medio construir, era de solo lectura) y **service/VTV por vencer** (ya existía, `/vtv` + dashboard). **Cumpleaños de clientes** y **cliente sin contacto hace X días** quedan afuera de este bloque — no auditado, ver nota abajo.
+- [x] Vista/sección de alertas con acción rápida: `/postventa` ahora tiene llamar (`tel:`), WhatsApp (mensaje prearmado) y "marcar como realizada" — antes era una tabla de solo lectura sin ninguna acción
+- [x] Plantillas de mensajes de fidelización: `mensajePostventa()` en `src/lib/data/whatsapp.ts` (+ entrada en `PLANTILLAS_WA`)
+- [x] Integrar estas alertas al Dashboard Centro de Acción Comercial: nuevo tipo `postventa` en `acciones-comerciales.ts`, con ícono, badge de urgencia y acción de "marcar realizada" en la lista unificada
+- [x] Sin migración: todo deriva de la tabla `postventa` que ya existía
+- Nota: **cumpleaños de clientes** no se implementó — la tabla `cliente` no tiene columna de fecha de nacimiento y la demo no tiene ese dato, así que hubiera sido una feature sin datos para probar. Si se quiere sumar: columna `fecha_nacimiento date null` (migración aditiva) + query anual en `acciones-comerciales.ts`. **Cliente sin contacto hace X días** tampoco se implementó — requiere definir qué cuenta como "contacto" (¿último seguimiento? ¿última venta?) y es una decisión de producto, no técnica; queda para cuando el dueño defina la regla.
 
 ## Presupuestos
 
@@ -246,3 +247,10 @@
 - **Migraciones agregadas:** ninguna.
 - **Qué falta revisar:** N+1 y selects `*` innecesarios (no auditado), índices de Postgres para filtros frecuentes (no auditado), paginación de `/presupuestos` (se dejó sin paginar por bajo volumen esperado — revisar si crece).
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Verificación manual en navegador: `/documentos` muestra los dos formularios con las opciones cargadas y la tabla con "1–5 de 5 documentos"; `/ventas` con "1–2 de 2 ventas"; `/seguimientos` con "1–3 de 3 seguimientos" — los tres con los controles de paginación ocultos correctamente al haber una sola página.
+
+### Fecha: 2026-07-02 (bloque 6)
+- **Qué se implementó:** Fidelización y alertas comerciales (parcial) — se activó el módulo `postventa` que existía pero era de solo lectura: ahora tiene llamar/WhatsApp/marcar realizada, y se integró como nuevo tipo de ítem en el Centro de Acción Comercial del dashboard.
+- **Archivos principales tocados:** `src/app/(app)/postventa/page.tsx` (reescrito con acciones), `src/app/(app)/postventa/actions.ts` (nuevo, `marcarPostventaRealizada`), `src/lib/data/whatsapp.ts` (`mensajePostventa` + entrada en `PLANTILLAS_WA`), `src/lib/data/acciones-comerciales.ts` (tipo `postventa`), `src/components/dashboard/centro-accion.tsx` (ícono `HeartHandshake` + acción de resolver).
+- **Migraciones agregadas:** ninguna (la tabla `postventa` ya existía y tenía todo lo necesario).
+- **Qué falta revisar:** cumpleaños de clientes (falta la columna `fecha_nacimiento` — decisión de si vale la pena pedirla en el alta de cliente) y "cliente sin contacto hace X días" (falta definir la regla de negocio).
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador: el dashboard mostró "Roberto Paz · Postventa: recontacto (12/06/2026) · Vencido" con sus 3 acciones; el link de WhatsApp armó el mensaje correcto con el teléfono real del cliente; se probó "Marcar como realizada" en `/postventa` — el estado cambió a "Realizada" y las acciones desaparecieron; dato de demo restaurado después vía SQL.

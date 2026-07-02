@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+import { getSessionContext } from "@/lib/auth/session";
 import { rel, type Rel } from "@/lib/rel";
 import { formatARS, formatDate } from "@/lib/format";
+import { mensajePostventa } from "@/lib/data/whatsapp";
 
 export type Urgencia = "vencido" | "hoy" | "oportunidad";
-export type TipoAccion = "seguimiento" | "presupuesto" | "credito" | "reserva" | "encargo";
+export type TipoAccion = "seguimiento" | "presupuesto" | "credito" | "reserva" | "encargo" | "postventa";
 
 export type AccionItem = {
   key: string;
@@ -48,6 +50,10 @@ type EncargoRow = {
   id: string; marca_buscada: string | null; modelo_buscado: string | null; urgencia: string; estado: string;
   cliente: Rel<{ nombre: string; apellido: string | null; telefono: string | null; whatsapp: string | null }>;
 };
+type PostventaRow = {
+  id: string; fecha_alerta: string; realizada: boolean;
+  cliente: Rel<{ nombre: string; apellido: string | null; telefono: string | null; whatsapp: string | null }>;
+};
 
 function nombreCompleto(c: { nombre: string; apellido: string | null } | null): string {
   if (!c) return "Cliente sin nombre";
@@ -66,10 +72,12 @@ function tel(c: { telefono: string | null; whatsapp: string | null } | null): st
  */
 export async function getAccionesComerciales(): Promise<AccionItem[]> {
   const sb = createClient();
+  const ctx = await getSessionContext();
+  const empresaNombre = ctx?.empresa?.nombre ?? "nuestra agencia";
   const today = todayISO();
   const in3days = inDaysISO(3);
 
-  const [segRes, presRes, credRes, resRes, encRes] = await Promise.all([
+  const [segRes, presRes, credRes, resRes, encRes, postRes] = await Promise.all([
     sb.from("seguimiento")
       .select("id,fecha,motivo,estado,cliente:cliente_id(nombre,apellido,telefono,whatsapp)")
       .in("estado", ["pendiente", "vencido"]).lte("fecha", today)
@@ -90,6 +98,10 @@ export async function getAccionesComerciales(): Promise<AccionItem[]> {
       .select("id,marca_buscada,modelo_buscado,urgencia,estado,cliente:cliente_id(nombre,apellido,telefono,whatsapp)")
       .in("estado", ["buscando", "unidad_encontrada", "ofrecido"]).eq("urgencia", "alta")
       .returns<EncargoRow[]>(),
+    sb.from("postventa")
+      .select("id,fecha_alerta,realizada,cliente:cliente_id(nombre,apellido,telefono,whatsapp)")
+      .eq("realizada", false).lte("fecha_alerta", in3days)
+      .order("fecha_alerta").returns<PostventaRow[]>(),
   ]);
 
   const items: AccionItem[] = [];
@@ -157,6 +169,18 @@ export async function getAccionesComerciales(): Promise<AccionItem[]> {
       detalle: `Encargo urgente: ${e.marca_buscada ?? ""} ${e.modelo_buscado ?? ""}`.trim(),
       fecha: null, href: "/encargos",
       whatsappMsg: `¡Hola${c ? ` ${c.nombre}` : ""}! Te cuento que seguimos buscando la unidad que me pediste, cualquier novedad te aviso.`,
+    });
+  }
+
+  for (const p of postRes.data ?? []) {
+    const c = rel(p.cliente);
+    const urgencia: Urgencia = p.fecha_alerta < today ? "vencido" : p.fecha_alerta === today ? "hoy" : "oportunidad";
+    items.push({
+      key: `postventa-${p.id}`, refId: p.id, tipo: "postventa", urgencia,
+      cliente: nombreCompleto(c), telefono: tel(c),
+      detalle: `Postventa: recontacto (${formatDate(p.fecha_alerta)})`,
+      fecha: p.fecha_alerta, href: "/postventa",
+      whatsappMsg: mensajePostventa(empresaNombre, c?.nombre),
     });
   }
 
