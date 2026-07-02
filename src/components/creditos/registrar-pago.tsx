@@ -6,6 +6,7 @@ import { CreditCard } from "lucide-react";
 import { registrarPago, type FormState } from "@/app/(app)/creditos/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 
 function Submit() {
   const { pending } = useFormStatus();
@@ -53,7 +54,7 @@ export function RegistrarPagoButton({
             <form action={formAction} className="mt-4 space-y-4">
               <div>
                 <Label htmlFor="monto">Monto pagado (ARS)</Label>
-                <Input id="monto" name="monto" type="number" min={0} step="0.01" placeholder="50000" />
+                <MoneyInput id="monto" name="monto" placeholder="50.000" />
               </div>
               <div>
                 <Label htmlFor="fecha">Fecha de pago</Label>

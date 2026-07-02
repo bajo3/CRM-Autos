@@ -15,7 +15,7 @@
 ## Estado general
 
 - [ ] Performance general *(ficha de cliente hecha; falta auditar el resto de listados pesados)*
-- [ ] Formato de dinero
+- [x] Formato de dinero
 - [ ] Fidelización y alertas comerciales
 - [ ] Presupuestos *(base funcional hecha; faltan mejoras UX/PDF/modal)*
 - [ ] Vehículos en stock
@@ -24,7 +24,7 @@
 - [ ] Tasaciones
 - [ ] Taller / Preparación
 - [ ] Consignados
-- [ ] Ocultar Garantías y Reclamos
+- [x] Ocultar Garantías y Reclamos
 - [ ] Documentos
 - [ ] Catálogo *(base funcional hecha; faltan mejoras de PDF y vitrina)*
 - [ ] Dashboard Centro de Acción Comercial
@@ -42,16 +42,17 @@
 - [ ] Revisar N+1 y selects `*` innecesarios en páginas principales
 - [ ] Revisar índices en Postgres para los filtros más usados (solo migración aditiva)
 
-## Formato de dinero
+## Formato de dinero ✅ (2026-07-02)
 
 > Ya existe `formatARS()` en `src/lib/format.ts` (es-AR, sin decimales) para MOSTRAR valores.
-> El problema es la CARGA: los inputs de dinero son numéricos crudos, sin separador de miles.
+> El problema era la CARGA: los inputs de dinero eran numéricos crudos, sin separador de miles.
 
-- [ ] Componente de input de dinero (muestra `$ 12.500.000` mientras se escribe, guarda número limpio)
-- [ ] Aplicarlo en formulario de presupuesto (precio, anticipo, bonificación, gastos, valor cuota)
-- [ ] Aplicarlo en alta/edición de vehículo (precio compra, precio venta)
-- [ ] Aplicarlo en clientes (presupuesto aprox.), créditos, ventas, reservas y demás formularios con montos
-- [ ] Verificar que TODA visualización de montos use `formatARS` (barrido global, sin números crudos)
+- [x] Componente `MoneyInput` (`src/components/ui/money-input.tsx`): muestra `$ 12.500.000` mientras se escribe (input visible formateado + input oculto con el número limpio para el `FormData`)
+- [x] Aplicado en formulario de presupuesto (precio, anticipo, bonificación, gastos, valor cuota)
+- [x] Aplicado en alta/edición de vehículo (precio venta, precio costo)
+- [x] Aplicado en clientes (presupuesto aprox.), créditos (monto pagado), ventas (precio final, seña), reservas (monto seña), encargos (presupuesto máx.), documentos (precio), gasto de stock
+- [x] Verificado que toda visualización de montos ya usa `formatARS` (barrido con grep, sin números crudos filtrándose a la UI)
+- Nota: el campo de comisiones (`/comisiones`, tipo % o $ fijo con decimales) se dejó como input numérico simple a propósito — `MoneyInput` es solo enteros y ese campo necesita decimales para el modo porcentaje.
 
 ## Fidelización y alertas comerciales
 
@@ -136,10 +137,10 @@
 - [ ] Quitar "PRONTO" del menú al estar funcional
 - [ ] Probar flujo completo
 
-## Ocultar Garantías y Reclamos
+## Ocultar Garantías y Reclamos ✅ (2026-07-02)
 
-- [ ] Quitar `/garantias` y `/reclamos` del menú de navegación (`src/lib/nav.ts`) — no se van a implementar por ahora
-- [ ] Verificar que no queden links rotos hacia esas rutas en el resto de la app
+- [x] Quitar `/garantias` y `/reclamos` del menú de navegación (`src/lib/nav.ts`) — no se van a implementar por ahora
+- [x] Verificado que no quedan links hacia esas rutas en el resto de la app (las páginas `/garantias` y `/reclamos` siguen existiendo pero sin entrada de menú)
 
 ## Documentos
 

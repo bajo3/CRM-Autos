@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea, Label } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/lib/format";
@@ -76,7 +77,7 @@ export default async function DocumentosPage() {
               </div>
               <div>
                 <Label htmlFor="precio">Precio</Label>
-                <Input id="precio" name="precio" type="number" min="0" required placeholder="0" />
+                <MoneyInput id="precio" name="precio" required />
               </div>
               <div>
                 <Label htmlFor="forma_pago">Forma de pago</Label>

@@ -6,6 +6,7 @@ import type { FormState } from "@/app/(app)/clientes/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea, Label } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 
 export type ClienteInitial = Partial<{
   nombre: string; apellido: string; telefono: string; whatsapp: string;
@@ -113,7 +114,7 @@ export function ClienteForm({
             </Select>
           </Field>
           <Field name="presupuesto_aprox" label="Presupuesto aprox. (ARS)" error={fe.presupuesto_aprox}>
-            <Input id="presupuesto_aprox" name="presupuesto_aprox" type="number" defaultValue={c.presupuesto_aprox} />
+            <MoneyInput id="presupuesto_aprox" name="presupuesto_aprox" defaultValue={c.presupuesto_aprox} />
           </Field>
           <Field name="proximo_seguimiento" label="Próximo seguimiento" error={fe.proximo_seguimiento}>
             <Input id="proximo_seguimiento" name="proximo_seguimiento" type="date" defaultValue={c.proximo_seguimiento} />

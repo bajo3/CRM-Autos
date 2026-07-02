@@ -6,6 +6,7 @@ import { crearPresupuesto, type FormState } from "@/app/(app)/presupuestos/actio
 import { FORMAS_PAGO, calcularSaldo } from "@/app/(app)/presupuestos/lib";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea, Label } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { formatARS } from "@/lib/format";
 
 type Opt = { id: string; label: string };
@@ -52,18 +53,15 @@ export function PresupuestoForm({
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <Label htmlFor="precio">Precio *</Label>
-          <Input id="precio" name="precio" type="number" min="0" step="1" required
-            onChange={(e) => setPrecio(Number(e.target.value) || 0)} placeholder="0" />
+          <MoneyInput id="precio" name="precio" required onValueChange={setPrecio} />
         </div>
         <div>
           <Label htmlFor="bonificacion">Bonificación</Label>
-          <Input id="bonificacion" name="bonificacion" type="number" min="0" step="1"
-            onChange={(e) => setBonificacion(Number(e.target.value) || 0)} placeholder="0" />
+          <MoneyInput id="bonificacion" name="bonificacion" onValueChange={setBonificacion} />
         </div>
         <div>
           <Label htmlFor="anticipo">Anticipo</Label>
-          <Input id="anticipo" name="anticipo" type="number" min="0" step="1"
-            onChange={(e) => setAnticipo(Number(e.target.value) || 0)} placeholder="0" />
+          <MoneyInput id="anticipo" name="anticipo" onValueChange={setAnticipo} />
         </div>
       </div>
 
@@ -79,11 +77,11 @@ export function PresupuestoForm({
         </div>
         <div>
           <Label htmlFor="valor_cuota">Valor de cuota</Label>
-          <Input id="valor_cuota" name="valor_cuota" type="number" min="0" step="1" placeholder="0" />
+          <MoneyInput id="valor_cuota" name="valor_cuota" />
         </div>
         <div>
           <Label htmlFor="gastos">Gastos</Label>
-          <Input id="gastos" name="gastos" type="number" min="0" step="1" placeholder="0" />
+          <MoneyInput id="gastos" name="gastos" />
         </div>
       </div>
 

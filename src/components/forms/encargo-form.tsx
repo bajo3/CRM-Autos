@@ -6,6 +6,7 @@ import type { FormState } from "@/app/(app)/encargos/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea, Label } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 
 function Submit() {
   const { pending } = useFormStatus();
@@ -37,7 +38,7 @@ export function EncargoForm({
           <div><Label htmlFor="anio_min">Año mínimo</Label><Input id="anio_min" name="anio_min" type="number" /></div>
           <div><Label htmlFor="anio_max">Año máximo</Label><Input id="anio_max" name="anio_max" type="number" /></div>
           <div><Label htmlFor="km_max">Km máximos</Label><Input id="km_max" name="km_max" type="number" /></div>
-          <div><Label htmlFor="presupuesto_max">Presupuesto máx. (ARS)</Label><Input id="presupuesto_max" name="presupuesto_max" type="number" /></div>
+          <div><Label htmlFor="presupuesto_max">Presupuesto máx. (ARS)</Label><MoneyInput id="presupuesto_max" name="presupuesto_max" /></div>
           <div>
             <Label htmlFor="combustible">Combustible</Label>
             <Select id="combustible" name="combustible" defaultValue="">

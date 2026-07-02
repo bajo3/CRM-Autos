@@ -11,6 +11,7 @@ import { EstadoDocumentalSelect } from "@/components/stock/estado-documental-sel
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, toneForEstado } from "@/components/ui/badge";
 import { Input, Select } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { formatARS, formatNumber, formatDate, daysUntil, humanize } from "@/lib/format";
 import { rel, type Rel } from "@/lib/rel";
 import { matchEncargosParaVehiculo } from "@/lib/data/matching";
@@ -306,7 +307,7 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
                 </Select>
                 <Input name="concepto" placeholder="Concepto" className="h-8 text-xs" />
                 <div className="flex gap-2">
-                  <Input name="monto" type="number" placeholder="Monto" required className="h-8 text-xs" />
+                  <MoneyInput name="monto" placeholder="Monto" required className="h-8 pl-7 text-xs" />
                   <Button type="submit" size="sm">Agregar</Button>
                 </div>
               </form>

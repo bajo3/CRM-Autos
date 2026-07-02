@@ -5,6 +5,7 @@ import type { FormState } from "@/app/(app)/stock/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea, Label } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import Link from "next/link";
 
 export type VehiculoInitial = Partial<{
@@ -88,10 +89,10 @@ export function VehiculoForm({
             </Select>
           </Field>
           <Field name="precio_venta" label="Precio de venta (ARS)" error={fe.precio_venta}>
-            <Input id="precio_venta" name="precio_venta" type="number" defaultValue={v.precio_venta} placeholder="16500000" />
+            <MoneyInput id="precio_venta" name="precio_venta" defaultValue={v.precio_venta} placeholder="16.500.000" />
           </Field>
           <Field name="precio_costo" label="Precio de costo / toma (ARS)" error={fe.precio_costo}>
-            <Input id="precio_costo" name="precio_costo" type="number" defaultValue={v.precio_costo} placeholder="13800000" />
+            <MoneyInput id="precio_costo" name="precio_costo" defaultValue={v.precio_costo} placeholder="13.800.000" />
           </Field>
           <Field name="estado" label="Estado" error={fe.estado}>
             <Select id="estado" name="estado" defaultValue={v.estado ?? "disponible"}>

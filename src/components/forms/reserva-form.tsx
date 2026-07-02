@@ -6,6 +6,7 @@ import type { FormState } from "@/app/(app)/reservas/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea, Label } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 
 type Option = { id: string; label: string };
 
@@ -42,7 +43,7 @@ export function ReservaForm({
               {vehiculos.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
             </Select>
           </div>
-          <div><Label htmlFor="monto_sena">Monto de seña (ARS)</Label><Input id="monto_sena" name="monto_sena" type="number" required /></div>
+          <div><Label htmlFor="monto_sena">Monto de seña (ARS)</Label><MoneyInput id="monto_sena" name="monto_sena" required /></div>
           <div>
             <Label htmlFor="medio_pago">Medio de pago</Label>
             <Select id="medio_pago" name="medio_pago" defaultValue="">

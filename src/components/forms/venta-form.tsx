@@ -6,6 +6,7 @@ import type { FormState } from "@/app/(app)/ventas/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea, Label } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 
 type Option = { id: string; label: string };
 
@@ -53,8 +54,8 @@ export function VentaForm({
               <option value="permuta">Permuta</option>
             </Select>
           </div>
-          <div><Label htmlFor="precio_final">Precio final (ARS)</Label><Input id="precio_final" name="precio_final" type="number" required /></div>
-          <div><Label htmlFor="sena">Seña (ARS)</Label><Input id="sena" name="sena" type="number" defaultValue={0} /></div>
+          <div><Label htmlFor="precio_final">Precio final (ARS)</Label><MoneyInput id="precio_final" name="precio_final" required /></div>
+          <div><Label htmlFor="sena">Seña (ARS)</Label><MoneyInput id="sena" name="sena" defaultValue={0} /></div>
           <div>
             <Label htmlFor="estado_entrega">Estado de entrega</Label>
             <Select id="estado_entrega" name="estado_entrega" defaultValue="pendiente">
