@@ -1,4 +1,5 @@
-import { FileText, ExternalLink, MessageCircle, Trash2 } from "lucide-react";
+import { headers } from "next/headers";
+import { FileText, ExternalLink, MessageCircle, Trash2, Globe } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -8,11 +9,20 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatARS, formatDate, humanize } from "@/lib/format";
 import { waUrl, mensajeCatalogo } from "@/lib/data/whatsapp";
+import { CatalogoPublico } from "@/components/catalogos/catalogo-publico";
 import { generarCatalogo, eliminarCatalogo } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 const ESTADOS = ["disponible", "en_preparacion", "publicado", "reservado", "en_negociacion"];
+
+const ORDENES: Record<string, { col: string; asc: boolean; label: string }> = {
+  recientes: { col: "created_at", asc: false, label: "Más recientes" },
+  precio_desc: { col: "precio_venta", asc: false, label: "Precio: mayor a menor" },
+  precio_asc: { col: "precio_venta", asc: true, label: "Precio: menor a mayor" },
+  anio_desc: { col: "anio", asc: false, label: "Año: más nuevos" },
+  marca: { col: "marca", asc: true, label: "Marca (A-Z)" },
+};
 
 type VehRow = {
   id: string; marca: string; modelo: string; version: string | null;
@@ -25,19 +35,28 @@ type CatRow = {
 export default async function CatalogosPage({
   searchParams,
 }: {
-  searchParams: { estado?: string; q?: string };
+  searchParams: { estado?: string; q?: string; orden?: string };
 }) {
   const sb = createClient();
   const ctx = await getSessionContext();
   const empresaNombre = ctx?.empresa?.nombre ?? "nuestra agencia";
+  const slug = ctx?.empresa?.slug ?? null;
   const puedeGenerar = can(ctx?.profile?.rol, "catalogo.generar");
   const estado = searchParams.estado ?? "disponible";
+  const orden = ORDENES[searchParams.orden ?? ""] ? searchParams.orden! : "recientes";
 
+  // URL absoluta de la vitrina pública para compartir (mismo host de la app).
+  const h = headers();
+  const host = h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  const publicUrl = slug && host ? `${proto}://${host}/p/${slug}` : null;
+
+  const ord = ORDENES[orden];
   let query = sb
     .from("vehiculo")
     .select("id,marca,modelo,version,anio,kilometros,precio_venta,estado")
     .neq("estado", "vendido")
-    .order("created_at", { ascending: false });
+    .order(ord.col, { ascending: ord.asc, nullsFirst: false });
   if (estado && ESTADOS.includes(estado)) query = query.eq("estado", estado as never);
   if (searchParams.q) {
     query = query.or(`marca.ilike.%${searchParams.q}%,modelo.ilike.%${searchParams.q}%`);
@@ -52,12 +71,32 @@ export default async function CatalogosPage({
     <div>
       <PageHeader
         title="Catálogos"
-        description="Armá un catálogo de stock en PDF y compartilo por WhatsApp."
+        description="Tu vitrina web pública + catálogos de stock en PDF para compartir por WhatsApp."
       />
+
+      {/* Vitrina web pública (link compartible) */}
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Globe className="h-4 w-4 text-brand-700" /> Catálogo web público
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {publicUrl ? (
+            <CatalogoPublico url={publicUrl} empresaNombre={empresaNombre} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Configurá el identificador público (slug) de tu agencia en{" "}
+              <a href="/configuracion" className="text-brand-800 hover:underline">Configuración</a>{" "}
+              para activar tu vitrina online.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {puedeGenerar && (
         <Card className="mb-4">
-          <CardHeader><CardTitle className="text-base">Nuevo catálogo</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Nuevo catálogo PDF</CardTitle></CardHeader>
           <CardContent>
             {/* Filtro (GET) */}
             <form method="get" action="/catalogos" className="mb-3 flex flex-wrap items-center gap-2">
@@ -68,6 +107,9 @@ export default async function CatalogosPage({
               <select name="estado" defaultValue={estado} className="h-9 rounded-md border border-input bg-white px-3 text-sm shadow-sm">
                 <option value="">Todos (menos vendidos)</option>
                 {ESTADOS.map((e) => <option key={e} value={e}>{humanize(e)}</option>)}
+              </select>
+              <select name="orden" defaultValue={orden} className="h-9 rounded-md border border-input bg-white px-3 text-sm shadow-sm">
+                {Object.entries(ORDENES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
               <Button type="submit" variant="outline" size="sm">Filtrar</Button>
             </form>

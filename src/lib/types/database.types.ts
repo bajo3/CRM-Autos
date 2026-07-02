@@ -1161,47 +1161,68 @@ export type Database = {
       }
       presupuesto: {
         Row: {
+          anticipo: number | null
+          bonificacion: number | null
+          cantidad_cuotas: number | null
           cliente_id: string | null
           created_at: string
           empresa_id: string
+          estado: Database["public"]["Enums"]["estado_presupuesto"]
           financiacion: string | null
           forma_pago: Database["public"]["Enums"]["forma_pago"] | null
+          gastos: number | null
           id: string
           observaciones: string | null
           pdf_url: string | null
           permuta: string | null
           precio: number | null
+          updated_at: string
           validez: string | null
+          valor_cuota: number | null
           vehiculo_id: string | null
           vendedor_id: string | null
         }
         Insert: {
+          anticipo?: number | null
+          bonificacion?: number | null
+          cantidad_cuotas?: number | null
           cliente_id?: string | null
           created_at?: string
           empresa_id: string
+          estado?: Database["public"]["Enums"]["estado_presupuesto"]
           financiacion?: string | null
           forma_pago?: Database["public"]["Enums"]["forma_pago"] | null
+          gastos?: number | null
           id?: string
           observaciones?: string | null
           pdf_url?: string | null
           permuta?: string | null
           precio?: number | null
+          updated_at?: string
           validez?: string | null
+          valor_cuota?: number | null
           vehiculo_id?: string | null
           vendedor_id?: string | null
         }
         Update: {
+          anticipo?: number | null
+          bonificacion?: number | null
+          cantidad_cuotas?: number | null
           cliente_id?: string | null
           created_at?: string
           empresa_id?: string
+          estado?: Database["public"]["Enums"]["estado_presupuesto"]
           financiacion?: string | null
           forma_pago?: Database["public"]["Enums"]["forma_pago"] | null
+          gastos?: number | null
           id?: string
           observaciones?: string | null
           pdf_url?: string | null
           permuta?: string | null
           precio?: number | null
+          updated_at?: string
           validez?: string | null
+          valor_cuota?: number | null
           vehiculo_id?: string | null
           vendedor_id?: string | null
         }
@@ -1230,6 +1251,64 @@ export type Database = {
           {
             foreignKeyName: "presupuesto_vendedor_id_fkey"
             columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pago_cuota: {
+        Row: {
+          created_at: string
+          credito_id: string
+          empresa_id: string
+          fecha_pago: string
+          id: string
+          monto_pagado: number
+          numero_cuota: number
+          observaciones: string | null
+          registrado_por: string | null
+        }
+        Insert: {
+          created_at?: string
+          credito_id: string
+          empresa_id: string
+          fecha_pago?: string
+          id?: string
+          monto_pagado?: number
+          numero_cuota: number
+          observaciones?: string | null
+          registrado_por?: string | null
+        }
+        Update: {
+          created_at?: string
+          credito_id?: string
+          empresa_id?: string
+          fecha_pago?: string
+          id?: string
+          monto_pagado?: number
+          numero_cuota?: number
+          observaciones?: string | null
+          registrado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pago_cuota_credito_id_fkey"
+            columns: ["credito_id"]
+            isOneToOne: false
+            referencedRelation: "credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_cuota_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_cuota_registrado_por_fkey"
+            columns: ["registrado_por"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -2069,6 +2148,12 @@ export type Database = {
       estado_consignacion: "activa" | "vencida" | "vendida" | "retirada"
       estado_credito: "activo" | "por_terminar" | "finalizado" | "cancelado"
       estado_documental: "completo" | "incompleto" | "pendiente" | "observado"
+      estado_presupuesto:
+        | "borrador"
+        | "enviado"
+        | "aceptado"
+        | "rechazado"
+        | "vencido"
       estado_encargo:
         | "buscando"
         | "unidad_encontrada"
@@ -2308,6 +2393,13 @@ export const Constants = {
       estado_consignacion: ["activa", "vencida", "vendida", "retirada"],
       estado_credito: ["activo", "por_terminar", "finalizado", "cancelado"],
       estado_documental: ["completo", "incompleto", "pendiente", "observado"],
+      estado_presupuesto: [
+        "borrador",
+        "enviado",
+        "aceptado",
+        "rechazado",
+        "vencido",
+      ],
       estado_encargo: [
         "buscando",
         "unidad_encontrada",

@@ -47,6 +47,12 @@ export type DatosDocumento = {
   permuta?: string | null;
   validez?: string | null; // ISO
   observaciones?: string | null;
+  // Desglose financiero del presupuesto.
+  anticipo?: number | null;
+  cantidad_cuotas?: number | null;
+  valor_cuota?: number | null;
+  bonificacion?: number | null;
+  gastos?: number | null;
 };
 
 const TITULOS: Record<TipoDocumento, string> = {
@@ -206,9 +212,15 @@ export async function generarPdf(
     y -= 4;
     heading("Condiciones");
     par("Precio", ars(datos.precio_total));
+    if (datos.bonificacion != null) par("Bonificación", ars(datos.bonificacion));
+    if (datos.permuta) par("Permuta", datos.permuta);
+    if (datos.anticipo != null) par("Anticipo", ars(datos.anticipo));
+    if (datos.saldo != null) par("Saldo a financiar", ars(datos.saldo));
+    if (datos.cantidad_cuotas != null && datos.cantidad_cuotas > 0)
+      par("Cuotas", `${datos.cantidad_cuotas}${datos.valor_cuota != null ? ` x ${ars(datos.valor_cuota)}` : ""}`);
+    if (datos.gastos != null) par("Gastos", ars(datos.gastos));
     if (datos.forma_pago) par("Forma de pago", datos.forma_pago);
     if (datos.financiacion) par("Financiación", datos.financiacion);
-    if (datos.permuta) par("Permuta", datos.permuta);
     par("Validez", datos.validez ? fechaAR(datos.validez) : "—");
   } else if (tipo === "boleto") {
     wrapText(

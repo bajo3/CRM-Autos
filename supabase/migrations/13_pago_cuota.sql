@@ -1,14 +1,13 @@
 -- =============================================================
 -- 13_pago_cuota — Historial estructurado de pagos de cuotas
 -- =============================================================
--- PROPUESTA (NO aplicada todavía). Habilita guardar cada pago como
--- una fila (monto, fecha, observación, quién lo registró) en lugar de
--- solo avanzar credito.cuota_actual.
+-- Guarda cada pago como una fila (monto, fecha, observación, quién lo
+-- registró) en lugar de solo avanzar credito.cuota_actual.
 --
--- Mientras esta migración no se aplique, /creditos usa la "versión
--- segura mínima": avanza cuota_actual + estado y deja el detalle del
--- pago en credito.observaciones. Al aplicar esta tabla, la server
--- action `registrarPago` puede extenderse para insertar también acá.
+-- La server action `registrarPago` inserta acá y, en el mismo flujo,
+-- avanza credito.cuota_actual y recalcula el estado del crédito.
+-- El índice único (credito_id, numero_cuota) evita pagar dos veces la
+-- misma cuota a nivel de base, además del chequeo en la app.
 --
 -- Sigue el mismo patrón de RLS por empresa del resto del esquema
 -- (ver 04_ventas.sql).
@@ -19,13 +18,13 @@ create table public.pago_cuota (
   empresa_id     uuid not null references public.empresa(id) on delete cascade,
   credito_id     uuid not null references public.credito(id) on delete cascade,
   numero_cuota   int not null,
-  monto          numeric(14,2) not null default 0,
+  monto_pagado   numeric(14,2) not null default 0,
   fecha_pago     date not null default now(),
   observaciones  text,
   registrado_por uuid references public.profile(id) on delete set null,
   created_at     timestamptz not null default now()
 );
-create index idx_pago_cuota_credito on public.pago_cuota(credito_id, numero_cuota);
+create unique index uq_pago_cuota_credito_numero on public.pago_cuota(credito_id, numero_cuota);
 
 alter table public.pago_cuota enable row level security;
 

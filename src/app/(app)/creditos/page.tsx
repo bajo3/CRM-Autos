@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -24,11 +25,23 @@ export default async function CreditosPage() {
   const sb = createClient();
   const ctx = await getSessionContext();
   const puedeCobrar = can(ctx?.profile?.rol, "creditos.cobrar");
+
   const { data } = await sb
     .from("credito")
     .select("id,cantidad_cuotas,cuota_actual,fecha_inicio,fecha_fin_estimada,estado,venta:venta_id(cliente:cliente_id(nombre,apellido),vehiculo:vehiculo_id(marca,modelo))")
     .order("fecha_fin_estimada", { ascending: true })
     .returns<Row[]>();
+
+  // Fecha del último pago por crédito (una sola consulta, sin N+1).
+  const { data: pagos } = await sb
+    .from("pago_cuota")
+    .select("credito_id, fecha_pago")
+    .order("fecha_pago", { ascending: false })
+    .returns<{ credito_id: string; fecha_pago: string }[]>();
+  const ultimoPago = new Map<string, string>();
+  for (const p of pagos ?? []) {
+    if (!ultimoPago.has(p.credito_id)) ultimoPago.set(p.credito_id, p.fecha_pago);
+  }
 
   return (
     <div>
@@ -41,7 +54,7 @@ export default async function CreditosPage() {
       ) : (
         <div className="rounded-lg border bg-card">
           <Table>
-            <THead><TR><TH>Cliente</TH><TH>Vehículo</TH><TH>Cuota</TH><TH>Inicio</TH><TH>Fin estimado</TH><TH>Estado</TH>{puedeCobrar && <TH>Acciones</TH>}</TR></THead>
+            <THead><TR><TH>Cliente</TH><TH>Vehículo</TH><TH>Cuota</TH><TH>Último pago</TH><TH>Fin estimado</TH><TH>Estado</TH>{puedeCobrar && <TH>Acciones</TH>}</TR></THead>
             <TBody>
               {data.map((cr) => {
                 const venta = rel(cr.venta);
@@ -50,10 +63,14 @@ export default async function CreditosPage() {
                 const enAlerta = cr.estado === "por_terminar" || cr.cuota_actual >= cr.cantidad_cuotas - 1;
                 return (
                   <TR key={cr.id}>
-                    <TD className="font-medium">{c?.nombre} {c?.apellido}</TD>
+                    <TD className="font-medium">
+                      <Link href={`/creditos/${cr.id}`} className="text-brand-800 hover:underline">
+                        {c?.nombre} {c?.apellido}
+                      </Link>
+                    </TD>
                     <TD>{veh?.marca} {veh?.modelo}</TD>
                     <TD>{cr.cuota_actual}/{cr.cantidad_cuotas} {enAlerta ? "🔔" : ""}</TD>
-                    <TD>{formatDate(cr.fecha_inicio)}</TD>
+                    <TD>{formatDate(ultimoPago.get(cr.id) ?? null)}</TD>
                     <TD>{formatDate(cr.fecha_fin_estimada)}</TD>
                     <TD><Badge tone={toneForEstado(cr.estado)}>{humanize(cr.estado)}</Badge></TD>
                     {puedeCobrar && (

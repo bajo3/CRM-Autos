@@ -24,17 +24,24 @@ type ClienteRow = {
   vendedor: Rel<{ nombre: string; apellido: string }>;
 };
 
+const PAGE_SIZE = 30;
+
 export default async function ClientesPage({
   searchParams,
 }: {
-  searchParams: { estado?: string; q?: string };
+  searchParams: { estado?: string; q?: string; page?: string };
 }) {
   const sb = createClient();
 
+  const page = Math.max(1, Number(searchParams.page) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
   let query = sb
     .from("cliente")
-    .select("id,nombre,apellido,telefono,whatsapp,localidad,origen,estado,presupuesto_aprox,proximo_seguimiento,vendedor:vendedor_id(nombre,apellido)")
-    .order("created_at", { ascending: false });
+    .select("id,nombre,apellido,telefono,whatsapp,localidad,origen,estado,presupuesto_aprox,proximo_seguimiento,vendedor:vendedor_id(nombre,apellido)", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
   if (searchParams.estado && ESTADOS.includes(searchParams.estado)) {
     query = query.eq("estado", searchParams.estado as never);
@@ -43,7 +50,16 @@ export default async function ClientesPage({
     query = query.or(`nombre.ilike.%${searchParams.q}%,apellido.ilike.%${searchParams.q}%,telefono.ilike.%${searchParams.q}%`);
   }
 
-  const { data: clientes } = await query.returns<ClienteRow[]>();
+  const { data: clientes, count } = await query.returns<ClienteRow[]>();
+  const total = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const qs = (p: number) => {
+    const sp = new URLSearchParams();
+    if (searchParams.q) sp.set("q", searchParams.q);
+    if (searchParams.estado) sp.set("estado", searchParams.estado);
+    sp.set("page", String(p));
+    return `/clientes?${sp.toString()}`;
+  };
 
   return (
     <div>
@@ -108,6 +124,29 @@ export default async function ClientesPage({
               })}
             </TBody>
           </Table>
+        </div>
+      )}
+
+      {total > 0 && (
+        <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {from + 1}–{Math.min(from + PAGE_SIZE, total)} de {total} cliente{total === 1 ? "" : "s"}
+          </span>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              {page > 1 ? (
+                <Link href={qs(page - 1)} className="rounded-md border px-3 py-1 hover:bg-muted">Anterior</Link>
+              ) : (
+                <span className="rounded-md border px-3 py-1 opacity-40">Anterior</span>
+              )}
+              <span>Página {page} de {totalPages}</span>
+              {page < totalPages ? (
+                <Link href={qs(page + 1)} className="rounded-md border px-3 py-1 hover:bg-muted">Siguiente</Link>
+              ) : (
+                <span className="rounded-md border px-3 py-1 opacity-40">Siguiente</span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

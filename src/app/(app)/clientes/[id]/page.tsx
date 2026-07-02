@@ -1,10 +1,10 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageCircle, Pencil, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, MessageCircle, Pencil, FileText, ExternalLink, Receipt } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
-import { getFormOptions } from "@/lib/data/options";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge, toneForEstado } from "@/components/ui/badge";
@@ -13,8 +13,10 @@ import { formatARS, formatDate, humanize } from "@/lib/format";
 import { rel, type Rel } from "@/lib/rel";
 import { agendarSeguimiento, registrarConsulta, registrarContacto } from "../actions";
 import { generarDocumentoCliente } from "@/app/(app)/documentos/actions";
+import { ESTADO_LABEL, ESTADO_TONE, type EstadoPresupuesto } from "@/app/(app)/presupuestos/lib";
 
 type DocRow = { id: string; tipo: string; numero: string | null; fecha_emision: string };
+type PresupuestoRow = { id: string; precio: number | null; estado: EstadoPresupuesto; validez: string | null; created_at: string };
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +48,12 @@ const TIPO_DOT: Record<TipoEvento, string> = {
   venta: "bg-green-600", reserva: "bg-cyan-500",
 };
 
+/**
+ * Ficha de cliente. El shell (datos de contacto + acciones) se renderiza al
+ * instante con una sola consulta; toda la actividad (seguimientos, historial,
+ * documentos, presupuestos, ventas/reservas) se transmite por streaming dentro
+ * de un Suspense, así el clic se siente inmediato.
+ */
 export default async function FichaCliente({ params }: { params: { id: string } }) {
   const sb = createClient();
   const ctx = await getSessionContext();
@@ -58,27 +66,113 @@ export default async function FichaCliente({ params }: { params: { id: string } 
     .maybeSingle<Cliente>();
   if (!c) notFound();
 
-  const [{ data: seguimientos }, { data: consultas }, { data: ventas }, { data: reservas }, { data: documentos }, opts] = await Promise.all([
-    sb.from("seguimiento").select("id,fecha,motivo,notas,estado").eq("cliente_id", c.id).order("fecha", { ascending: false })
-      .returns<{ id: string; fecha: string; motivo: string | null; notas: string | null; estado: string }[]>(),
-    sb.from("consulta").select("id,fecha,pendiente,vehiculo:vehiculo_id(marca,modelo)").eq("cliente_id", c.id).order("fecha", { ascending: false })
-      .returns<{ id: string; fecha: string; pendiente: boolean; vehiculo: Rel<{ marca: string; modelo: string }> }[]>(),
-    sb.from("venta").select("id,fecha_venta,precio_final,vehiculo:vehiculo_id(marca,modelo)").eq("cliente_id", c.id).order("fecha_venta", { ascending: false })
-      .returns<{ id: string; fecha_venta: string; precio_final: number | null; vehiculo: Rel<{ marca: string; modelo: string }> }[]>(),
-    sb.from("reserva").select("id,fecha_reserva,monto_sena,estado,vehiculo:vehiculo_id(marca,modelo)").eq("cliente_id", c.id).order("fecha_reserva", { ascending: false })
-      .returns<{ id: string; fecha_reserva: string; monto_sena: number | null; estado: string; vehiculo: Rel<{ marca: string; modelo: string }> }[]>(),
-    sb.from("documento_comercial").select("id,tipo,numero,fecha_emision").eq("cliente_id", c.id).order("created_at", { ascending: false })
-      .returns<DocRow[]>(),
-    getFormOptions(),
-  ]);
-
   const vendedor = rel(c.vendedor);
   const interes = rel(c.vehiculo);
   const wa = (c.whatsapp || c.telefono || "").replace(/\D/g, "");
+  const presupuestoHref = `/presupuestos/nuevo?cliente=${c.id}${interes ? `&vehiculo=${interes.id}` : ""}`;
 
-  // Historial de contacto unificado: une todos los eventos en una línea de tiempo.
+  return (
+    <div className="mx-auto max-w-5xl">
+      <div className="mb-3 flex items-center justify-between">
+        <Link href="/clientes" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
+          <ArrowLeft className="h-4 w-4" /> Volver a clientes
+        </Link>
+        <div className="flex gap-2">
+          {wa && (
+            <a href={`https://wa.me/${wa}`} target="_blank">
+              <Button variant="outline" size="sm"><MessageCircle className="h-4 w-4 text-ok" /> WhatsApp</Button>
+            </a>
+          )}
+          {puedeGenerar && (
+            <Link href={presupuestoHref}>
+              <Button variant="outline" size="sm"><Receipt className="h-4 w-4" /> Presupuesto</Button>
+            </Link>
+          )}
+          <Link href={`/clientes/${c.id}/editar`}>
+            <Button variant="outline" size="sm"><Pencil className="h-4 w-4" /> Editar</Button>
+          </Link>
+        </div>
+      </div>
+
+      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{c.nombre} {c.apellido}</h1>
+          <p className="text-sm text-muted-foreground">{c.localidad ?? "—"} · Origen: {humanize(c.origen)}</p>
+        </div>
+        <Badge tone={toneForEstado(c.estado)}>{humanize(c.estado)}</Badge>
+      </div>
+
+      {/* Datos de contacto: parte del shell, aparece de inmediato. */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Datos de contacto</CardTitle></CardHeader>
+        <CardContent className="grid gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
+          <Dato label="Teléfono" value={c.telefono ?? "—"} />
+          <Dato label="WhatsApp" value={c.whatsapp ?? "—"} />
+          <Dato label="Email" value={c.email ?? "—"} />
+          <Dato label="DNI/CUIT" value={c.dni_cuit ?? "—"} />
+          <Dato label="Vendedor" value={vendedor ? `${vendedor.nombre} ${vendedor.apellido}` : "—"} />
+          <Dato label="Presupuesto aprox." value={formatARS(c.presupuesto_aprox)} />
+          <Dato label="Auto de interés" value={interes ? `${interes.marca} ${interes.modelo}` : "—"} />
+          <Dato label="Próx. seguimiento" value={formatDate(c.proximo_seguimiento)} />
+          {c.observaciones && <p className="mt-2 rounded-md bg-muted p-2 text-xs sm:col-span-2">{c.observaciones}</p>}
+        </CardContent>
+      </Card>
+
+      <Suspense fallback={<ActividadSkeleton />}>
+        <ActividadCliente
+          clienteId={c.id}
+          createdAt={c.created_at}
+          origen={c.origen}
+          presupuestoHref={presupuestoHref}
+          puedeGenerar={puedeGenerar}
+        />
+      </Suspense>
+    </div>
+  );
+}
+
+function Dato({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right">{value}</span>
+    </div>
+  );
+}
+
+/** Sección de actividad: se resuelve aparte y se transmite por streaming. */
+async function ActividadCliente({
+  clienteId, createdAt, origen, presupuestoHref, puedeGenerar,
+}: {
+  clienteId: string; createdAt: string; origen: string; presupuestoHref: string; puedeGenerar: boolean;
+}) {
+  const sb = createClient();
+
+  const [{ data: seguimientos }, { data: consultas }, { data: ventas }, { data: reservas }, { data: documentos }, { data: presupuestos }, { data: vehiculos }] = await Promise.all([
+    sb.from("seguimiento").select("id,fecha,motivo,notas,estado").eq("cliente_id", clienteId).order("fecha", { ascending: false })
+      .returns<{ id: string; fecha: string; motivo: string | null; notas: string | null; estado: string }[]>(),
+    sb.from("consulta").select("id,fecha,pendiente,vehiculo:vehiculo_id(marca,modelo)").eq("cliente_id", clienteId).order("fecha", { ascending: false })
+      .returns<{ id: string; fecha: string; pendiente: boolean; vehiculo: Rel<{ marca: string; modelo: string }> }[]>(),
+    sb.from("venta").select("id,fecha_venta,precio_final,vehiculo:vehiculo_id(marca,modelo)").eq("cliente_id", clienteId).order("fecha_venta", { ascending: false })
+      .returns<{ id: string; fecha_venta: string; precio_final: number | null; vehiculo: Rel<{ marca: string; modelo: string }> }[]>(),
+    sb.from("reserva").select("id,fecha_reserva,monto_sena,estado,vehiculo:vehiculo_id(marca,modelo)").eq("cliente_id", clienteId).order("fecha_reserva", { ascending: false })
+      .returns<{ id: string; fecha_reserva: string; monto_sena: number | null; estado: string; vehiculo: Rel<{ marca: string; modelo: string }> }[]>(),
+    sb.from("documento_comercial").select("id,tipo,numero,fecha_emision").eq("cliente_id", clienteId).order("created_at", { ascending: false })
+      .returns<DocRow[]>(),
+    sb.from("presupuesto").select("id,precio,estado,validez,created_at").eq("cliente_id", clienteId).order("created_at", { ascending: false })
+      .returns<PresupuestoRow[]>(),
+    // Solo los vehículos para el select de "consultar auto" (no todos los clientes).
+    sb.from("vehiculo").select("id,marca,modelo,anio,patente").neq("estado", "vendido").order("created_at", { ascending: false })
+      .returns<{ id: string; marca: string; modelo: string; anio: number | null; patente: string | null }[]>(),
+  ]);
+
+  const opcionesVehiculos = (vehiculos ?? []).map((v) => ({
+    id: v.id,
+    label: `${v.marca} ${v.modelo}${v.anio ? ` ${v.anio}` : ""}${v.patente ? ` · ${v.patente}` : ""}`,
+  }));
+
   const eventos: Evento[] = [
-    { key: `alta-${c.id}`, fecha: c.created_at, tipo: "alta" as const, titulo: `Alta del cliente · origen ${humanize(c.origen)}` },
+    { key: `alta-${clienteId}`, fecha: createdAt, tipo: "alta" as const, titulo: `Alta del cliente · origen ${humanize(origen)}` },
     ...(seguimientos ?? []).map((s) => ({
       key: `seg-${s.id}`, fecha: s.fecha, tipo: "seguimiento" as const,
       titulo: s.motivo ?? "Seguimiento", detalle: s.notas, estado: s.estado,
@@ -110,48 +204,8 @@ export default async function FichaCliente({ params }: { params: { id: string } 
   ].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-3 flex items-center justify-between">
-        <Link href="/clientes" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
-          <ArrowLeft className="h-4 w-4" /> Volver a clientes
-        </Link>
-        <div className="flex gap-2">
-          {wa && (
-            <a href={`https://wa.me/${wa}`} target="_blank">
-              <Button variant="outline" size="sm"><MessageCircle className="h-4 w-4 text-ok" /> WhatsApp</Button>
-            </a>
-          )}
-          <Link href={`/clientes/${c.id}/editar`}>
-            <Button variant="outline" size="sm"><Pencil className="h-4 w-4" /> Editar</Button>
-          </Link>
-        </div>
-      </div>
-
-      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{c.nombre} {c.apellido}</h1>
-          <p className="text-sm text-muted-foreground">{c.localidad ?? "—"} · Origen: {humanize(c.origen)}</p>
-        </div>
-        <Badge tone={toneForEstado(c.estado)}>{humanize(c.estado)}</Badge>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Datos */}
-        <Card>
-          <CardHeader><CardTitle className="text-base">Datos de contacto</CardTitle></CardHeader>
-          <CardContent className="space-y-1.5 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Teléfono</span><span>{c.telefono ?? "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">WhatsApp</span><span>{c.whatsapp ?? "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span>{c.email ?? "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">DNI/CUIT</span><span>{c.dni_cuit ?? "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Vendedor</span><span>{vendedor ? `${vendedor.nombre} ${vendedor.apellido}` : "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Presupuesto</span><span>{formatARS(c.presupuesto_aprox)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Auto interés</span><span>{interes ? `${interes.marca} ${interes.modelo}` : "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Próx. seguimiento</span><span>{formatDate(c.proximo_seguimiento)}</span></div>
-            {c.observaciones && <p className="mt-2 rounded-md bg-muted p-2 text-xs">{c.observaciones}</p>}
-          </CardContent>
-        </Card>
-
+    <>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         {/* Seguimientos */}
         <Card>
           <CardHeader><CardTitle className="text-base">Seguimientos</CardTitle></CardHeader>
@@ -168,7 +222,7 @@ export default async function FichaCliente({ params }: { params: { id: string } 
                 ))}
               </ul>
             )}
-            <form action={agendarSeguimiento.bind(null, c.id)} className="space-y-2 border-t pt-3">
+            <form action={agendarSeguimiento.bind(null, clienteId)} className="space-y-2 border-t pt-3">
               <Input name="fecha" type="date" required className="h-8 text-xs" />
               <div className="flex gap-2">
                 <Input name="motivo" placeholder="Motivo" className="h-8 text-xs" />
@@ -197,10 +251,10 @@ export default async function FichaCliente({ params }: { params: { id: string } 
                 })}
               </ul>
             )}
-            <form action={registrarConsulta.bind(null, c.id)} className="flex gap-2 border-t pt-3">
+            <form action={registrarConsulta.bind(null, clienteId)} className="flex gap-2 border-t pt-3">
               <Select name="vehiculo_id" defaultValue="" className="h-8 text-xs">
                 <option value="">Elegir auto…</option>
-                {opts.vehiculos.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+                {opcionesVehiculos.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
               </Select>
               <Button type="submit" size="sm">+</Button>
             </form>
@@ -212,7 +266,7 @@ export default async function FichaCliente({ params }: { params: { id: string } 
       <Card className="mt-4">
         <CardHeader><CardTitle className="text-base">Historial de contacto</CardTitle></CardHeader>
         <CardContent>
-          <form action={registrarContacto.bind(null, c.id)} className="mb-4 grid gap-2 rounded-md border bg-muted/40 p-3 sm:grid-cols-[10rem_1fr_auto]">
+          <form action={registrarContacto.bind(null, clienteId)} className="mb-4 grid gap-2 rounded-md border bg-muted/40 p-3 sm:grid-cols-[10rem_1fr_auto]">
             <Input name="fecha" type="date" className="h-8 text-xs" defaultValue={new Date().toISOString().slice(0, 10)} />
             <Input name="motivo" placeholder="Motivo (llamada, WhatsApp, visita…)" className="h-8 text-xs" />
             <Button type="submit" size="sm" className="sm:row-span-2">Registrar contacto</Button>
@@ -246,10 +300,10 @@ export default async function FichaCliente({ params }: { params: { id: string } 
         <CardContent>
           {puedeGenerar && (
             <div className="mb-3 flex flex-wrap gap-2">
-              <form action={generarDocumentoCliente.bind(null, c.id, "ficha_cliente")}>
+              <form action={generarDocumentoCliente.bind(null, clienteId, "ficha_cliente")}>
                 <Button type="submit" variant="outline" size="sm"><FileText className="h-4 w-4" /> Ficha de cliente</Button>
               </form>
-              <form action={generarDocumentoCliente.bind(null, c.id, "datero")}>
+              <form action={generarDocumentoCliente.bind(null, clienteId, "datero")}>
                 <Button type="submit" variant="outline" size="sm"><FileText className="h-4 w-4" /> Datero</Button>
               </form>
             </div>
@@ -264,6 +318,34 @@ export default async function FichaCliente({ params }: { params: { id: string } 
                   <Link href={`/documentos/${d.id}/abrir`} target="_blank" className="inline-flex items-center gap-1 text-brand-800 hover:underline">
                     <ExternalLink className="h-4 w-4" /> Abrir
                   </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Presupuestos */}
+      <Card className="mt-4">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Presupuestos</CardTitle>
+          {puedeGenerar && (
+            <Link href={presupuestoHref}>
+              <Button variant="outline" size="sm"><FileText className="h-4 w-4" /> Nuevo</Button>
+            </Link>
+          )}
+        </CardHeader>
+        <CardContent>
+          {(presupuestos ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin presupuestos para este cliente.</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {presupuestos!.map((pr) => (
+                <li key={pr.id} className="flex items-center justify-between gap-2">
+                  <Link href={`/presupuestos/${pr.id}`} className="text-brand-800 hover:underline">
+                    {formatARS(pr.precio)} · {formatDate(pr.created_at)}
+                  </Link>
+                  <Badge tone={ESTADO_TONE[pr.estado]}>{ESTADO_LABEL[pr.estado]}</Badge>
                 </li>
               ))}
             </ul>
@@ -315,6 +397,20 @@ export default async function FichaCliente({ params }: { params: { id: string } 
           </CardContent>
         </Card>
       </div>
+    </>
+  );
+}
+
+/** Skeleton de la sección de actividad mientras se transmite por streaming. */
+function ActividadSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="h-40 rounded-lg border bg-gray-100" />
+        <div className="h-40 rounded-lg border bg-gray-100" />
+      </div>
+      <div className="mt-4 h-48 rounded-lg border bg-gray-100" />
+      <div className="mt-4 h-28 rounded-lg border bg-gray-100" />
     </div>
   );
 }
