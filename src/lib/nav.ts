@@ -27,7 +27,7 @@ export const NAV: NavSection[] = [
       { href: "/seguimientos", label: "Seguimientos", icon: CalendarClock },
       { href: "/encargos", label: "Encargos", icon: PackageSearch },
       { href: "/presupuestos", label: "Presupuestos", icon: FileText },
-      { href: "/test-drive", label: "Test Drive", icon: ClipboardCheck, pendiente: true },
+      { href: "/test-drive", label: "Test Drive", icon: ClipboardCheck },
     ],
   },
   {

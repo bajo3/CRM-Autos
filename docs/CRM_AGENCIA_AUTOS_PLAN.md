@@ -19,7 +19,7 @@
 - [ ] Fidelización y alertas comerciales *(postventa accionable + integrada al dashboard; cumpleaños queda para cuando haya el dato)*
 - [ ] Presupuestos *(base + casi todas las mejoras hechas; falta rediseño visual del form y del PDF)*
 - [ ] Vehículos en stock *(paginación + acciones rápidas hechas; falta auditoría del ciclo de estados completo)*
-- [ ] Test Drive
+- [ ] Test Drive *(módulo completo hecho; falta confirmar el alta en navegador real, ver nota en la sección)*
 - [ ] Permutas
 - [ ] Tasaciones
 - [ ] Taller / Preparación
@@ -97,48 +97,55 @@
 - [ ] Probar flujo completo (alta → preparación → publicado → reservado → vendido) — no recorrido de punta a punta en este bloque, solo se probaron las acciones rápidas nuevas
 - Nota: quedó pendiente para un próximo bloque el resto del ciclo de vida completo y la sección de reservas/presupuestos en la ficha.
 
-## Test Drive
+## Test Drive ✅ (2026-07-02)
 
-- [ ] Diseñar módulo mínimo real: agendar test drive (cliente + vehículo + fecha/hora + vendedor)
-- [ ] Estados: agendado / realizado / no asistió / cancelado
-- [ ] Vista de agenda (próximos test drives) + historial por cliente y por vehículo
-- [ ] Recordatorio visible en dashboard/alarmas el día del turno
-- [ ] Migración aditiva para la tabla si no existe
-- [ ] Quitar "PRONTO" del menú recién cuando funcione
-- [ ] Probar flujo completo
+> **Hallazgo importante:** la tabla `test_drive` (+ enum `estado_test_drive`, RLS completa) ya existía desde el schema original (`05_docs_vtv_postventa.sql`) pero estaba completamente sin usar — la única acción que la tocaba era generar el PDF de autorización (`documento_comercial`), sin crear ninguna fila en `test_drive`. **Lo mismo aplica a Permutas, Tasaciones, Taller y Consignados** (tablas `permuta`, `tasacion`, `taller_trabajo`, `consignacion` en `04_ventas.sql`/`05_docs_vtv_postventa.sql`, todas con RLS completa) — quedan como próximos módulos a construir, y no van a necesitar migración nueva, solo UI.
+
+- [x] Diseñar módulo mínimo real: agendar test drive (cliente + vehículo + fecha/hora + conductor) — `/test-drive/nuevo`
+- [x] Estados: agendado / realizado / no asistió / cancelado (botones de cambio de estado en el listado)
+- [x] Vista de agenda: `/test-drive` (listado con cliente, vehículo, conductor, estado, acciones)
+- [x] Recordatorio visible en dashboard: nuevo tipo `test_drive` en `acciones-comerciales.ts`, aparece con urgencia "Hoy" el día agendado
+- [x] Sin migración: la tabla ya existía completa
+- [x] Quitar "PRONTO" del menú
+- [x] Acciones rápidas: llamar/WhatsApp al conductor desde el listado; botón "Test Drive" agregado a la ficha del vehículo (`/test-drive/nuevo?vehiculo=`)
+- **Verificación parcial:** se probó end-to-end la lectura (listado, ficha, dashboard) y el cambio de estado (acción sin `useFormState`, confirmado por SQL que pasa de `agendado` a `realizado`). **La creación desde el formulario (`crearTestDrive`, con `useFormState`) no se pudo confirmar por un problema de la herramienta de navegador automatizado de esta sesión**, no del código: el mismo síntoma (POST redirige a `/login`) se reprodujo también en `/reservas/nuevo`, un formulario ya existente y sin tocar, y sobrevivió a un reinicio completo del dev server — descarta que sea un bug de sesión o de este módulo. Se verificó por SQL directo que el insert respeta RLS y que el resto del flujo (lectura, dashboard, cambio de estado) funciona con un registro insertado manualmente. Recomendado: probar el alta manualmente en un navegador real antes de usar en producción.
 
 ## Permutas
+
+> **La tabla `permuta` ya existe** (`04_ventas.sql`, con `estado_tasacion`, RLS completa vía el loop de policies de esa migración) — no hace falta migración, solo UI. Seguir el mismo patrón que Test Drive (`/test-drive`, `/test-drive/nuevo`, `actions.ts`).
 
 - [ ] Registrar vehículo entregado en parte de pago, vinculado a la operación (venta/presupuesto)
 - [ ] Valor de toma + datos del vehículo entrante
 - [ ] Al concretar, el vehículo tomado puede ingresar al stock (en preparación)
-- [ ] Migración aditiva si hace falta
 - [ ] Quitar "PRONTO" del menú al estar funcional
 - [ ] Probar flujo completo
 
 ## Tasaciones
 
+> **La tabla `tasacion` ya existe** (`04_ventas.sql`, con `estado_tasacion`/`decision_tasacion`, RLS completa) — no hace falta migración, solo UI.
+
 - [ ] Registro de tasaciones: cliente, vehículo a tasar, valor estimado, estado (pendiente / tasado / rechazada / convertida en permuta)
 - [ ] Vincular tasación → permuta/presupuesto cuando avanza
-- [ ] Migración aditiva si hace falta
 - [ ] Quitar "PRONTO" del menú al estar funcional
 - [ ] Probar flujo completo
 
 ## Taller / Preparación
 
+> **La tabla `taller_trabajo` ya existe** (`05_docs_vtv_postventa.sql`, con `estado_taller`, RLS completa) — no hace falta migración, solo UI.
+
 - [ ] Checklist de preparación por vehículo (ítems: service, detailing, VTV, gestoría, etc.)
 - [ ] Costos de preparación por ítem (impacta el costo real del vehículo)
 - [ ] Estado visible desde stock: qué le falta a cada auto para estar disponible
-- [ ] Migración aditiva si hace falta
 - [ ] Quitar "PRONTO" del menú al estar funcional
 - [ ] Probar flujo completo
 
 ## Consignados
 
+> **La tabla `consignacion` ya existe** (`04_ventas.sql`, con `estado_consignacion`, RLS completa) — no hace falta migración, solo UI.
+
 - [ ] Alta de vehículo consignado: dueño (cliente), condiciones, comisión pactada
-- [ ] Diferenciación visual en stock (badge "consignado")
+- [ ] Diferenciación visual en stock (badge "consignado" — el enum `estado` de `vehiculo` ya incluye `consignado`, ver `vehiculo-form.tsx`)
 - [ ] Liquidación al dueño al venderse
-- [ ] Migración aditiva si hace falta
 - [ ] Quitar "PRONTO" del menú al estar funcional
 - [ ] Probar flujo completo
 
@@ -254,3 +261,10 @@
 - **Migraciones agregadas:** ninguna (la tabla `postventa` ya existía y tenía todo lo necesario).
 - **Qué falta revisar:** cumpleaños de clientes (falta la columna `fecha_nacimiento` — decisión de si vale la pena pedirla en el alta de cliente) y "cliente sin contacto hace X días" (falta definir la regla de negocio).
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador: el dashboard mostró "Roberto Paz · Postventa: recontacto (12/06/2026) · Vencido" con sus 3 acciones; el link de WhatsApp armó el mensaje correcto con el teléfono real del cliente; se probó "Marcar como realizada" en `/postventa` — el estado cambió a "Realizada" y las acciones desaparecieron; dato de demo restaurado después vía SQL.
+
+### Fecha: 2026-07-02 (bloque 7)
+- **Qué se implementó:** módulo Test Drive completo (era un placeholder "PRONTO"). **Hallazgo clave:** las tablas de Permutas, Tasaciones, Taller y Consignados también existen desde el schema original con RLS completa — quedan anotadas en el plan como "solo falta UI, sin migración" para acelerar los próximos bloques.
+- **Archivos principales tocados:** `src/app/(app)/test-drive/page.tsx` (reescrito, era `ModuloPlaceholder`), `src/app/(app)/test-drive/nuevo/page.tsx` (nuevo), `src/app/(app)/test-drive/actions.ts` (nuevo), `src/components/forms/test-drive-form.tsx` (nuevo), `src/lib/nav.ts` (sin "PRONTO"), `src/lib/data/acciones-comerciales.ts` (tipo `test_drive`), `src/components/dashboard/centro-accion.tsx` (ícono), `src/app/(app)/stock/[id]/page.tsx` (botón "Test Drive" en acciones rápidas).
+- **Migraciones agregadas:** ninguna (tabla `test_drive` ya existía completa desde `05_docs_vtv_postventa.sql`).
+- **Qué falta revisar:** confirmar el alta desde el formulario en un navegador real (ver nota de verificación parcial en la sección Test Drive del plan — no es un problema de código, es una limitación de la herramienta de testing automatizado de esta sesión con formularios `useFormState`).
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador: listado y detalle renderizan bien, dashboard integrado muestra el ítem con urgencia correcta, cambio de estado agendado→realizado confirmado por SQL. La creación vía formulario se probó por SQL directo (no por UI) — ver limitación arriba.

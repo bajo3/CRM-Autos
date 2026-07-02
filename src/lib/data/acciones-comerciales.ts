@@ -5,7 +5,7 @@ import { formatARS, formatDate } from "@/lib/format";
 import { mensajePostventa } from "@/lib/data/whatsapp";
 
 export type Urgencia = "vencido" | "hoy" | "oportunidad";
-export type TipoAccion = "seguimiento" | "presupuesto" | "credito" | "reserva" | "encargo" | "postventa";
+export type TipoAccion = "seguimiento" | "presupuesto" | "credito" | "reserva" | "encargo" | "postventa" | "test_drive";
 
 export type AccionItem = {
   key: string;
@@ -54,6 +54,11 @@ type PostventaRow = {
   id: string; fecha_alerta: string; realizada: boolean;
   cliente: Rel<{ nombre: string; apellido: string | null; telefono: string | null; whatsapp: string | null }>;
 };
+type TestDriveRow = {
+  id: string; fecha: string | null; hora: string | null; conductor_nombre: string | null; telefono: string | null;
+  cliente: Rel<{ nombre: string; apellido: string | null; telefono: string | null; whatsapp: string | null }>;
+  vehiculo: Rel<{ marca: string; modelo: string }>;
+};
 
 function nombreCompleto(c: { nombre: string; apellido: string | null } | null): string {
   if (!c) return "Cliente sin nombre";
@@ -77,7 +82,7 @@ export async function getAccionesComerciales(): Promise<AccionItem[]> {
   const today = todayISO();
   const in3days = inDaysISO(3);
 
-  const [segRes, presRes, credRes, resRes, encRes, postRes] = await Promise.all([
+  const [segRes, presRes, credRes, resRes, encRes, postRes, tdRes] = await Promise.all([
     sb.from("seguimiento")
       .select("id,fecha,motivo,estado,cliente:cliente_id(nombre,apellido,telefono,whatsapp)")
       .in("estado", ["pendiente", "vencido"]).lte("fecha", today)
@@ -102,6 +107,10 @@ export async function getAccionesComerciales(): Promise<AccionItem[]> {
       .select("id,fecha_alerta,realizada,cliente:cliente_id(nombre,apellido,telefono,whatsapp)")
       .eq("realizada", false).lte("fecha_alerta", in3days)
       .order("fecha_alerta").returns<PostventaRow[]>(),
+    sb.from("test_drive")
+      .select("id,fecha,hora,conductor_nombre,telefono,cliente:cliente_id(nombre,apellido,telefono,whatsapp),vehiculo:vehiculo_id(marca,modelo)")
+      .eq("estado", "agendado").not("fecha", "is", null).lte("fecha", in3days)
+      .order("fecha").returns<TestDriveRow[]>(),
   ]);
 
   const items: AccionItem[] = [];
@@ -181,6 +190,20 @@ export async function getAccionesComerciales(): Promise<AccionItem[]> {
       detalle: `Postventa: recontacto (${formatDate(p.fecha_alerta)})`,
       fecha: p.fecha_alerta, href: "/postventa",
       whatsappMsg: mensajePostventa(empresaNombre, c?.nombre),
+    });
+  }
+
+  for (const t of tdRes.data ?? []) {
+    const c = rel(t.cliente);
+    const veh = rel(t.vehiculo);
+    const urgencia: Urgencia = (t.fecha as string) < today ? "vencido" : t.fecha === today ? "hoy" : "oportunidad";
+    const nombreConductor = t.conductor_nombre ?? (c ? nombreCompleto(c) : null);
+    items.push({
+      key: `test_drive-${t.id}`, refId: t.id, tipo: "test_drive", urgencia,
+      cliente: nombreConductor ?? "Conductor sin nombre", telefono: t.telefono || tel(c),
+      detalle: `Test drive ${veh ? `${veh.marca} ${veh.modelo} ` : ""}${t.hora ? `· ${t.hora.slice(0, 5)} ` : ""}· ${formatDate(t.fecha)}`,
+      fecha: t.fecha, href: "/test-drive",
+      whatsappMsg: `¡Hola${nombreConductor ? ` ${nombreConductor}` : ""}! Te confirmo el test drive${veh ? ` del ${veh.marca} ${veh.modelo}` : ""} para el ${formatDate(t.fecha)}.`,
     });
   }
 
