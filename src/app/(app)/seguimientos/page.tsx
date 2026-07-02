@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge, toneForEstado } from "@/components/ui/badge";
@@ -15,13 +16,26 @@ type Row = {
   vendedor: Rel<{ nombre: string; apellido: string }>;
 };
 
-export default async function SeguimientosPage() {
+const PAGE_SIZE = 30;
+
+export default async function SeguimientosPage({
+  searchParams,
+}: {
+  searchParams: { page?: string };
+}) {
   const sb = createClient();
-  const { data } = await sb
+  const page = Math.max(1, Number(searchParams.page) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data, count } = await sb
     .from("seguimiento")
-    .select("id,fecha,hora,motivo,estado,cliente:cliente_id(nombre,apellido),vendedor:vendedor_id(nombre,apellido)")
+    .select("id,fecha,hora,motivo,estado,cliente:cliente_id(nombre,apellido),vendedor:vendedor_id(nombre,apellido)", { count: "exact" })
     .order("fecha", { ascending: false })
+    .range(from, to)
     .returns<Row[]>();
+  const total = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div>
@@ -62,6 +76,29 @@ export default async function SeguimientosPage() {
               })}
             </TBody>
           </Table>
+        </div>
+      )}
+
+      {total > 0 && (
+        <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {from + 1}–{Math.min(from + PAGE_SIZE, total)} de {total} seguimiento{total === 1 ? "" : "s"}
+          </span>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              {page > 1 ? (
+                <Link href={`/seguimientos?page=${page - 1}`} className="rounded-md border px-3 py-1 hover:bg-muted">Anterior</Link>
+              ) : (
+                <span className="rounded-md border px-3 py-1 opacity-40">Anterior</span>
+              )}
+              <span>Página {page} de {totalPages}</span>
+              {page < totalPages ? (
+                <Link href={`/seguimientos?page=${page + 1}`} className="rounded-md border px-3 py-1 hover:bg-muted">Siguiente</Link>
+              ) : (
+                <span className="rounded-md border px-3 py-1 opacity-40">Siguiente</span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

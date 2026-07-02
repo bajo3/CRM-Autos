@@ -14,7 +14,7 @@
 
 ## Estado general
 
-- [ ] Performance general *(ficha de cliente hecha; falta auditar el resto de listados pesados)*
+- [ ] Performance general *(paginación en todos los listados grandes hecha; falta auditoría de N+1/índices)*
 - [x] Formato de dinero
 - [ ] Fidelización y alertas comerciales
 - [ ] Presupuestos *(base + casi todas las mejoras hechas; falta rediseño visual del form y del PDF)*
@@ -37,10 +37,11 @@
 - [x] Eliminar `getFormOptions()` (cargaba TODA la base) del camino crítico de la ficha de cliente
 - [x] `loading.tsx` con skeleton para la navegación a la ficha de cliente
 - [x] Paginación en listado de clientes (30 por página, con contador y Anterior/Siguiente)
-- [ ] Auditar y paginar los demás listados grandes (stock, ventas, seguimientos, presupuestos, documentos)
-- [ ] `loading.tsx` / skeletons en las rutas pesadas restantes
-- [ ] Revisar N+1 y selects `*` innecesarios en páginas principales
-- [ ] Revisar índices en Postgres para los filtros más usados (solo migración aditiva)
+- [x] Auditar y paginar los demás listados grandes: stock (bloque anterior), ventas, seguimientos, documentos — mismo patrón (`{count:"exact"}` + `.range()` + Anterior/Siguiente). Presupuestos queda con lista completa por ahora (bajo volumen esperado, se pagina si hace falta más adelante)
+- [x] `loading.tsx` en `/ventas`, `/seguimientos`, `/documentos` (sumados a los de clientes y stock del bloque anterior)
+- [x] Corregido el mismo patrón que causó "la ficha de cliente tarda" en `/documentos`: la lista esperaba a `getFormOptions()` (TODOS los clientes/vehículos) para los dos formularios de generación. Ahora esos formularios se streamean aparte con `<Suspense>` y la lista de documentos no espera nada de eso.
+- [ ] Revisar N+1 y selects `*` innecesarios en páginas principales — no auditado en este bloque
+- [ ] Revisar índices en Postgres para los filtros más usados (solo migración aditiva) — no auditado en este bloque
 
 ## Formato de dinero ✅ (2026-07-02)
 
@@ -238,3 +239,10 @@
 - **Migraciones agregadas:** `15_presupuesto_vencimiento_automatico.sql` (extiende `crm_run_daily_jobs()` con el vencimiento de presupuestos, `create or replace function`, aditiva) y `16_storage_update_policies.sql` (agrega policies `documentos_update`/`catalogos_update` en `storage.objects`, aditiva). Ambas aplicadas en remoto vía Supabase MCP.
 - **Qué falta revisar:** rediseño visual del formulario de presupuesto y del PDF comercial (branding); flujo completo de punta a punta (crear → enviar → aceptar/rechazar) no recorrido en este bloque.
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. `select crm_run_daily_jobs()` ejecutado manualmente sin error. En navegador: clic en "Regenerar PDF" sobre un presupuesto con PDF previo — reprodujo el error 500 de RLS, se aplicó la migración de policies, se reintentó y esta vez devolvió 200 y el `updated_at` del presupuesto cambió (confirmado por SQL); la página se quedó en la ficha del presupuesto en vez de navegar afuera.
+
+### Fecha: 2026-07-02 (bloque 5)
+- **Qué se implementó:** Performance general — paginación en los listados grandes restantes (`/ventas`, `/seguimientos`, `/documentos`) con el mismo patrón validado en clientes/stock. En `/documentos` además se corrigió el mismo antipatrón que causó el bug original "la ficha de cliente tarda": la lista esperaba a `getFormOptions()` (todos los clientes/vehículos) para poder mostrar dos formularios de generación; ahora esos formularios se streamean aparte con `Suspense` y no bloquean la lista.
+- **Archivos principales tocados:** `src/app/(app)/ventas/page.tsx`, `src/app/(app)/seguimientos/page.tsx`, `src/app/(app)/documentos/page.tsx` (reescrito: `NuevosDocumentos` async component + `Suspense`), `src/app/(app)/ventas/loading.tsx` (nuevo), `src/app/(app)/seguimientos/loading.tsx` (nuevo), `src/app/(app)/documentos/loading.tsx` (nuevo).
+- **Migraciones agregadas:** ninguna.
+- **Qué falta revisar:** N+1 y selects `*` innecesarios (no auditado), índices de Postgres para filtros frecuentes (no auditado), paginación de `/presupuestos` (se dejó sin paginar por bajo volumen esperado — revisar si crece).
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Verificación manual en navegador: `/documentos` muestra los dos formularios con las opciones cargadas y la tabla con "1–5 de 5 documentos"; `/ventas` con "1–2 de 2 ventas"; `/seguimientos` con "1–3 de 3 seguimientos" — los tres con los controles de paginación ocultos correctamente al haber una sola página.
