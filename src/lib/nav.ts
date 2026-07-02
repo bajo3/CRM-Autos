@@ -35,7 +35,7 @@ export const NAV: NavSection[] = [
     items: [
       { href: "/stock", label: "Stock de autos", icon: Car },
       { href: "/permutas", label: "Permutas", icon: Repeat2 },
-      { href: "/tasaciones", label: "Tasaciones", icon: Gauge, pendiente: true },
+      { href: "/tasaciones", label: "Tasaciones", icon: Gauge },
       { href: "/taller", label: "Taller / Preparación", icon: Wrench, pendiente: true },
       { href: "/consignados", label: "Consignados", icon: FileBox, pendiente: true },
       { href: "/publicaciones", label: "Publicaciones", icon: Megaphone },

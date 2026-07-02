@@ -21,7 +21,7 @@
 - [ ] Vehículos en stock *(paginación + acciones rápidas hechas; falta auditoría del ciclo de estados completo)*
 - [ ] Test Drive *(módulo completo hecho; falta confirmar el alta en navegador real, ver nota en la sección)*
 - [ ] Permutas *(módulo completo hecho: tasar, aceptar/rechazar, ingresar a stock; falta confirmar el alta en navegador real)*
-- [ ] Tasaciones
+- [x] Tasaciones
 - [ ] Taller / Preparación
 - [ ] Consignados
 - [x] Ocultar Garantías y Reclamos
@@ -119,14 +119,14 @@
 - [x] Sin migración: tabla `permuta` ya existía completa
 - **Probado end-to-end en navegador:** tasar (diferencia calculada bien: $4.500.000 − $4.000.000 = $500.000), aceptar (estado confirmado por SQL), ingresar a stock (vehículo Renault Sandero 2016 creado en stock con los datos correctos, confirmado por SQL). El alta desde `/permutas/nuevo` no se pudo confirmar por click en esta sesión — ver nota de limitación de la herramienta de testing en la sección Test Drive; el patrón de creación es idéntico al de `crearReserva`/`crearTestDrive` (ya en uso en producción).
 
-## Tasaciones
+## Tasaciones ✅ (2026-07-02)
 
-> **La tabla `tasacion` ya existe** (`04_ventas.sql`, con `estado_tasacion`/`decision_tasacion`, RLS completa) — no hace falta migración, solo UI.
-
-- [ ] Registro de tasaciones: cliente, vehículo a tasar, valor estimado, estado (pendiente / tasado / rechazada / convertida en permuta)
-- [ ] Vincular tasación → permuta/presupuesto cuando avanza
-- [ ] Quitar "PRONTO" del menú al estar funcional
-- [ ] Probar flujo completo
+- [x] Registro de tasaciones: `/tasaciones/nuevo` (cliente, descripción libre del vehículo, precio compra/venta estimado, gastos, margen calculado en vivo)
+- [x] Decisión: tomar / negociar / rechazar / consultar (`decision_tasacion`, la tabla usa `decision` en vez de un `estado` propio — reutiliza el enum compartido con `permuta`)
+- [x] Vincular tasación → permuta: botón "Registrar permuta" cuando `decision = tomar`, prellena el cliente en `/permutas/nuevo?cliente=`
+- [x] Quitar "PRONTO" del menú
+- [x] Sin migración: tabla `tasacion` ya existía completa
+- **Probado end-to-end en navegador** (con un registro insertado por SQL, misma limitación de herramienta documentada arriba): listado renderiza bien con margen calculado; botón "Tomar" cambió la decisión (confirmado por SQL); el link "Registrar permuta" aparece con el `cliente_id` correcto en la URL.
 
 ## Taller / Preparación
 
@@ -274,3 +274,10 @@
 - **Migraciones agregadas:** ninguna (tabla `permuta` ya existía completa desde `04_ventas.sql`).
 - **Qué falta revisar:** vincular la permuta a la venta/presupuesto de la operación (el campo `venta_id` existe pero no se usa desde la UI todavía); confirmar el alta desde el formulario en navegador real (misma limitación de herramienta documentada en Test Drive).
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con un registro insertado por SQL: "Tasar" con `MoneyInput` inline calculó la diferencia correctamente ($4.500.000 − $4.000.000 = $500.000, confirmado por SQL), "Aceptar" cambió el estado (confirmado por SQL), "Ingresar a stock" creó el vehículo Renault Sandero 2016 en `/stock` con `estado=en_preparacion`, `titularidad=propio`, `precio_costo=$4.000.000` (confirmado por SQL). Datos de prueba eliminados después.
+
+### Fecha: 2026-07-02 (bloque 9)
+- **Qué se implementó:** módulo Tasaciones completo (era placeholder "PRONTO"). Registro de evaluación de compra/venta con margen calculado en vivo, decisión (tomar/negociar/rechazar/consultar), y link directo a "Registrar permuta" cuando se decide tomar la unidad.
+- **Archivos principales tocados:** `src/app/(app)/tasaciones/page.tsx` (reescrito, era `ModuloPlaceholder`), `src/app/(app)/tasaciones/nuevo/page.tsx` (nuevo), `src/app/(app)/tasaciones/actions.ts` (nuevo: `crearTasacion`, `cambiarDecisionTasacion`), `src/components/forms/tasacion-form.tsx` (nuevo), `src/components/ui/badge.tsx` (se exportó el tipo `Tone`, antes era interno), `src/lib/nav.ts` (sin "PRONTO").
+- **Migraciones agregadas:** ninguna (tabla `tasacion` ya existía completa desde `04_ventas.sql`).
+- **Qué falta revisar:** confirmar el alta desde el formulario en navegador real (misma limitación de herramienta).
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con un registro insertado por SQL: listado renderiza con margen correcto, botón "Tomar" cambió la decisión (confirmado por SQL), link "Registrar permuta" con el `cliente_id` correcto en la URL. Dato de prueba eliminado después.

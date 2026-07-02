@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-type Tone = "neutral" | "ok" | "warn" | "danger" | "info";
+export type Tone = "neutral" | "ok" | "warn" | "danger" | "info";
 
 const TONES: Record<Tone, string> = {
   neutral: "bg-muted text-muted-foreground",
