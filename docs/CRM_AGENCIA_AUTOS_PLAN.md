@@ -29,6 +29,8 @@
 - [ ] Catálogo *(vitrina pública con filtros hecha, PDF con branding y diseño mejorado hecho; falta solo probar el flujo completo en navegador real)*
 - [x] Dashboard Centro de Acción Comercial
 
+**Nota (2026-07-03):** los 4 ítems `[ ]` que quedan (Presupuestos, Test Drive, Permutas, Catálogo) tienen todo el código implementado, tipado, linteado y buildeado en verde — lo único pendiente en los cuatro es la misma prueba manual de "alta/flujo completo" (crear un registro con un formulario `useFormState` real), que **no se puede automatizar con las herramientas de este entorno** (ver bloque 23 en Presupuestos: se probó a fondo, incluida una técnica alternativa que sí resuelve el login pero no las acciones de servidor ya autenticadas — es una limitación del navegador controlado por el tool, confirmada sin errores de servidor ni datos corruptos). Recomendado: probarlos una vez manualmente desde un navegador normal antes de mostrarle el sistema a un cliente. No tiene sentido que futuras vueltas del loop reintenten esta misma verificación con la misma herramienta — si no cambia el entorno de automatización disponible, el resultado va a ser el mismo.
+
 ---
 
 ## Performance general
