@@ -4,7 +4,8 @@ CRM SaaS multiagencia para concesionarias de autos en Argentina.
 
 ## Fuente de verdad del trabajo
 
-- **`docs/CRM_AGENCIA_AUTOS_PLAN.md`** es el checklist maestro: qué está hecho `[x]`, qué falta `[]` y en qué orden. Leelo antes de arrancar cualquier bloque y actualizalo al terminar (nunca marcar `[x]` sin probar).
+- **`docs/MVP_VENDIBLE_PLAN.md`** es el plan activo (fase 2: velocidad, UX, estética, PDFs, VTV integrada): qué está hecho `[x]`, qué falta `[]` y en qué orden. Leelo antes de arrancar cualquier bloque y actualizalo al terminar (nunca marcar `[x]` sin probar). Las fases se ejecutan en orden — velocidad primero.
+- `docs/CRM_AGENCIA_AUTOS_PLAN.md` es el registro histórico de la fase 1 (cerrada): útil por sus notas de implementación, no tomar tareas de ahí.
 - Después de cada bloque estable: commit checkpoint local en `master`. **Nunca push** salvo pedido explícito.
 
 ## Stack

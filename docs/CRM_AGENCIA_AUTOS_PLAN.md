@@ -1,4 +1,8 @@
-# CRM Agencia de Autos — Plan de mejoras
+# CRM Agencia de Autos — Plan de mejoras (FASE 1 — HISTÓRICO)
+
+> ⚠️ **Esta fase está cerrada (2026-07-03).** El plan activo del proyecto ahora es **`docs/MVP_VENDIBLE_PLAN.md`**
+> (fase 2: velocidad, UX, estética, PDFs, VTV integrada). Este archivo queda como registro de lo construido
+> en la fase 1 y de sus notas de implementación — no tomar tareas de acá.
 
 > **Checklist maestro del proyecto.** Refleja el estado real: qué está hecho, qué falta y por dónde seguir.
 > Regla: nada se marca `[x]` sin estar implementado Y probado (typecheck + lint + build + flujo manual cuando aplica).
