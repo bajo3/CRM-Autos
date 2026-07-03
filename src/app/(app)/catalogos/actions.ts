@@ -67,6 +67,7 @@ export async function generarCatalogo(formData: FormData): Promise<void> {
     telefono: ctx.empresa?.telefono, email: ctx.empresa?.email,
     direccion: ctx.empresa?.direccion, localidad: ctx.empresa?.localidad, provincia: ctx.empresa?.provincia,
     color_primario: ctx.empresa?.color_primario,
+    logoBytes: await fetchBytes(ctx.empresa?.logo_url),
   };
 
   // Registro primero (para nombrar el archivo con su id).

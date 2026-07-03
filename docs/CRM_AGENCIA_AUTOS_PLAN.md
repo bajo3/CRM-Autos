@@ -26,7 +26,7 @@
 - [x] Consignados *(falta liquidación al dueño al venderse — requiere vincular con precio real de venta)*
 - [x] Ocultar Garantías y Reclamos
 - [x] Documentos
-- [ ] Catálogo *(vitrina pública con filtros hecha; falta mejorar el diseño del PDF)*
+- [ ] Catálogo *(vitrina pública con filtros hecha, PDF con branding y diseño mejorado hecho; falta solo probar el flujo completo en navegador real)*
 - [x] Dashboard Centro de Acción Comercial
 
 ---
@@ -176,7 +176,7 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 
 **Mejoras pendientes:**
 - [x] Branding real del PDF del catálogo (color de marca de la empresa en header y precio) — ver "Notas de implementación" (2026-07-03, bloque catálogo)
-- [ ] Mejorar diseño del PDF del catálogo (fotos más grandes, portada) — pendiente de diseño, branding de color ya resuelto
+- [x] Mejorar diseño del PDF del catálogo (portada de marca + logo, fotos más grandes 200→270px, 2 fichas por página en vez de 3) — ver "Notas de implementación" (2026-07-03, bloque 21)
 - [x] Mejorar vitrina pública: **botón de WhatsApp por vehículo ya existía**; se agregaron **filtros para el visitante** (`src/components/catalogos/vitrina-filtros.tsx`, client component): buscador por marca/modelo/versión + orden (recientes/precio asc/precio desc/año), todo client-side sin round-trip al servidor (la lista completa ya venía cargada por la función `stock_publico`)
 - [ ] Probar flujo completo (generar → compartir → abrir como cliente)
 
@@ -365,3 +365,10 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - **Migraciones agregadas:** ninguna.
 - **Qué falta revisar:** diseño del catálogo PDF sigue pendiente en fotos más grandes y portada — es trabajo de diseño, no de branding; el color de marca ya queda resuelto en todo el sistema de documentos.
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Verificación real: se compiló `catalogo.ts` de forma standalone (`tsc` + `node`) y se generó un catálogo de 2 vehículos con color de marca de prueba (`#b91c1c`) y una versión con guión largo ("1.6 Trendline — full") — se leyó el PDF resultante y se confirmó visualmente que el header y el precio usan el color configurado, y que el guión largo se muestra correctamente ("-"). Archivos temporales eliminados después.
+
+### Fecha: 2026-07-03 (bloque 21) — rediseño del PDF de catálogo (portada + fotos más grandes)
+- **Qué se implementó:** cierra el último pendiente de diseño del módulo Catálogo. El PDF pasó de "3 fichas por página con foto chica" a: (1) una **portada** nueva con el bloque de color de marca ocupando ~52% de la página, logo de la empresa centrado (si tiene uno cargado en Configuración), nombre de la empresa, subtítulo "Catálogo de vehículos", fecha de actualización, cantidad de unidades disponibles y datos de contacto — antes el catálogo arrancaba directo con la primera ficha, sin ninguna presentación; (2) fichas de vehículo rediseñadas: **2 por página en vez de 3** para poder agrandar la foto de 200px a 270px de ancho (con más alto también, ~300px), tipografía de título/precio más grande (14→17 y 18→22) y mejor espaciado. La numeración de página ahora cuenta la portada como página 1.
+- **Archivos principales tocados:** `src/lib/pdf/catalogo.ts` (nueva función `drawPortada()`, `PER_PAGE` 3→2, `SLOT_H` recalculado, `drawCard()` con caja de foto y tipografía más grandes, `logoBytes` agregado a `EmpresaCat`), `src/app/(app)/catalogos/actions.ts` (reutiliza el helper `fetchBytes` ya existente para descargar `ctx.empresa?.logo_url` y pasarlo como `logoBytes`).
+- **Migraciones agregadas:** ninguna (`logo_url` ya existía en la tabla `empresa`, ya se usaba en Documentos/Presupuestos).
+- **Qué falta revisar:** con este bloque el módulo Catálogo queda completo salvo "probar el flujo completo en navegador real" (generar → compartir → abrir como cliente), que es una prueba manual de UX y no de código.
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Verificación real generando un catálogo de prueba con 3 vehículos (para probar el salto de página portada→ficha→ficha nueva) y un logo de prueba: se compiló `catalogo.ts` de forma standalone (`tsc` + `node`) y se leyó el PDF resultante con el `Read` tool — se confirmó visualmente la portada con el bloque de color, el logo, el nombre y los datos; la página 2 mostró 2 fichas con foto grande y precio en el color de marca; la página 3 mostró la tercera ficha sola; la numeración "Página 2 de 3" / "Página 3 de 3" fue correcta. **Nota de la sesión:** al armar el PNG de prueba para el logo con bytes inventados a mano (base64 mal formado), el proceso de Node quedó colgado indefinidamente en el decoder de PNG de pdf-lib en vez de tirar un error — se resolvió usando un PNG 1x1 válido conocido. Vale la pena tenerlo en cuenta: un `logo_url` que apunte a un archivo corrupto podría colgar la generación real del catálogo en producción en vez de fallar con un error claro; queda como posible mejora futura (timeout o validación de imagen) si se llegara a reportar un catálogo que "no genera nunca".
