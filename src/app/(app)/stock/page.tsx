@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge, toneForEstado } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatARS, formatNumber, humanize } from "@/lib/format";
+import { formatARS, formatNumber, humanize, daysUntil } from "@/lib/format";
+import { vtvSeveridad, vtvSeveridadLabel, vtvSeveridadTone } from "@/lib/data/vtv";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,17 @@ export default async function StockPage({
   const rol = ctx?.profile?.rol;
   const verMargen = can(rol, "margenes.ver");
   const total = count ?? 0;
+
+  // VTV vigente por vehículo (la más próxima a vencer si hay varias): una sola consulta extra, sin N+1.
+  const ids = (autos ?? []).map((a) => a.id);
+  const { data: vtvs } = ids.length > 0
+    ? await sb.from("vtv").select("vehiculo_id,fecha_vencimiento").in("vehiculo_id", ids).order("fecha_vencimiento", { ascending: true })
+        .returns<{ vehiculo_id: string; fecha_vencimiento: string | null }[]>()
+    : { data: [] as { vehiculo_id: string; fecha_vencimiento: string | null }[] };
+  const vtvPorVehiculo = new Map<string, string | null>();
+  for (const v of vtvs ?? []) {
+    if (!vtvPorVehiculo.has(v.vehiculo_id)) vtvPorVehiculo.set(v.vehiculo_id, v.fecha_vencimiento);
+  }
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const qs = (p: number) => {
     const sp = new URLSearchParams();
@@ -126,6 +138,7 @@ export default async function StockPage({
                 {verMargen && <TH>Margen</TH>}
                 <TH>Estado</TH>
                 <TH>Doc.</TH>
+                <TH>VTV</TH>
                 <TH>Pub.</TH>
               </TR>
             </THead>
@@ -145,6 +158,14 @@ export default async function StockPage({
                   {verMargen && <TD className="text-ok">{formatARS(a.margen_estimado)}</TD>}
                   <TD><Badge tone={toneForEstado(a.estado)}>{humanize(a.estado)}</Badge></TD>
                   <TD><Badge tone={toneForEstado(a.estado_documental)}>{humanize(a.estado_documental)}</Badge></TD>
+                  <TD>
+                    {(() => {
+                      const fecha = vtvPorVehiculo.get(a.id);
+                      if (fecha === undefined) return <span className="text-xs text-muted-foreground">Sin cargar</span>;
+                      const sev = vtvSeveridad(daysUntil(fecha));
+                      return <Badge tone={vtvSeveridadTone(sev)}>{vtvSeveridadLabel(sev)}</Badge>;
+                    })()}
+                  </TD>
                   <TD className="text-xs text-muted-foreground">
                     {a.publicado_web ? "Web " : ""}{a.publicado_ml ? "ML" : ""}
                     {!a.publicado_web && !a.publicado_ml ? "—" : ""}

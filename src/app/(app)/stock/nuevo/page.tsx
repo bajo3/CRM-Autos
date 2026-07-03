@@ -18,6 +18,7 @@ export default function NuevoAutoPage({
       <VehiculoForm
         action={crearAuto}
         submitLabel="Guardar auto"
+        pedirVtv
         initial={{
           precio_costo: searchParams.precio_costo ? Number(searchParams.precio_costo) : undefined,
           observaciones: searchParams.observaciones,

@@ -31,12 +31,20 @@ function ultimoDiaDelMes(anio: number, mes: number): string {
   return `${anio}-${mm}-${dd}`;
 }
 
-/** Estado derivado del vencimiento, alineado con el job diario (60 días). */
+/**
+ * Estado derivado del vencimiento (ventana de 60 días).
+ * Parsea la fecha igual que `daysUntil` (src/lib/format.ts) para que ambas
+ * coincidan en los días límite — antes usaban convenciones distintas
+ * (una con hora local explícita, otra vía `new Date(string)` a secas) y
+ * podían discrepar en un día según el huso horario del servidor.
+ */
 export function estadoPorVencimiento(fechaISO: string | null | undefined): VtvEstado {
   if (!fechaISO) return "pendiente";
+  const venc = new Date(fechaISO);
+  if (isNaN(venc.getTime())) return "pendiente";
+  venc.setHours(0, 0, 0, 0);
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
-  const venc = new Date(fechaISO + "T00:00:00");
   const limite = new Date(hoy.getTime() + 60 * 86_400_000);
   if (venc < hoy) return "vencida";
   if (venc <= limite) return "por_vencer";

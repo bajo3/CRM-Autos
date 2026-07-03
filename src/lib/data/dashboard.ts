@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Rel } from "@/lib/rel";
+import { estadoPorVencimiento } from "@/lib/data/vtv";
 
 type VtvRow = {
   id: string; patente: string | null; estado: string; fecha_vencimiento: string | null;
@@ -15,15 +16,18 @@ export async function getDashboardData() {
 
   const [
     leadsNuevos, seguimientosHoy, seguimientosVencidos,
-    vtvPorVencer, vtvVencidas, creditosPorTerminar, postventaPendiente,
+    vtvTodas, creditosPorTerminar, postventaPendiente,
     encargosActivos, autosDisponibles, autosReservados, autosVendidos,
-    docPendiente, autosSinPublicar, vtvAlertasRes,
+    docPendiente, autosSinPublicar,
   ] = await Promise.all([
     sb.from("cliente").select("*", { count: "exact", head: true }).eq("estado", "nuevo"),
     sb.from("seguimiento").select("*", { count: "exact", head: true }).eq("fecha", today).eq("estado", "pendiente"),
     sb.from("seguimiento").select("*", { count: "exact", head: true }).eq("estado", "vencido"),
-    sb.from("vtv").select("*", { count: "exact", head: true }).eq("estado", "por_vencer"),
-    sb.from("vtv").select("*", { count: "exact", head: true }).eq("estado", "vencida"),
+    // El estado de la VTV se deriva de fecha_vencimiento en cada render (no se
+    // recalcula solo con el tiempo si se confía en la columna estática).
+    sb.from("vtv")
+      .select("id,patente,estado,fecha_vencimiento,vehiculo:vehiculo_id(marca,modelo)")
+      .order("fecha_vencimiento").returns<VtvRow[]>(),
     sb.from("credito").select("*", { count: "exact", head: true }).eq("estado", "por_terminar"),
     sb.from("postventa").select("*", { count: "exact", head: true }).eq("realizada", false).lte("fecha_alerta", today),
     sb.from("encargo").select("*", { count: "exact", head: true }).in("estado", ["buscando", "unidad_encontrada", "ofrecido"]),
@@ -32,19 +36,18 @@ export async function getDashboardData() {
     sb.from("vehiculo").select("*", { count: "exact", head: true }).eq("estado", "vendido"),
     sb.from("vehiculo").select("*", { count: "exact", head: true }).in("estado_documental", ["pendiente", "incompleto", "observado"]),
     sb.from("vehiculo").select("*", { count: "exact", head: true }).eq("publicado_web", false).eq("publicado_ml", false).neq("estado", "vendido"),
-    sb.from("vtv")
-      .select("id,patente,estado,fecha_vencimiento,vehiculo:vehiculo_id(marca,modelo)")
-      .in("estado", ["por_vencer", "vencida"]).order("fecha_vencimiento").returns<VtvRow[]>(),
   ]);
-  const vtvAlertas = vtvAlertasRes.data;
+
+  const vtvConEstadoReal = (vtvTodas.data ?? []).map((v) => ({ ...v, estado: estadoPorVencimiento(v.fecha_vencimiento) }));
+  const vtvAlertas = vtvConEstadoReal.filter((v) => v.estado === "por_vencer" || v.estado === "vencida");
 
   return {
     stats: {
       leadsNuevos: leadsNuevos.count ?? 0,
       seguimientosHoy: seguimientosHoy.count ?? 0,
       seguimientosVencidos: seguimientosVencidos.count ?? 0,
-      vtvPorVencer: vtvPorVencer.count ?? 0,
-      vtvVencidas: vtvVencidas.count ?? 0,
+      vtvPorVencer: vtvConEstadoReal.filter((v) => v.estado === "por_vencer").length,
+      vtvVencidas: vtvConEstadoReal.filter((v) => v.estado === "vencida").length,
       creditosPorTerminar: creditosPorTerminar.count ?? 0,
       postventaPendiente: postventaPendiente.count ?? 0,
       encargosActivos: encargosActivos.count ?? 0,
@@ -54,6 +57,6 @@ export async function getDashboardData() {
       docPendiente: docPendiente.count ?? 0,
       autosSinPublicar: autosSinPublicar.count ?? 0,
     },
-    vtvAlertas: vtvAlertas ?? [],
+    vtvAlertas,
   };
 }

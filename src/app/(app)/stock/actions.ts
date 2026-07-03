@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { registrarCambio } from "@/lib/data/historial";
+import { calcularVtv, type VtvCalendario } from "@/lib/data/vtv";
 
 const optionalNumber = z
   .union([z.coerce.number(), z.literal("")])
@@ -63,7 +64,30 @@ export async function crearAuto(_prev: FormState, formData: FormData): Promise<F
 
   if (error) return { error: `No se pudo guardar: ${error.message}` };
 
+  // VTV preguntada en el alta: "sí" calcula el estado real desde la fecha
+  // cargada; "no"/"no sé" queda pendiente de control (no se adivina fecha).
+  const vtvTiene = String(formData.get("vtv_tiene") ?? "");
+  if (vtvTiene === "si" || vtvTiene === "no" || vtvTiene === "no_se") {
+    const fechaManual = vtvTiene === "si" ? String(formData.get("vtv_fecha_vencimiento") ?? "").trim() || null : null;
+    const calendario = (ctx.empresa?.vtv_calendario ?? null) as VtvCalendario | null;
+    const calc = vtvTiene === "si"
+      ? calcularVtv(parsed.data.patente ?? null, calendario, fechaManual)
+      : { ultimo_digito: null, mes_sugerido: null, fecha_vencimiento: null, estado: "pendiente" as const };
+
+    await sb.from("vtv").insert({
+      empresa_id: ctx.profile.empresa_id,
+      vehiculo_id: data.id,
+      patente: parsed.data.patente ?? null,
+      ultimo_digito: calc.ultimo_digito,
+      jurisdiccion: ctx.empresa?.provincia || "Buenos Aires",
+      mes_sugerido: calc.mes_sugerido,
+      fecha_vencimiento: calc.fecha_vencimiento,
+      estado: calc.estado,
+    });
+  }
+
   revalidatePath("/stock");
+  revalidatePath("/vtv");
   redirect(`/stock/${data.id}`);
 }
 

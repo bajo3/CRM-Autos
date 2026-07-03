@@ -120,17 +120,20 @@ La pregunta del dueño: *"¿por qué tasaciones? ¿por qué permuta? ¿por qué 
 
 ---
 
-## Fase 3 — VTV integrada al stock 🚦
+## Fase 3 — VTV integrada al stock 🚦 — ✅ COMPLETA (2026-07-03)
 
 Pedido textual del dueño: *"en la VTV o en stock tiene que preguntar vtv vigente"*.
 
-- [ ] **Alta/edición de vehículo** (`src/components/forms/vehiculo-form.tsx` + actions de stock): agregar bloque "VTV": select "¿Tiene VTV vigente?" (Sí / No / No sé) y, si Sí, campo fecha de vencimiento.
-- [ ] Al guardar: crear o actualizar el registro en la tabla `vtv` (ya existe, enum `estado_vtv`: vigente/por_vencer/vencida/pendiente) calculando el estado según la fecha. Sin VTV o "No sé" → registro `pendiente` para que aparezca en la lista de control.
-- [ ] **Badge de VTV en la ficha del vehículo** (`stock/[id]`) y columna/indicador en el listado de stock (color por estado).
-- [ ] El módulo `/vtv` queda como vista de control de vencimientos (ya existe y ya alimenta el dashboard) — ahora se alimenta solo desde el alta de stock.
-- [ ] Verificar el recálculo de estados (vigente → por_vencer → vencida): si hoy depende de un proceso manual, calcular el estado derivado en la query/render a partir de `fecha_vencimiento` en vez de confiar en la columna estática.
+- [x] **Alta de vehículo** (`src/components/forms/vehiculo-form.tsx`, prop `pedirVtv`, usada solo en `stock/nuevo/page.tsx`): bloque "¿Tiene VTV vigente?" (Sí/No/No sé) y, si Sí, campo de fecha obligatorio. **No se agregó al formulario de edición** (decisión explícita: la ficha del vehículo ya tiene su propio formulario de carga de VTV que soporta historial de varias verificaciones — agregarlo también en "editar" arriesgaba crear filas de `vtv` duplicadas en cada guardado sin aportar nada que la ficha no tenga ya).
+- [x] Al guardar (`crearAuto` en `stock/actions.ts`): crea el registro en `vtv` reutilizando `calcularVtv()` (ya existía, la usa el alta desde la ficha del vehículo). "Sí" calcula `estado`/`ultimo_digito`/`mes_sugerido` desde la fecha cargada; "No"/"No sé" fuerza `estado: "pendiente"` sin inventar una fecha, tal como pide el plan.
+- [x] **Columna VTV en el listado de stock** (`stock/page.tsx`): una consulta extra (sin N+1) trae la VTV más próxima a vencer por vehículo; badge de severidad reutilizando `vtvSeveridad`/`vtvSeveridadTone` (mismas funciones que ya usaba `/vtv`). Vehículos sin registro muestran "Sin cargar" (distinto de "Sin fecha", que sería un registro `pendiente` sin vencimiento).
+- [x] El módulo `/vtv` ya era la vista de control (sin cambios) — ahora se alimenta también desde el alta de stock, no solo desde la ficha del vehículo.
+- [x] **Bug real encontrado y corregido:** el dashboard (`src/lib/data/dashboard.ts`) confiaba en la columna estática `vtv.estado`, calculada una sola vez al crear el registro y nunca recalculada — con el tiempo quedaba desincronizada de la fecha real (una VTV "por_vencer" se queda etiquetada así para siempre aunque ya haya vencido). Ahora el dashboard trae todos los registros de `vtv` y deriva el estado en cada render con `estadoPorVencimiento(fecha_vencimiento)`, igual que ya hacía `/vtv`.
+- [x] **Segundo bug encontrado al verificar lo anterior:** `estadoPorVencimiento` (usada por el dashboard) y `daysUntil`+`vtvSeveridad` (usada por `/vtv` y la nueva columna de stock) parseaban la fecha de vencimiento con convenciones distintas (una con hora local explícita vía `"T00:00:00"`, la otra con `new Date(string)` a secas) y podían discrepar en un día según el huso horario del servidor — confirmado en vivo: la misma VTV aparecía "Por vencer" en el dashboard y "Vencida" en la lista de stock. Corregido unificando el parseo de `estadoPorVencimiento` para que coincida exactamente con `daysUntil`.
 
-**Notas de implementación fase 3:** _(completar al ejecutar)_
+**Notas de implementación fase 3:**
+- Verificado en navegador real: la columna VTV del listado de stock muestra estados reales y correctos con datos de la empresa demo (Vigente/Vencida/Sin cargar); el select "¿Tiene VTV vigente?" en el alta muestra el campo de fecha condicional al elegir "Sí"; el dashboard y la lista de stock ahora coinciden en el estado de una misma VTV (antes de la corrección, discrepaban).
+- El formulario de alta (`useFormState`) no se pudo probar end-to-end con un submit real por la limitación de automatización ya documentada (fase 1 histórica) — se verificó la lógica del server action por revisión de código + tipos, y el comportamiento del formulario (aparición condicional del campo fecha) sí se probó interactuando con el DOM real en el navegador.
 
 ---
 

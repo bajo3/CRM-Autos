@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import type { FormState } from "@/app/(app)/stock/actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,15 +37,19 @@ export function VehiculoForm({
   initial = {},
   submitLabel = "Guardar auto",
   cancelHref = "/stock",
+  pedirVtv = false,
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   initial?: VehiculoInitial;
   submitLabel?: string;
   cancelHref?: string;
+  /** Pregunta "¿tiene VTV vigente?" al cargar (solo en el alta, para no duplicar registros de VTV al editar). */
+  pedirVtv?: boolean;
 }) {
   const [state, formAction] = useFormState<FormState, FormData>(action, {});
   const fe = state.fieldErrors ?? {};
   const v = initial;
+  const [vtvTiene, setVtvTiene] = useState("no_se");
 
   return (
     <form action={formAction}>
@@ -117,6 +122,28 @@ export function VehiculoForm({
           <Field name="ubicacion" label="Ubicación" error={fe.ubicacion}>
             <Input id="ubicacion" name="ubicacion" defaultValue={v.ubicacion} placeholder="Salón / Playa" />
           </Field>
+
+          {pedirVtv && (
+            <>
+              <Field name="vtv_tiene" label="¿Tiene VTV vigente?">
+                <Select id="vtv_tiene" name="vtv_tiene" value={vtvTiene} onChange={(e) => setVtvTiene(e.target.value)}>
+                  <option value="si">Sí</option>
+                  <option value="no">No</option>
+                  <option value="no_se">No sé</option>
+                </Select>
+              </Field>
+              {vtvTiene === "si" ? (
+                <Field name="vtv_fecha_vencimiento" label="Vencimiento de la VTV">
+                  <Input id="vtv_fecha_vencimiento" name="vtv_fecha_vencimiento" type="date" required />
+                </Field>
+              ) : (
+                <div className="flex items-end pb-2 text-xs text-muted-foreground">
+                  Queda pendiente de control en el módulo VTV.
+                </div>
+              )}
+            </>
+          )}
+
           <div className="sm:col-span-2">
             <Field name="observaciones" label="Observaciones" error={fe.observaciones}>
               <Textarea id="observaciones" name="observaciones" defaultValue={v.observaciones} placeholder="Detalles de la unidad…" />
