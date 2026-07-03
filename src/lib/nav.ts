@@ -37,7 +37,7 @@ export const NAV: NavSection[] = [
       { href: "/permutas", label: "Permutas", icon: Repeat2 },
       { href: "/tasaciones", label: "Tasaciones", icon: Gauge },
       { href: "/taller", label: "Taller / Preparación", icon: Wrench },
-      { href: "/consignados", label: "Consignados", icon: FileBox, pendiente: true },
+      { href: "/consignados", label: "Consignados", icon: FileBox },
       { href: "/publicaciones", label: "Publicaciones", icon: Megaphone },
     ],
   },

@@ -23,7 +23,7 @@
 - [ ] Permutas *(módulo completo hecho: tasar, aceptar/rechazar, ingresar a stock; falta confirmar el alta en navegador real)*
 - [x] Tasaciones
 - [x] Taller / Preparación *(falta mostrar historial de trabajos en la ficha del vehículo)*
-- [ ] Consignados
+- [x] Consignados *(falta liquidación al dueño al venderse — requiere vincular con precio real de venta)*
 - [x] Ocultar Garantías y Reclamos
 - [ ] Documentos
 - [ ] Catálogo *(base funcional hecha; faltan mejoras de PDF y vitrina)*
@@ -138,15 +138,20 @@
 - [x] Sin migración: tabla `taller_trabajo` ya existía completa
 - **Probado end-to-end en navegador** (con un registro insertado por SQL): "Iniciar" cambió pendiente→en_taller (confirmado por SQL); "Listo p/ entregar" cambió listo_publicar→listo_entregar (confirmado por SQL); botón rápido "Taller" en la ficha del vehículo linkea con `?vehiculo=` correcto. El cierre con costo final (`cerrarTrabajoTaller`, con `MoneyInput`) no se pudo confirmar por click — misma limitación de herramienta documentada arriba — se verificó por SQL directo.
 
-## Consignados
+## Consignados ✅ (2026-07-02)
 
-> **La tabla `consignacion` ya existe** (`04_ventas.sql`, con `estado_consignacion`, RLS completa) — no hace falta migración, solo UI.
+- [x] Alta de vehículo consignado: `/consignados/nuevo` (vehículo ya cargado en stock, dueño + contacto, comisión %, precio pretendido/mínimo, vencimiento del acuerdo, checkbox de autorización de venta firmada). Al guardar, marca automáticamente `titularidad=consignado` en el vehículo.
+- [x] Diferenciación visual: el vehículo ya muestra su `titularidad` como badge en la ficha (`/stock/[id]`); al registrar la consignación queda en `consignado` automáticamente
+- [ ] Liquidación al dueño al venderse: no implementado — requiere cruzar `consignacion` con el `precio_final` real de la `venta`, y la tabla no tiene ese vínculo directo hoy. Queda para un bloque futuro si se necesita.
+- [x] Quitar "PRONTO" del menú
+- [x] Sin migración: tabla `consignacion` ya existía completa
+- **Probado end-to-end en navegador** (con un registro insertado por SQL): listado renderiza con comisión, precios, badge de autorización; botón "Vendida" cambió el estado (confirmado por SQL tras click real). El alta desde el formulario no se pudo confirmar por click — misma limitación de herramienta documentada arriba.
 
-- [ ] Alta de vehículo consignado: dueño (cliente), condiciones, comisión pactada
-- [ ] Diferenciación visual en stock (badge "consignado" — el enum `estado` de `vehiculo` ya incluye `consignado`, ver `vehiculo-form.tsx`)
-- [ ] Liquidación al dueño al venderse
-- [ ] Quitar "PRONTO" del menú al estar funcional
-- [ ] Probar flujo completo
+---
+
+## 🎉 Hito: todos los módulos "PRONTO" del sidebar están implementados
+
+A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/lib/nav.ts`**. Los 5 módulos que estaban marcados "PRONTO" (Test Drive, Permutas, Tasaciones, Taller, Consignados) tienen ahora listado, alta, cambio de estado y — donde correspondía — integración con Stock, Dashboard o entre sí. El hallazgo clave de este tramo del plan fue que las tablas de estos 5 módulos ya existían completas desde el diseño original del schema (con RLS), así que todo el trabajo fue de UI, sin una sola migración nueva.
 
 ## Ocultar Garantías y Reclamos ✅ (2026-07-02)
 
@@ -288,3 +293,11 @@
 - **Migraciones agregadas:** ninguna (tabla `taller_trabajo` ya existía completa desde `05_docs_vtv_postventa.sql`).
 - **Qué falta revisar:** mostrar el historial de trabajos de taller en la ficha del vehículo (por ahora solo hay un botón para cargar uno nuevo); confirmar el alta y el cierre con costo final en navegador real (misma limitación de herramienta).
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con un registro insertado por SQL: "Iniciar" (pendiente→en_taller) y "Listo p/ entregar" (listo_publicar→listo_entregar) confirmados por SQL tras click real; botón rápido desde la ficha del vehículo linkea con el `vehiculo` correcto. Dato de prueba eliminado después.
+
+### Fecha: 2026-07-02 (bloque 11) — último módulo "PRONTO"
+- **Qué se implementó:** módulo Consignados completo (era placeholder "PRONTO", el último que quedaba en el sidebar). Alta de consignación sobre un vehículo ya cargado en stock, con dueño/comisión/precios/vencimiento; al guardar marca automáticamente `titularidad=consignado` en el vehículo. Estados activa→vendida/retirada.
+- **Archivos principales tocados:** `src/app/(app)/consignados/page.tsx` (reescrito, era `ModuloPlaceholder`), `src/app/(app)/consignados/nuevo/page.tsx` (nuevo), `src/app/(app)/consignados/actions.ts` (nuevo: `crearConsignacion`, `cambiarEstadoConsignacion`), `src/components/forms/consignacion-form.tsx` (nuevo), `src/lib/nav.ts` (sin "PRONTO" — ya no queda ningún módulo pendiente en el menú).
+- **Migraciones agregadas:** ninguna (tabla `consignacion` ya existía completa desde `04_ventas.sql`).
+- **Qué falta revisar:** liquidación al dueño al venderse (requiere vincular con el precio real de la venta, no existe ese enlace hoy); confirmar el alta desde el formulario en navegador real (misma limitación de herramienta).
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con un registro insertado por SQL: listado renderiza con comisión/precios/badge de autorización, botón "Vendida" cambió el estado (confirmado por SQL tras click real). Dato de prueba eliminado después.
+- **Hito:** con este bloque se cierran los 5 módulos que estaban marcados "PRONTO" en el sidebar (Test Drive, Permutas, Tasaciones, Taller, Consignados). Ninguno necesitó migración — las tablas ya existían completas desde el diseño original del schema.
