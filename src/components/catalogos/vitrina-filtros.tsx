@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { MessageCircle, Gauge, Calendar, Fuel } from "lucide-react";
 import { waUrl, mensajeVehiculo } from "@/lib/data/whatsapp";
 import { humanize } from "@/lib/format";
@@ -91,8 +92,13 @@ export function VitrinaFiltros({
             <article key={v.id} className="flex flex-col overflow-hidden rounded-lg border bg-white shadow-sm transition hover:shadow-md">
               <div className="relative aspect-[4/3] bg-gray-100">
                 {v.foto ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={v.foto} alt={`${v.marca} ${v.modelo}`} className="h-full w-full object-cover" />
+                  <Image
+                    src={v.foto}
+                    alt={`${v.marca} ${v.modelo}`}
+                    fill
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover"
+                  />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-gray-300">Sin foto</div>
                 )}

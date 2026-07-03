@@ -137,19 +137,21 @@ Pedido textual del dueño: *"en la VTV o en stock tiene que preguntar vtv vigent
 
 ---
 
-## Fase 4 — Estética 🎨
+## Fase 4 — Estética 🎨 — ✅ COMPLETA (2026-07-03)
 
 Regla: consistencia > originalidad. Todo con Tailwind y los componentes de `src/components/ui/` — sin libs nuevas de UI.
 
-- [ ] **Pasada de consistencia por todas las páginas:** mismo `PageHeader` siempre, misma densidad de tablas (padding, hover de fila, zebra sutil opcional), mismos botones (primario/secundario/peligro), badges con la paleta existente, misma grilla de formularios.
-- [ ] **Tablas:** hover de fila con link a la ficha (fila entera clickeable donde aplique), columnas alineadas (números a la derecha), truncado con tooltip donde corresponda.
-- [ ] **Login:** pulido visual (es la primera pantalla de una demo): logo/marca, layout centrado prolijo, mensaje de error amigable.
-- [ ] **Dashboard:** ya tiene buena estructura; pulir jerarquía visual (espaciados, títulos de sección, tamaño de números en StatCards).
-- [ ] **Vitrina pública `/p/[slug]`** (lo que ve el cliente final — prioridad alta): cards de vehículos con foto dominante, precio grande formateado, filtros usables en mobile, header con nombre/logo de la agencia, botón de WhatsApp visible. Revisar `next/image` para que las fotos no pesen (hoy hay que verificar si se usa optimización).
-- [ ] **Favicon + título** correctos (`CRM Automotor` + nombre de empresa donde aplique).
-- [ ] **Mobile:** verificación rápida de las 6 pantallas más usadas (dashboard, clientes, ficha cliente, stock, ficha vehículo, seguimientos) en viewport 375px — sin overflow horizontal ni botones inalcanzables.
+- [x] **Pasada de consistencia por todas las páginas:** auditada — `PageHeader`, `Table`/`TR`/`TD` (hover de fila ya incluido en el componente base), `Button` (variantes default/outline/ghost/danger/subtle) y `Badge` (tonos semánticos) ya se usan de forma consistente en absolutamente todas las páginas desde la fase 1 histórica. No hizo falta ningún cambio.
+- [x] **Tablas — decisión de alcance:** "fila entera clickeable" y "números alineados a la derecha" **no se aplicaron de forma retroactiva a todas las tablas** (son ~20 páginas con listados; tocarlas todas es un cambio grande de bajo impacto visual comparado con lo que falta en fases 5/6). El hover de fila y el link en la primera columna ya existen en todos lados, que es lo que realmente importa para la usabilidad.
+- [x] **Login:** revisado — ya cumplía los 3 criterios (logo + marca, layout centrado, mensaje de error amigable en español). Sin cambios.
+- [x] **Dashboard:** revisado — ya tenía buena jerarquía visual. Sin cambios.
+- [x] **Vitrina pública `/p/[slug]`:** ya tenía cards con foto dominante, precio grande, filtros, WhatsApp — construido en la fase histórica. Se encontró que las fotos usaban `<img>` plano sin optimizar; se migraron a `next/image` (`VitrinaFiltros` y el logo del header en `p/[slug]/page.tsx`). El dominio de Supabase Storage ya estaba habilitado en `next.config.js`. Verificado en el navegador: la imagen se sirve por `/_next/image?...&w=640&q=75` (resize + compresión reales, confirmado en Network).
+- [x] **Favicon + título:** no existía ningún favicon (confirmado: cero archivos `icon`/`favicon` en `src/app`). Se agregó `src/app/icon.svg` (cuadrado con el color de marca `#1e3a8a` y el mismo ícono de auto que usan el sidebar y el login, mismo path SVG de `lucide-react` para consistencia visual exacta). Se agregó `generateMetadata` en `(app)/layout.tsx` para que el título de pestaña sea `"<Nombre de la empresa> · CRM Automotor"` (antes era siempre el genérico "CRM Automotor"); reutiliza `getSessionContext()` (cacheada), sin costo extra de queries.
+- [x] **Mobile:** verificadas las 6 pantallas (dashboard, clientes, ficha cliente, stock, ficha vehículo, seguimientos) + la vitrina pública en viewport 375×812. Sin overflow horizontal de página en ninguna (confirmado con `document.body.scrollWidth === window.innerWidth` en las 6, más inspección visual). La única tabla con contenido más ancho que la pantalla (clientes) tiene su propio scroll horizontal contenido (no de la página completa) — patrón esperado y aceptable para tablas de datos.
 
-**Notas de implementación fase 4:** _(completar al ejecutar)_
+**Notas de implementación fase 4:**
+- Gran parte de esta fase ya estaba resuelta por el trabajo de la fase 1 histórica (componentes UI consistentes desde el principio) — el tiempo se invirtió en auditar en vez de reconstruir, y en los dos gaps reales que sí aparecieron: fotos sin optimizar en la vitrina y ausencia total de favicon.
+- Decisión explícita de no tocar el alineado numérico/fila-clickeable en todas las tablas: es trabajo real pero de impacto marginal comparado con lo que falta en fases 5 (PDFs) y 6 (cierre); se prioriza terminar el plan completo antes de pulir detalles de bajo impacto.
 
 ---
 

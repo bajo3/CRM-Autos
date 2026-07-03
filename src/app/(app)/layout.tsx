@@ -1,7 +1,14 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { getSessionContext } from "@/lib/auth/session";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Topbar } from "@/components/topbar";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const ctx = await getSessionContext();
+  const empresa = ctx?.empresa?.nombre;
+  return { title: empresa ? `${empresa} · CRM Automotor` : "CRM Automotor" };
+}
 
 export default async function AppLayout({
   children,

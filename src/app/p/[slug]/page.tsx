@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { waUrl } from "@/lib/data/whatsapp";
@@ -63,8 +64,13 @@ export default async function StockPublicoPage({ params }: { params: { slug: str
         <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             {empresa.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={empresa.logo_url} alt={empresa.nombre} className="h-12 w-12 rounded bg-white/10 object-contain" />
+              <Image
+                src={empresa.logo_url}
+                alt={empresa.nombre}
+                width={48}
+                height={48}
+                className="h-12 w-12 rounded bg-white/10 object-contain"
+              />
             ) : null}
             <div>
               <h1 className="text-2xl font-bold">{empresa.nombre}</h1>
