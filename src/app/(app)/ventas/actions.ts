@@ -91,6 +91,8 @@ export async function crearVenta(_prev: FormState, formData: FormData): Promise<
   // Marcar el vehículo como vendido
   if (d.vehiculo_id) {
     await sb.from("vehiculo").update({ estado: "vendido" }).eq("id", d.vehiculo_id);
+    // Si el vehículo estaba consignado, cerrar la consignación (evita que quede "activa" para siempre).
+    await sb.from("consignacion").update({ estado: "vendida" }).eq("vehiculo_id", d.vehiculo_id).eq("estado", "activa");
     await registrarCambio({
       accion: "venta_registrada",
       entidad: "vehiculo",
