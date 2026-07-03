@@ -170,12 +170,17 @@ Motor existente: `src/lib/pdf/documento.ts` (pdf-lib, con branding de color ya a
 
 ---
 
-## Fase 6 — Cierre vendible ✅
+## Fase 6 — Cierre vendible ✅ — ✅ COMPLETA (2026-07-03)
 
-- [ ] **Datos demo prolijos:** revisar que la empresa demo tenga 8–12 vehículos con fotos, clientes con nombres reales creíbles, seguimientos/presupuestos/ventas de ejemplo coherentes (fechas recientes). Es lo que se muestra en una venta.
-- [ ] **Guion de demo** en `docs/DEMO.md`: recorrido de 10 minutos (dashboard → buscar cliente → presupuesto + PDF → stock + VTV → vitrina pública → catálogo por WhatsApp) con qué decir en cada paso.
-- [ ] **QA manual** (humano, navegador normal — bloqueado para automatización, ver nota en plan fase 1): alta de Presupuesto, Test Drive, Permuta y flujo de Catálogo. Checklist corto en `docs/DEMO.md`.
-- [ ] Pasada final: `npm run typecheck && npm run lint && npm run build` + revisión de que no quedó ningún texto "TODO"/"próximamente" visible.
+- [x] **Datos demo prolijos:** el stock tenía solo 5 vehículos y solo 1 (Ford Ranger) con fotos reales. Se agregaron 5 unidades más (Chevrolet Onix, Renault Sandero, Honda HR-V, Chevrolet S10, Renault Kangoo) con datos realistas — total 10 vehículos, dentro del rango 8–12. Clientes (8) ya tenían nombres creíbles y orígenes variados; seguimientos y presupuestos tienen fechas recientes (junio/julio 2026), coherentes con "hoy". **Gap real que no se pudo resolver por código:** 9 de los 10 vehículos no tienen fotos — no hay forma legítima de generar/conseguir fotos reales de autos específicos; queda documentado como acción pendiente del dueño en `docs/DEMO.md`. Tampoco se borraron 2 registros de cliente con datos incompletos ("Tomas", "Matias Marino") por no poder confirmar si son de prueba o leads reales cargados a mano — decisión de no borrar datos sin certeza, documentada para que el dueño lo revise.
+- [x] **Guion de demo**: creado `docs/DEMO.md` con recorrido de 10 minutos (dashboard → Ctrl+K → presupuesto+PDF → stock+VTV → vitrina pública → catálogo por WhatsApp), qué decir en cada paso, y una sección "Antes de mostrarlo a un cliente" con el checklist de fotos/datos de prueba.
+- [x] **QA manual**: checklist de los 4 flujos bloqueados para automatización (Presupuestos, Test Drive, Permutas, Catálogo) agregado a `docs/DEMO.md` — código completo y verde, pendiente solo la prueba manual desde un navegador normal.
+- [x] **Pasada final**: `npm run typecheck && npm run lint && npm run build` en verde. Grep de "TODO"/"próximamente"/"Pronto" en `src/`: sin resultados. Ningún ítem de `src/lib/nav.ts` quedó con `pendiente: true` (que mostraría el badge "Pronto" en el sidebar).
+
+**Notas de implementación fase 6:**
+- Los 5 vehículos nuevos se cargaron por SQL directo (`execute_sql`), no por migración — es carga de datos de la empresa demo, no un cambio de esquema.
+- Verificado en navegador real que el listado de stock pasó de 5 a 10 unidades tras la carga.
+- Con este bloque se completan las 6 fases del plan `MVP_VENDIBLE_PLAN.md`. Lo único que queda abierto son las dos cosas que genuinamente no se pueden resolver de forma autónoma: (1) fotos reales de los vehículos y (2) la prueba manual de los 4 flujos con formularios `useFormState`, ambas documentadas en `docs/DEMO.md`.
 
 **Notas de implementación fase 6:** _(completar al ejecutar)_
 
