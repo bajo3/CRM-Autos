@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageCircle, Pencil, FileText, ExternalLink, Receipt, BookmarkPlus, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, MessageCircle, Pencil, FileText, ExternalLink, Receipt, BookmarkPlus, ClipboardCheck, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -141,6 +141,11 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
           <Link href={`/test-drive/nuevo?vehiculo=${v.id}`}>
             <Button variant="outline" size="sm"><ClipboardCheck className="h-4 w-4" /> Test Drive</Button>
           </Link>
+          {can(rol, "stock.editar") && (
+            <Link href={`/taller/nuevo?vehiculo=${v.id}`}>
+              <Button variant="outline" size="sm"><Wrench className="h-4 w-4" /> Taller</Button>
+            </Link>
+          )}
           <a
             href={waUrl(mensajeVehiculo(ctx?.empresa?.nombre ?? "nuestra agencia", {
               marca: v.marca, modelo: v.modelo, anio: v.anio, precio: v.precio_venta,

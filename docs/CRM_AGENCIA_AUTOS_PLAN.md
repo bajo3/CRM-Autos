@@ -22,7 +22,7 @@
 - [ ] Test Drive *(módulo completo hecho; falta confirmar el alta en navegador real, ver nota en la sección)*
 - [ ] Permutas *(módulo completo hecho: tasar, aceptar/rechazar, ingresar a stock; falta confirmar el alta en navegador real)*
 - [x] Tasaciones
-- [ ] Taller / Preparación
+- [x] Taller / Preparación *(falta mostrar historial de trabajos en la ficha del vehículo)*
 - [ ] Consignados
 - [x] Ocultar Garantías y Reclamos
 - [ ] Documentos
@@ -128,15 +128,15 @@
 - [x] Sin migración: tabla `tasacion` ya existía completa
 - **Probado end-to-end en navegador** (con un registro insertado por SQL, misma limitación de herramienta documentada arriba): listado renderiza bien con margen calculado; botón "Tomar" cambió la decisión (confirmado por SQL); el link "Registrar permuta" aparece con el `cliente_id` correcto en la URL.
 
-## Taller / Preparación
+## Taller / Preparación ✅ (2026-07-02)
 
-> **La tabla `taller_trabajo` ya existe** (`05_docs_vtv_postventa.sql`, con `estado_taller`, RLS completa) — no hace falta migración, solo UI.
-
-- [ ] Checklist de preparación por vehículo (ítems: service, detailing, VTV, gestoría, etc.)
-- [ ] Costos de preparación por ítem (impacta el costo real del vehículo)
-- [ ] Estado visible desde stock: qué le falta a cada auto para estar disponible
-- [ ] Quitar "PRONTO" del menú al estar funcional
-- [ ] Probar flujo completo
+- [x] Checklist de preparación por vehículo: cada trabajo (service, detailing, VTV, gestoría, etc.) es un ítem en `/taller`, cargado desde `/taller/nuevo` o con el botón rápido "Taller" en la ficha del vehículo
+- [x] Costos de preparación por ítem: `costo_estimado` al cargar, `costo_final` al cerrar el trabajo (input inline con `MoneyInput`)
+- [x] Flujo de estados: pendiente → **Iniciar** → en_taller → **Terminar** (carga costo final) → listo_publicar → **Listo p/ entregar** → listo_entregar
+- [ ] Estado visible desde stock (ficha del vehículo): no se agregó una sección de trabajos de taller en `/stock/[id]`; por ahora solo hay un botón para cargar uno nuevo, no para ver el historial ahí. Queda para un próximo bloque.
+- [x] Quitar "PRONTO" del menú
+- [x] Sin migración: tabla `taller_trabajo` ya existía completa
+- **Probado end-to-end en navegador** (con un registro insertado por SQL): "Iniciar" cambió pendiente→en_taller (confirmado por SQL); "Listo p/ entregar" cambió listo_publicar→listo_entregar (confirmado por SQL); botón rápido "Taller" en la ficha del vehículo linkea con `?vehiculo=` correcto. El cierre con costo final (`cerrarTrabajoTaller`, con `MoneyInput`) no se pudo confirmar por click — misma limitación de herramienta documentada arriba — se verificó por SQL directo.
 
 ## Consignados
 
@@ -281,3 +281,10 @@
 - **Migraciones agregadas:** ninguna (tabla `tasacion` ya existía completa desde `04_ventas.sql`).
 - **Qué falta revisar:** confirmar el alta desde el formulario en navegador real (misma limitación de herramienta).
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con un registro insertado por SQL: listado renderiza con margen correcto, botón "Tomar" cambió la decisión (confirmado por SQL), link "Registrar permuta" con el `cliente_id` correcto en la URL. Dato de prueba eliminado después.
+
+### Fecha: 2026-07-02 (bloque 10)
+- **Qué se implementó:** módulo Taller / Preparación completo (era placeholder "PRONTO"). Flujo de trabajo: pendiente → iniciar → en_taller → terminar (con costo final) → listo_publicar → listo para entregar. Botón rápido "Taller" agregado a la ficha del vehículo.
+- **Archivos principales tocados:** `src/app/(app)/taller/page.tsx` (reescrito, era `ModuloPlaceholder`), `src/app/(app)/taller/nuevo/page.tsx` (nuevo), `src/app/(app)/taller/actions.ts` (nuevo: `crearTrabajoTaller`, `cambiarEstadoTaller`, `cerrarTrabajoTaller`), `src/components/forms/taller-form.tsx` (nuevo), `src/app/(app)/stock/[id]/page.tsx` (botón "Taller"), `src/lib/nav.ts` (sin "PRONTO").
+- **Migraciones agregadas:** ninguna (tabla `taller_trabajo` ya existía completa desde `05_docs_vtv_postventa.sql`).
+- **Qué falta revisar:** mostrar el historial de trabajos de taller en la ficha del vehículo (por ahora solo hay un botón para cargar uno nuevo); confirmar el alta y el cierre con costo final en navegador real (misma limitación de herramienta).
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con un registro insertado por SQL: "Iniciar" (pendiente→en_taller) y "Listo p/ entregar" (listo_publicar→listo_entregar) confirmados por SQL tras click real; botón rápido desde la ficha del vehículo linkea con el `vehiculo` correcto. Dato de prueba eliminado después.
