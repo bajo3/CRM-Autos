@@ -155,18 +155,18 @@ Regla: consistencia > originalidad. Todo con Tailwind y los componentes de `src/
 
 ---
 
-## Fase 5 — PDFs de calidad 📄
+## Fase 5 — PDFs de calidad 📄 — ✅ COMPLETA (2026-07-03)
 
 Motor existente: `src/lib/pdf/documento.ts` (pdf-lib, con branding de color ya aplicado en fase 1). Subida a bucket + URL firmada vía `/abrir` — no cambiar esa arquitectura.
 
-- [ ] **Catálogo** (`catalogos`):
-  - Portada: logo/nombre de la agencia, color de marca, fecha, contacto y WhatsApp.
-  - Interior: grilla de 2–3 vehículos por página CON FOTO (descargar del bucket la primera foto de cada vehículo, embeber como JPEG; manejar vehículos sin foto con placeholder), marca/modelo/año/km destacados, precio grande con `formatARS`.
-  - Cierre: página final con datos de contacto + link a la vitrina pública (texto y QR si es viable con una lib liviana o generación propia; si no, link corto bien visible).
-- [ ] **Documentos** (presupuesto, recibo de seña, boleto): márgenes y tipografía consistentes, tabla de conceptos con líneas sutiles, totales destacados, numeración de documento visible, bloque de firmas al pie, footer con datos legales de la empresa.
-- [ ] Probar cada PDF generado abriéndolo de verdad (el flujo de generación por SQL + `/abrir` ya está validado como verificable en este entorno).
+- [x] **Catálogo** (`src/lib/pdf/catalogo.ts`): portada, header/footer con paginación y grilla de 2 por página CON FOTO ya estaban hechos desde la fase histórica. Lo que faltaba y se agregó: **página de cierre** (`drawCierre`) con "¡Gracias por tu interés!", link a la vitrina pública y contacto — para que el catálogo nunca termine en un callejón sin salida. Se optó por link de texto bien visible en vez de QR (permitido explícitamente por el plan como fallback) para no sumar una dependencia nueva solo para esto.
+- [x] **Documentos** (`src/lib/pdf/documento.ts`): ya tenían márgenes/tipografía consistentes, numeración visible y firmas — lo único que faltaba era el **footer con datos legales** (nombre + CUIT + dirección + N.º de documento), agregado al pie de cada página.
+- [x] Probados generando PDFs reales end-to-end (no solo revisión de código): catálogo vía `requestSubmit()` (acción void, patrón confiable) + extracción de texto con `pdftotext` para confirmar contenido exacto de las 4 páginas (portada, 2 de stock, cierre); presupuesto de la misma forma, confirmando el footer legal en el pie de página. Datos de prueba borrados después.
 
-**Notas de implementación fase 5:** _(completar al ejecutar)_
+**Bug real encontrado y corregido durante la verificación:** el link a la vitrina en el cierre del catálogo se generó como **relativo** (`/p/jesus-diaz`) en el primer intento — inútil dentro de un PDF, que no tiene un origen/dominio contra el cual resolverlo. La causa: se copió el patrón `process.env.NEXT_PUBLIC_SITE_URL` de `publicaciones/page.tsx`, pero esa variable de entorno no está configurada en este proyecto; la página de catálogos en realidad resuelve el link con el host real de la request vía `headers()` (`next/headers`), no con esa env var. Se corrigió `catalogos/actions.ts` para usar el mismo patrón `headers()`; confirmado con un segundo PDF real que el link ahora es absoluto (`http://localhost:3000/p/jesus-diaz`).
+
+**Notas de implementación fase 5:**
+- Los catálogos y documentos de prueba generados durante la verificación se borraron de las tablas `catalogo_pdf`/`documento_comercial`; los archivos PDF quedaron huérfanos en los buckets de Storage (la eliminación directa vía SQL está bloqueada por una policy de Supabase — "Direct deletion from storage tables is not allowed"). Bajo impacto: no aparecen en ninguna UI porque su fila de base de datos ya no existe.
 
 ---
 

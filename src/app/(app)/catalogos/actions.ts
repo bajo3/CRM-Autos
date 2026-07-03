@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -62,12 +63,20 @@ export async function generarCatalogo(formData: FormData): Promise<void> {
     })),
   );
 
+  // URL absoluta de la vitrina pública (mismo host de la request; un link relativo no sirve dentro de un PDF).
+  const slug = ctx.empresa?.slug ?? null;
+  const h = headers();
+  const host = h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  const linkVitrina = slug && host ? `${proto}://${host}/p/${slug}` : null;
+
   const empresa: EmpresaCat = {
     nombre: ctx.empresa?.nombre ?? "Agencia",
     telefono: ctx.empresa?.telefono, email: ctx.empresa?.email,
     direccion: ctx.empresa?.direccion, localidad: ctx.empresa?.localidad, provincia: ctx.empresa?.provincia,
     color_primario: ctx.empresa?.color_primario,
     logoBytes: await fetchBytes(ctx.empresa?.logo_url),
+    linkVitrina,
   };
 
   // Registro primero (para nombrar el archivo con su id).

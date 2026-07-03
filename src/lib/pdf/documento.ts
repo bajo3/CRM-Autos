@@ -359,6 +359,17 @@ export async function generarPdf(
     page.drawText(safe(firmas[1]), { x: A4.w - M - 150, y: yF - 14, size: 9, font, color: GREY });
   }
 
+  // ---------- Footer con datos legales de la empresa ----------
+  const yFoot = 50;
+  page.drawLine({ start: { x: M, y: yFoot }, end: { x: A4.w - M, y: yFoot }, thickness: 1, color: RULE });
+  const legal = [empresa.nombre, empresa.cuit ? `CUIT ${empresa.cuit}` : null, dir || null]
+    .filter(Boolean).join("  ·  ");
+  page.drawText(safe(legal), { x: M, y: yFoot - 14, size: 7.5, font, color: GREY });
+  const doc = `N.º ${datos.numero}  ·  ${fechaAR(datos.fecha)}`;
+  page.drawText(safe(doc), {
+    x: A4.w - M - font.widthOfTextAtSize(safe(doc), 7.5), y: yFoot - 14, size: 7.5, font, color: GREY,
+  });
+
   return pdf.save();
 }
 

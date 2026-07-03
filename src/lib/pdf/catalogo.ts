@@ -15,6 +15,8 @@ export type EmpresaCat = {
   provincia?: string | null;
   color_primario?: string | null;
   logoBytes?: Uint8Array | null;
+  /** Link absoluto a la vitrina pública (https://.../p/slug), si la empresa tiene slug configurado. */
+  linkVitrina?: string | null;
 };
 
 export type VehiculoCat = {
@@ -135,7 +137,7 @@ export async function generarCatalogoPdf(
 
   drawPortada(pdf, empresa, opts, vehiculos.length, font, bold, BRAND, logo);
 
-  const totalPages = 1 + Math.max(1, Math.ceil(vehiculos.length / PER_PAGE));
+  const totalPages = 2 + Math.max(1, Math.ceil(vehiculos.length / PER_PAGE));
   let pageNum = 1;
 
   const header = (page: PDFPage) => {
@@ -168,17 +170,81 @@ export async function generarCatalogoPdf(
   if (vehiculos.length === 0) {
     const page = newPage();
     page.drawText("No hay vehículos en este catálogo.", { x: M, y: HEADER_BOTTOM - 30, size: 12, font, color: GREY });
-    return pdf.save();
+  } else {
+    for (let i = 0; i < vehiculos.length; i++) {
+      const slot = i % PER_PAGE;
+      const page = slot === 0 ? newPage() : pdf.getPage(pdf.getPageCount() - 1);
+      const top = HEADER_BOTTOM - slot * SLOT_H;
+      await drawCard(pdf, page, vehiculos[i], top, font, bold, BRAND);
+    }
   }
 
-  for (let i = 0; i < vehiculos.length; i++) {
-    const slot = i % PER_PAGE;
-    const page = slot === 0 ? newPage() : pdf.getPage(pdf.getPageCount() - 1);
-    const top = HEADER_BOTTOM - slot * SLOT_H;
-    await drawCard(pdf, page, vehiculos[i], top, font, bold, BRAND);
-  }
+  drawCierre(pdf, empresa, font, bold, BRAND, logo);
 
   return pdf.save();
+}
+
+/** Página final: contacto + link a la vitrina pública, para que el catálogo nunca sea un callejón sin salida. */
+function drawCierre(
+  pdf: PDFDocument, empresa: EmpresaCat, font: PDFFont, bold: PDFFont, BRAND: ReturnType<typeof rgb>, logo: PDFImage | null,
+) {
+  const page = pdf.addPage([A4.w, A4.h]);
+  const blockH = A4.h * 0.4;
+  page.drawRectangle({ x: 0, y: A4.h - blockH, width: A4.w, height: blockH, color: BRAND });
+
+  let y = A4.h - 90;
+  if (logo) {
+    const maxW = 130, maxH = 60;
+    const scale = Math.min(maxW / logo.width, maxH / logo.height, 1);
+    const iw = logo.width * scale, ih = logo.height * scale;
+    page.drawImage(logo, { x: (A4.w - iw) / 2, y: y - ih, width: iw, height: ih });
+    y -= ih + 24;
+  }
+  const gracias = "¡Gracias por tu interés!";
+  page.drawText(gracias, {
+    x: (A4.w - bold.widthOfTextAtSize(gracias, 22)) / 2, y, size: 22, font: bold, color: rgb(1, 1, 1),
+  });
+  y -= 28;
+  const sub = "Este stock cambia todo el tiempo — mirá las unidades actualizadas cuando quieras:";
+  const subLines = wrapCentrado(sub, font, 11, A4.w - 2 * M);
+  for (const line of subLines) {
+    page.drawText(line, { x: (A4.w - font.widthOfTextAtSize(line, 11)) / 2, y, size: 11, font, color: rgb(0.88, 0.9, 0.97) });
+    y -= 16;
+  }
+
+  let by = A4.h - blockH - 60;
+  if (empresa.linkVitrina) {
+    const link = safe(empresa.linkVitrina);
+    page.drawText(link, {
+      x: (A4.w - bold.widthOfTextAtSize(link, 15)) / 2, y: by, size: 15, font: bold, color: BRAND,
+    });
+    by -= 40;
+  }
+
+  const contactos = [
+    empresa.telefono ? `WhatsApp / Tel: ${empresa.telefono}` : null,
+    empresa.email ? `Email: ${empresa.email}` : null,
+    [empresa.direccion, empresa.localidad, empresa.provincia].filter(Boolean).join(", ") || null,
+  ].filter(Boolean) as string[];
+  for (const c of contactos) {
+    const s = safe(c);
+    page.drawText(s, { x: (A4.w - font.widthOfTextAtSize(s, 11)) / 2, y: by, size: 11, font, color: INK });
+    by -= 18;
+  }
+}
+
+/** Parte un texto en líneas centradas que entran en `maxW`. */
+function wrapCentrado(s: string, font: PDFFont, size: number, maxW: number): string[] {
+  const words = safe(s).split(/\s+/);
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    const test = cur ? `${cur} ${w}` : w;
+    if (font.widthOfTextAtSize(test, size) > maxW) { lines.push(cur); cur = w; }
+    else cur = test;
+  }
+  if (cur) lines.push(cur);
+  return lines;
 }
 
 async function drawCard(
