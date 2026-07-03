@@ -16,7 +16,7 @@
 
 - [x] Performance general *(paginación, índices y N+1 auditados — ver notas del bloque de índices y N+1 para el único hallazgo menor pendiente en la sincronización de MercadoLibre)*
 - [x] Formato de dinero
-- [ ] Fidelización y alertas comerciales *(postventa accionable + integrada al dashboard; cumpleaños queda para cuando haya el dato)*
+- [x] Fidelización y alertas comerciales *(postventa + cumpleaños accionables e integrados al dashboard; falta solo "cliente sin contacto hace X días", pendiente de definición del dueño)*
 - [ ] Presupuestos *(base + mejoras + PDF con branding + rediseño del formulario hechos; falta solo probar el flujo completo en navegador real)*
 - [x] Vehículos en stock
 - [ ] Test Drive *(módulo completo hecho; falta confirmar el alta en navegador real, ver nota en la sección)*
@@ -55,14 +55,14 @@
 - [x] Verificado que toda visualización de montos ya usa `formatARS` (barrido con grep, sin números crudos filtrándose a la UI)
 - Nota: el campo de comisiones (`/comisiones`, tipo % o $ fijo con decimales) se dejó como input numérico simple a propósito — `MoneyInput` es solo enteros y ese campo necesita decimales para el modo porcentaje.
 
-## Fidelización y alertas comerciales ✅ parcial (2026-07-02)
+## Fidelización y alertas comerciales ✅ (2026-07-02 / 2026-07-03)
 
-- [x] Definir alertas comerciales: **aniversario de compra** (ya existía como módulo `postventa`, recontacto automático a 6 meses en ventas en efectivo — solo estaba a medio construir, era de solo lectura) y **service/VTV por vencer** (ya existía, `/vtv` + dashboard). **Cumpleaños de clientes** y **cliente sin contacto hace X días** quedan afuera de este bloque — no auditado, ver nota abajo.
+- [x] Definir alertas comerciales: **aniversario de compra** (ya existía como módulo `postventa`, recontacto automático a 6 meses en ventas en efectivo — solo estaba a medio construir, era de solo lectura), **service/VTV por vencer** (ya existía, `/vtv` + dashboard) y **cumpleaños de clientes** (bloque 25, ver "Notas de implementación").
 - [x] Vista/sección de alertas con acción rápida: `/postventa` ahora tiene llamar (`tel:`), WhatsApp (mensaje prearmado) y "marcar como realizada" — antes era una tabla de solo lectura sin ninguna acción
-- [x] Plantillas de mensajes de fidelización: `mensajePostventa()` en `src/lib/data/whatsapp.ts` (+ entrada en `PLANTILLAS_WA`)
-- [x] Integrar estas alertas al Dashboard Centro de Acción Comercial: nuevo tipo `postventa` en `acciones-comerciales.ts`, con ícono, badge de urgencia y acción de "marcar realizada" en la lista unificada
-- [x] Sin migración: todo deriva de la tabla `postventa` que ya existía
-- Nota: **cumpleaños de clientes** no se implementó — la tabla `cliente` no tiene columna de fecha de nacimiento y la demo no tiene ese dato, así que hubiera sido una feature sin datos para probar. Si se quiere sumar: columna `fecha_nacimiento date null` (migración aditiva) + query anual en `acciones-comerciales.ts`. **Cliente sin contacto hace X días** tampoco se implementó — requiere definir qué cuenta como "contacto" (¿último seguimiento? ¿última venta?) y es una decisión de producto, no técnica; queda para cuando el dueño defina la regla.
+- [x] Plantillas de mensajes de fidelización: `mensajePostventa()` y `mensajeCumpleanos()` en `src/lib/data/whatsapp.ts` (+ entrada en `PLANTILLAS_WA`)
+- [x] Integrar estas alertas al Dashboard Centro de Acción Comercial: tipos `postventa` y `cumpleanos` en `acciones-comerciales.ts`, con ícono, badge de urgencia y (para postventa) acción de "marcar realizada" en la lista unificada
+- [x] Migración aditiva para cumpleaños: `fecha_nacimiento date null` en `cliente` (migración 20)
+- Nota: **cliente sin contacto hace X días** sigue sin implementarse — requiere definir qué cuenta como "contacto" (¿último seguimiento? ¿última venta?) y es una decisión de producto que todavía no tomé por mi cuenta (a diferencia de cumpleaños/liquidación, acá no hay un dato ya existente en el schema que sugiera la regla correcta); queda para cuando el dueño defina el criterio.
 
 ## Presupuestos
 
@@ -396,3 +396,11 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - **Migraciones agregadas:** `19_liquidacion_consignacion.sql`, aplicada en remoto vía Supabase MCP y guardada en el repo.
 - **Qué falta revisar:** nada pendiente — con este bloque el módulo Consignados queda 100% completo, incluida la liquidación.
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Verificación real de punta a punta con datos de prueba: se insertó por SQL una `venta` (`precio_final = $20.000.000`) y una `consignacion` en estado `vendida` con `comision_acordada = 10` para el mismo vehículo (Ford Ranger); en el navegador real (login vía `requestSubmit()`, ver bloque 22) se hizo **click real** en el botón "Liquidar" — funcionó a la primera porque esta acción usa el patrón void + `.bind()` sin `useFormState` (el mismo patrón ya confiable de `cancelarReserva`), no el patrón bloqueado por la herramienta. Se confirmó por SQL que `monto_liquidado = 18.000.000` (cálculo correcto: 20.000.000 × 0.9) y `fecha_liquidacion` = hoy; se recargó `/consignados` y la UI mostró "$ 18.000.000" con la fecha, sin el botón "Liquidar" (ya liquidada). Datos de prueba eliminados después.
+
+### Fecha: 2026-07-03 (bloque 25) — cumpleaños de clientes, decisión de producto resuelta
+- **Qué se implementó:** cierra el pendiente de "cumpleaños de clientes" del módulo Fidelización, marcado desde el bloque original como "no implementado, sin dato". Se agregó `fecha_nacimiento date` a `cliente` (nullable, opcional en el formulario — no rompe nada para clientes ya cargados), se sumó el campo a `ClienteForm` y a la página de edición, y se integró un nuevo tipo `cumpleanos` en `getAccionesComerciales()`: compara mes/día (ignorando año) de cada cliente con `fecha_nacimiento` cargada contra hoy y los próximos 3 días, con urgencia `hoy`/`oportunidad` igual que el resto de los tipos. Aparece en el Centro de Acción Comercial del dashboard con ícono de torta, botón de llamar/WhatsApp (mensaje `mensajeCumpleanos()`) y link a la ficha del cliente.
+- **Decisión de producto tomada:** no se implementó "recordatorio N días antes" configurable ni el envío automático del saludo — el alcance se limitó a mostrar el cumpleaños en el centro de acciones (igual que los demás tipos), dejando el envío manual a criterio del vendedor, consistente con el resto del módulo (nada se manda solo, todo pasa por un click humano).
+- **Archivos principales tocados:** `src/lib/types/database.types.ts` (`fecha_nacimiento` en `cliente`), `src/components/forms/cliente-form.tsx` (campo nuevo), `src/app/(app)/clientes/[id]/editar/page.tsx` (select + initial), `src/app/(app)/clientes/actions.ts` (schema), `src/lib/data/whatsapp.ts` (`mensajeCumpleanos`), `src/lib/data/acciones-comerciales.ts` (tipo `cumpleanos`, `diasHastaCumple()`), `src/components/dashboard/centro-accion.tsx` (ícono `Cake`).
+- **Migraciones agregadas:** `20_cliente_fecha_nacimiento.sql`, aplicada en remoto vía Supabase MCP y guardada en el repo.
+- **Qué falta revisar:** dentro de Fidelización solo queda "cliente sin contacto hace X días", que sigue siendo una decisión de producto genuina (no hay un dato existente que sugiera la regla, a diferencia de cumpleaños/liquidación) — se deja para el dueño.
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Verificación real en navegador: se actualizó por SQL la `fecha_nacimiento` de dos clientes demo (uno con mes/día = hoy, otro a 2 días) manteniendo el resto de los datos intactos; se recargó el dashboard y el Centro de Acción Comercial mostró "Diego Martínez · Hoy · Cumpleaños hoy 🎂" y "Sofía Romero · Oportunidad · Cumpleaños en 2 días", ordenados por urgencia junto con el resto de los ítems; se confirmó que el link de WhatsApp arma el texto correcto ("¡Feliz cumpleaños Diego! 🎉 Todo el equipo de Jesús Díaz Automotores te desea un muy buen día..."). Datos de prueba revertidos a `null` después.

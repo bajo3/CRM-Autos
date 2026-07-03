@@ -12,7 +12,7 @@ export type ClienteInitial = Partial<{
   nombre: string; apellido: string; telefono: string; whatsapp: string;
   email: string; dni_cuit: string; localidad: string; origen: string;
   estado: string; vendedor_id: string; vehiculo_interes_id: string;
-  presupuesto_aprox: number; proximo_seguimiento: string; observaciones: string;
+  presupuesto_aprox: number; proximo_seguimiento: string; fecha_nacimiento: string; observaciones: string;
 }>;
 
 type Option = { id: string; label: string };
@@ -118,6 +118,9 @@ export function ClienteForm({
           </Field>
           <Field name="proximo_seguimiento" label="Próximo seguimiento" error={fe.proximo_seguimiento}>
             <Input id="proximo_seguimiento" name="proximo_seguimiento" type="date" defaultValue={c.proximo_seguimiento} />
+          </Field>
+          <Field name="fecha_nacimiento" label="Fecha de nacimiento" error={fe.fecha_nacimiento}>
+            <Input id="fecha_nacimiento" name="fecha_nacimiento" type="date" defaultValue={c.fecha_nacimiento} />
           </Field>
           <div className="sm:col-span-2">
             <Field name="observaciones" label="Observaciones" error={fe.observaciones}>

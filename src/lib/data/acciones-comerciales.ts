@@ -2,10 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { rel, type Rel } from "@/lib/rel";
 import { formatARS, formatDate } from "@/lib/format";
-import { mensajePostventa } from "@/lib/data/whatsapp";
+import { mensajePostventa, mensajeCumpleanos } from "@/lib/data/whatsapp";
 
 export type Urgencia = "vencido" | "hoy" | "oportunidad";
-export type TipoAccion = "seguimiento" | "presupuesto" | "credito" | "reserva" | "encargo" | "postventa" | "test_drive";
+export type TipoAccion = "seguimiento" | "presupuesto" | "credito" | "reserva" | "encargo" | "postventa" | "test_drive" | "cumpleanos";
 
 export type AccionItem = {
   key: string;
@@ -59,6 +59,21 @@ type TestDriveRow = {
   cliente: Rel<{ nombre: string; apellido: string | null; telefono: string | null; whatsapp: string | null }>;
   vehiculo: Rel<{ marca: string; modelo: string }>;
 };
+type CumpleanosRow = {
+  id: string; nombre: string; apellido: string | null; telefono: string | null; whatsapp: string | null; fecha_nacimiento: string;
+};
+
+/** Compara solo mes/día (ignora año) contra hoy y un rango de `dias` hacia adelante. */
+function diasHastaCumple(fechaNacimiento: string, hoy: Date, dias: number): number | null {
+  const nac = new Date(fechaNacimiento.length <= 10 ? `${fechaNacimiento}T00:00:00` : fechaNacimiento);
+  if (isNaN(nac.getTime())) return null;
+  for (let i = 0; i <= dias; i++) {
+    const d = new Date(hoy);
+    d.setDate(d.getDate() + i);
+    if (d.getMonth() === nac.getMonth() && d.getDate() === nac.getDate()) return i;
+  }
+  return null;
+}
 
 function nombreCompleto(c: { nombre: string; apellido: string | null } | null): string {
   if (!c) return "Cliente sin nombre";
@@ -82,7 +97,7 @@ export async function getAccionesComerciales(): Promise<AccionItem[]> {
   const today = todayISO();
   const in3days = inDaysISO(3);
 
-  const [segRes, presRes, credRes, resRes, encRes, postRes, tdRes] = await Promise.all([
+  const [segRes, presRes, credRes, resRes, encRes, postRes, tdRes, cumpleRes] = await Promise.all([
     sb.from("seguimiento")
       .select("id,fecha,motivo,estado,cliente:cliente_id(nombre,apellido,telefono,whatsapp)")
       .in("estado", ["pendiente", "vencido"]).lte("fecha", today)
@@ -111,6 +126,10 @@ export async function getAccionesComerciales(): Promise<AccionItem[]> {
       .select("id,fecha,hora,conductor_nombre,telefono,cliente:cliente_id(nombre,apellido,telefono,whatsapp),vehiculo:vehiculo_id(marca,modelo)")
       .eq("estado", "agendado").not("fecha", "is", null).lte("fecha", in3days)
       .order("fecha").returns<TestDriveRow[]>(),
+    sb.from("cliente")
+      .select("id,nombre,apellido,telefono,whatsapp,fecha_nacimiento")
+      .not("fecha_nacimiento", "is", null)
+      .returns<CumpleanosRow[]>(),
   ]);
 
   const items: AccionItem[] = [];
@@ -204,6 +223,21 @@ export async function getAccionesComerciales(): Promise<AccionItem[]> {
       detalle: `Test drive ${veh ? `${veh.marca} ${veh.modelo} ` : ""}${t.hora ? `· ${t.hora.slice(0, 5)} ` : ""}· ${formatDate(t.fecha)}`,
       fecha: t.fecha, href: "/test-drive",
       whatsappMsg: `¡Hola${nombreConductor ? ` ${nombreConductor}` : ""}! Te confirmo el test drive${veh ? ` del ${veh.marca} ${veh.modelo}` : ""} para el ${formatDate(t.fecha)}.`,
+    });
+  }
+
+  const hoyDate = new Date(`${today}T00:00:00`);
+  for (const cl of cumpleRes.data ?? []) {
+    const dias = diasHastaCumple(cl.fecha_nacimiento, hoyDate, 3);
+    if (dias == null) continue;
+    const urgencia: Urgencia = dias === 0 ? "hoy" : "oportunidad";
+    const nombre = nombreCompleto(cl);
+    items.push({
+      key: `cumpleanos-${cl.id}`, refId: cl.id, tipo: "cumpleanos", urgencia,
+      cliente: nombre, telefono: tel(cl),
+      detalle: dias === 0 ? "Cumpleaños hoy 🎂" : `Cumpleaños en ${dias} día${dias === 1 ? "" : "s"}`,
+      fecha: null, href: `/clientes/${cl.id}`,
+      whatsappMsg: mensajeCumpleanos(empresaNombre, cl.nombre),
     });
   }
 

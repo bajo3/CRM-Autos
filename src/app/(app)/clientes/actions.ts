@@ -24,6 +24,7 @@ const schema = z.object({
   vehiculo_interes_id: emptyToUndef(z.string().uuid()).optional(),
   presupuesto_aprox: z.union([z.coerce.number(), z.literal("")]).transform((v) => (v === "" ? undefined : v)).optional(),
   proximo_seguimiento: emptyToUndef(z.string()).optional(),
+  fecha_nacimiento: emptyToUndef(z.string()).optional(),
   observaciones: z.string().optional(),
 });
 

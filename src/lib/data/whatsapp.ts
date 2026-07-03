@@ -28,6 +28,11 @@ export function mensajePostventa(empresaNombre: string, nombreCliente?: string |
   return `¡Hola${nombreCliente ? ` ${nombreCliente}` : ""}! Somos ${empresaNombre} 🚗 Queríamos saber cómo te está yendo con tu auto y si necesitás algo (service, repuestos, o alguna consulta). ¡Cualquier cosa estamos a disposición!`;
 }
 
+/** Saludo de cumpleaños (fidelización). */
+export function mensajeCumpleanos(empresaNombre: string, nombreCliente?: string | null): string {
+  return `¡Feliz cumpleaños${nombreCliente ? ` ${nombreCliente}` : ""}! 🎉 Todo el equipo de ${empresaNombre} te desea un muy buen día. ¡Gracias por confiar en nosotros!`;
+}
+
 /** Plantillas “de ejemplo” mostradas en la UI (el catálogo completa el link real). */
 export const PLANTILLAS_WA: { key: string; label: string; texto: string }[] = [
   { key: "catalogo", label: "Catálogo", texto: "¡Hola! Te comparto el catálogo de {empresa} 🚗 {link}" },

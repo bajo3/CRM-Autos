@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   Phone, MessageCircle, CalendarClock, FileText, CreditCard,
-  BookmarkCheck, PackageSearch, CheckCircle2, HeartHandshake, ClipboardCheck,
+  BookmarkCheck, PackageSearch, CheckCircle2, HeartHandshake, ClipboardCheck, Cake,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { waUrl } from "@/lib/data/whatsapp";
@@ -17,6 +17,7 @@ const ICONO_TIPO: Record<AccionItem["tipo"], typeof Phone> = {
   encargo: PackageSearch,
   postventa: HeartHandshake,
   test_drive: ClipboardCheck,
+  cumpleanos: Cake,
 };
 
 const URGENCIA_BADGE: Record<Urgencia, { tone: "danger" | "warn" | "info"; label: string }> = {

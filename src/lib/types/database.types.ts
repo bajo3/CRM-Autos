@@ -70,6 +70,7 @@ export type Database = {
           email: string | null
           empresa_id: string
           estado: Database["public"]["Enums"]["estado_lead"]
+          fecha_nacimiento: string | null
           id: string
           localidad: string | null
           nombre: string
@@ -90,6 +91,7 @@ export type Database = {
           email?: string | null
           empresa_id: string
           estado?: Database["public"]["Enums"]["estado_lead"]
+          fecha_nacimiento?: string | null
           id?: string
           localidad?: string | null
           nombre: string
@@ -110,6 +112,7 @@ export type Database = {
           email?: string | null
           empresa_id?: string
           estado?: Database["public"]["Enums"]["estado_lead"]
+          fecha_nacimiento?: string | null
           id?: string
           localidad?: string | null
           nombre?: string
