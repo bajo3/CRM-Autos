@@ -21,6 +21,10 @@ import { agregarGasto, eliminarGasto, crearVtv } from "./actions";
 import { generarDocumentoVehiculo } from "@/app/(app)/documentos/actions";
 
 type DocRow = { id: string; tipo: string; numero: string | null; fecha_emision: string };
+type TallerRow = {
+  id: string; trabajo: string | null; estado: string;
+  costo_estimado: number | null; costo_final: number | null;
+};
 
 export const dynamic = "force-dynamic";
 
@@ -75,13 +79,14 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
   const { data: v } = await sb.from("vehiculo").select("*").eq("id", params.id).maybeSingle();
   if (!v) notFound();
 
-  const [{ data: gastos }, { data: vtv }, { data: consultas }, { data: fotos }, { data: documentos }, { data: historial }] = await Promise.all([
+  const [{ data: gastos }, { data: vtv }, { data: consultas }, { data: fotos }, { data: documentos }, { data: historial }, { data: trabajosTaller }] = await Promise.all([
     sb.from("gasto_vehiculo").select("*").eq("vehiculo_id", v.id).order("fecha", { ascending: false }),
     sb.from("vtv").select("*").eq("vehiculo_id", v.id).order("fecha_vencimiento", { ascending: false }),
     sb.from("consulta").select("id,pendiente,fecha,cliente:cliente_id(id,nombre,apellido,telefono)").eq("vehiculo_id", v.id).order("fecha", { ascending: false }).returns<ConsultaRow[]>(),
     sb.from("foto_vehiculo").select("id,url,es_principal").eq("vehiculo_id", v.id).order("es_principal", { ascending: false }).order("orden").returns<{ id: string; url: string; es_principal: boolean }[]>(),
     sb.from("documento_comercial").select("id,tipo,numero,fecha_emision").eq("vehiculo_id", v.id).order("created_at", { ascending: false }).returns<DocRow[]>(),
     sb.from("historial_cambio").select("id,accion,fecha,valor_anterior,valor_nuevo,usuario:usuario_id(nombre,apellido)").eq("entidad", "vehiculo").eq("entidad_id", v.id).order("fecha", { ascending: false }).limit(15).returns<HistRow[]>(),
+    sb.from("taller_trabajo").select("id,trabajo,estado,costo_estimado,costo_final").eq("vehiculo_id", v.id).order("created_at", { ascending: false }).returns<TallerRow[]>(),
   ]);
 
   const totalGastos = (gastos ?? []).reduce((s, g) => s + Number(g.monto ?? 0), 0);
@@ -402,6 +407,35 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
                   <Link href={`/documentos/${d.id}/abrir`} target="_blank" className="inline-flex items-center gap-1 text-brand-800 hover:underline">
                     <ExternalLink className="h-4 w-4" /> Abrir
                   </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Taller / Preparación */}
+      <Card className="mt-4">
+        <CardHeader><CardTitle className="text-base">Taller / Preparación</CardTitle></CardHeader>
+        <CardContent>
+          {can(rol, "stock.editar") && (
+            <div className="mb-3">
+              <Link href={`/taller/nuevo?vehiculo=${v.id}`}>
+                <Button type="button" variant="outline" size="sm"><Wrench className="h-4 w-4" /> Cargar trabajo</Button>
+              </Link>
+            </div>
+          )}
+          {(trabajosTaller ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin trabajos de taller cargados.</p>
+          ) : (
+            <ul className="space-y-1.5 text-sm">
+              {trabajosTaller!.map((t) => (
+                <li key={t.id} className="flex items-center justify-between gap-2">
+                  <span>{t.trabajo}</span>
+                  <span className="flex items-center gap-2 shrink-0">
+                    <span className="text-muted-foreground">{formatARS(t.costo_final ?? t.costo_estimado)}</span>
+                    <Badge tone={toneForEstado(t.estado)}>{humanize(t.estado)}</Badge>
+                  </span>
                 </li>
               ))}
             </ul>

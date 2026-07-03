@@ -22,7 +22,7 @@
 - [ ] Test Drive *(módulo completo hecho; falta confirmar el alta en navegador real, ver nota en la sección)*
 - [ ] Permutas *(módulo completo hecho: tasar, aceptar/rechazar, ingresar a stock; falta confirmar el alta en navegador real)*
 - [x] Tasaciones
-- [x] Taller / Preparación *(falta mostrar historial de trabajos en la ficha del vehículo)*
+- [x] Taller / Preparación
 - [x] Consignados *(falta liquidación al dueño al venderse — requiere vincular con precio real de venta)*
 - [x] Ocultar Garantías y Reclamos
 - [ ] Documentos
@@ -133,7 +133,7 @@
 - [x] Checklist de preparación por vehículo: cada trabajo (service, detailing, VTV, gestoría, etc.) es un ítem en `/taller`, cargado desde `/taller/nuevo` o con el botón rápido "Taller" en la ficha del vehículo
 - [x] Costos de preparación por ítem: `costo_estimado` al cargar, `costo_final` al cerrar el trabajo (input inline con `MoneyInput`)
 - [x] Flujo de estados: pendiente → **Iniciar** → en_taller → **Terminar** (carga costo final) → listo_publicar → **Listo p/ entregar** → listo_entregar
-- [ ] Estado visible desde stock (ficha del vehículo): no se agregó una sección de trabajos de taller en `/stock/[id]`; por ahora solo hay un botón para cargar uno nuevo, no para ver el historial ahí. Queda para un próximo bloque.
+- [x] Estado visible desde stock: la ficha del vehículo (`/stock/[id]`) ahora tiene una card "Taller / Preparación" con el historial de trabajos (nombre, costo final o estimado, estado) + botón "Cargar trabajo"
 - [x] Quitar "PRONTO" del menú
 - [x] Sin migración: tabla `taller_trabajo` ya existía completa
 - **Probado end-to-end en navegador** (con un registro insertado por SQL): "Iniciar" cambió pendiente→en_taller (confirmado por SQL); "Listo p/ entregar" cambió listo_publicar→listo_entregar (confirmado por SQL); botón rápido "Taller" en la ficha del vehículo linkea con `?vehiculo=` correcto. El cierre con costo final (`cerrarTrabajoTaller`, con `MoneyInput`) no se pudo confirmar por click — misma limitación de herramienta documentada arriba — se verificó por SQL directo.
@@ -163,7 +163,7 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - [x] Módulo ya funcional (generación de boleto/recibo/etc. con PDF); quitado "PRONTO" del menú
 - [ ] Auditar tipos de documento disponibles vs. los que una agencia necesita de verdad
 - [ ] Mejorar diseño del PDF (branding, jerarquía)
-- [ ] Acceso rápido a documentos desde ficha de cliente y de vehículo
+- [x] Acceso rápido a documentos desde ficha de cliente y de vehículo — ya existía en ambas fichas (card "Documentos" con generación + listado + abrir), verificado al revisar este bloque
 - [ ] Probar flujo completo
 
 ## Catálogo
@@ -301,3 +301,10 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - **Qué falta revisar:** liquidación al dueño al venderse (requiere vincular con el precio real de la venta, no existe ese enlace hoy); confirmar el alta desde el formulario en navegador real (misma limitación de herramienta).
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con un registro insertado por SQL: listado renderiza con comisión/precios/badge de autorización, botón "Vendida" cambió el estado (confirmado por SQL tras click real). Dato de prueba eliminado después.
 - **Hito:** con este bloque se cierran los 5 módulos que estaban marcados "PRONTO" en el sidebar (Test Drive, Permutas, Tasaciones, Taller, Consignados). Ninguno necesitó migración — las tablas ya existían completas desde el diseño original del schema.
+
+### Fecha: 2026-07-02 (bloque 12)
+- **Qué se implementó:** cerré dos pendientes menores detectados al revisar el plan. (1) Ficha del vehículo (`/stock/[id]`): nueva card "Taller / Preparación" con el historial de trabajos cargados (trabajo, costo final o estimado, badge de estado) + botón para cargar uno nuevo — cierra el ítem "Estado visible desde stock" del módulo Taller. (2) Verifiqué que "Acceso rápido a documentos desde ficha de cliente y de vehículo" (pendiente en el módulo Documentos) ya estaba implementado desde antes en ambas fichas — no requirió cambios, solo se marcó como hecho en el plan.
+- **Archivos principales tocados:** `src/app/(app)/stock/[id]/page.tsx` (nueva card Taller, query `taller_trabajo` agregada al `Promise.all`).
+- **Migraciones agregadas:** ninguna.
+- **Qué falta revisar:** del módulo Documentos siguen pendientes auditar tipos de documento y mejorar el diseño del PDF (branding); del módulo Consignados sigue pendiente la liquidación al dueño.
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con un trabajo de taller insertado por SQL: la card muestra "Detailing completo — $55.000 · Listo p/ publicar" correctamente. Dato de prueba eliminado después.
