@@ -51,3 +51,25 @@ export async function crearReserva(_prev: FormState, formData: FormData): Promis
   revalidatePath("/stock");
   redirect("/reservas");
 }
+
+/**
+ * Cancela una reserva (el cliente se bajó del trato) y libera el
+ * vehículo a "disponible" si seguía marcado como reservado por esta
+ * reserva.
+ */
+export async function cancelarReserva(id: string): Promise<void> {
+  const sb = createClient();
+  const { data: r } = await sb.from("reserva").select("vehiculo_id, estado").eq("id", id).maybeSingle<{ vehiculo_id: string | null; estado: string }>();
+  if (!r) throw new Error("Reserva no encontrada.");
+  if (r.estado !== "activa") throw new Error("Solo se pueden cancelar reservas activas.");
+
+  const { error } = await sb.from("reserva").update({ estado: "caida" }).eq("id", id);
+  if (error) throw new Error(error.message);
+
+  if (r.vehiculo_id) {
+    await sb.from("vehiculo").update({ estado: "disponible" }).eq("id", r.vehiculo_id).eq("estado", "reservado");
+  }
+
+  revalidatePath("/reservas");
+  revalidatePath("/stock");
+}

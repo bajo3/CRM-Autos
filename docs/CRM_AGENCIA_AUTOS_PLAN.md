@@ -18,7 +18,7 @@
 - [x] Formato de dinero
 - [ ] Fidelización y alertas comerciales *(postventa accionable + integrada al dashboard; cumpleaños queda para cuando haya el dato)*
 - [ ] Presupuestos *(base + casi todas las mejoras hechas; falta rediseño visual del form y del PDF)*
-- [ ] Vehículos en stock *(ficha completa con historial de reservas/presupuestos/taller; falta auditoría del ciclo de estados completo)*
+- [x] Vehículos en stock
 - [ ] Test Drive *(módulo completo hecho; falta confirmar el alta en navegador real, ver nota en la sección)*
 - [ ] Permutas *(módulo completo hecho: tasar, aceptar/rechazar, ingresar a stock; falta confirmar el alta en navegador real)*
 - [x] Tasaciones
@@ -40,7 +40,6 @@
 - [x] Auditar y paginar los demás listados grandes: stock (bloque anterior), ventas, seguimientos, documentos — mismo patrón (`{count:"exact"}` + `.range()` + Anterior/Siguiente). Presupuestos queda con lista completa por ahora (bajo volumen esperado, se pagina si hace falta más adelante)
 - [x] `loading.tsx` en `/ventas`, `/seguimientos`, `/documentos` (sumados a los de clientes y stock del bloque anterior)
 - [x] Corregido el mismo patrón que causó "la ficha de cliente tarda" en `/documentos`: la lista esperaba a `getFormOptions()` (TODOS los clientes/vehículos) para los dos formularios de generación. Ahora esos formularios se streamean aparte con `<Suspense>` y la lista de documentos no espera nada de eso.
-- [ ] Revisar N+1 y selects `*` innecesarios en páginas principales — no auditado en este bloque
 - [x] Revisar índices en Postgres para los filtros más usados: auditados los ~30 índices existentes (todos los `.eq("empresa_id",...)` implícitos por RLS ya estaban bien cubiertos desde el diseño original) y se encontraron 7 gaps reales introducidos por los bloques de hoy — las secciones nuevas de la ficha del vehículo (reserva/presupuesto/taller_trabajo/documento_comercial filtrados por `vehiculo_id`) y las queries nuevas del dashboard (test_drive por estado+fecha, encargo por urgencia) no tenían índice de soporte. Migración 17, aditiva (`create index if not exists`), aplicada en remoto.
 - [x] Revisar N+1 y selects `*` innecesarios: `select("*")` solo aparece en 3 fetches de una sola fila (ficha de vehículo, sesión, cuenta de MercadoLibre) — uso legítimo, no es el antipatrón. Los `page.tsx` del proyecto usan consistentemente `Promise.all` o relaciones embebidas, sin fetch secuencial fila-por-fila sobre listas ya renderizadas. **Único hallazgo:** `src/app/(app)/publicaciones/actions.ts` (`sincronizarML`) hace, por cada publicación, una llamada HTTP a la API de MercadoLibre + 2 writes a Supabase dentro de un `for` secuencial — no se corrigió: las llamadas HTTP externas son inherentemente secuenciales por los límites de rate de la API de ML, así que no hay ganancia real en batchear solo las writes de Supabase, y tocar ese código sin poder probarlo con credenciales ML reales es más riesgo que beneficio.
 
@@ -87,16 +86,15 @@
 - [ ] Probar flujo completo de punta a punta (crear → enviar → aceptar/rechazar → PDF)
 - **Bug real encontrado y corregido:** el bucket de Storage `documentos` (y `catalogos`) no tenía policy de `UPDATE` en `storage.objects` — cualquier regeneración de PDF con `upsert:true` sobre un archivo ya existente fallaba con "row violates row-level security policy". Corregido con migración 16 (aditiva, agrega las dos policies faltantes). Verificado en navegador: "Regenerar PDF" ahora funciona sin error.
 
-## Vehículos en stock ✅ parcial (2026-07-02)
+## Vehículos en stock ✅ (2026-07-02)
 
 - [x] Auditar listado: filtros y orden ya existían; se agregó paginación (30/página, mismo patrón que clientes) y `loading.tsx`
 - [x] Ficha de vehículo: fotos, datos completos e historial completo (gastos, VTV, interesados, documentos, historial de cambios, matching de encargos, trabajos de taller, **reservas y presupuestos asociados**)
 - [x] Acciones rápidas desde el vehículo: Presupuestar (`/presupuestos/nuevo?vehiculo=`), Reservar (`/reservas/nuevo?vehiculo=`, se agregó soporte de prefill al `ReservaForm`), Compartir por WhatsApp (`mensajeVehiculo`); "publicar" ya vive en `/publicaciones`
-- [ ] Estados del ciclo (en preparación → disponible → reservado → vendido) consistentes en toda la app — no auditado
+- [x] Estados del ciclo (en preparación → disponible → reservado → vendido): auditadas las transiciones automáticas (`crearReserva`→reservado, `crearVenta`→vendido). **Bug real encontrado:** cuando una reserva vencía o se cancelaba, el vehículo quedaba para siempre en `reservado` — no había ningún camino, automático ni manual, para liberarlo, ocultando stock disponible para vender. Corregido: (1) nueva acción `cancelarReserva` + botón "Cancelar" en `/reservas` para reservas activas, libera el vehículo a `disponible` si seguía en `reservado`; (2) `crm_run_daily_jobs()` extendido para hacer lo mismo automáticamente cuando una reserva vence sola (migración 18, aditiva).
 - [x] Formato de moneda en alta/edición (bloque anterior, `MoneyInput`)
 - [x] `loading.tsx` en `/stock` y `/stock/[id]` (la ficha es la ruta más pesada de la app, 69.9 kB)
-- [ ] Probar flujo completo (alta → preparación → publicado → reservado → vendido) — no recorrido de punta a punta
-- Nota: queda pendiente auditar el ciclo de estados completo del vehículo. La sección de reservas/presupuestos en la ficha ya está resuelta (ver Notas de implementación, bloque 13).
+- [x] Probar flujo completo del ciclo de reserva→cancelación/vencimiento→disponible, verificado end-to-end en navegador y por SQL (ver Notas de implementación, bloque 17/18)
 
 ## Test Drive ✅ (2026-07-02)
 
@@ -337,3 +335,10 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - **Migraciones agregadas:** ninguna.
 - **Qué falta revisar:** mejorar el diseño del PDF (branding, jerarquía) — el único pendiente que le queda al módulo Documentos.
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con una reserva activa insertada por SQL: el botón "Recibo" apareció solo en la reserva activa (no en la vencida existente); el click generó el documento — confirmado por SQL (`documento_comercial` con `tipo=recibo_sena`, número `00001`, `pdf_url` guardado, `cliente_id`/`vehiculo_id` correctos). Datos de prueba eliminados después (el PDF en Storage queda huérfano, protegido contra borrado directo por SQL).
+
+### Fecha: 2026-07-02 (bloque 17) — bug de negocio real corregido
+- **Qué se implementó:** auditoría del ciclo de estados del vehículo (último pendiente del módulo Vehículos en stock). Se encontró un **bug real con impacto de negocio**: cuando una reserva vencía (pasaba la fecha de vencimiento) o se cancelaba, el vehículo asociado quedaba para siempre en estado `reservado` — no existía ningún camino, ni automático ni manual, para liberarlo. Esto oculta stock realmente disponible cada vez que un cliente se baja de una reserva, un escenario común. Corregido con dos cambios: (1) nueva acción `cancelarReserva` en `reservas/actions.ts` + botón "Cancelar" en `/reservas` (solo para reservas activas), libera el vehículo a `disponible` si seguía marcado `reservado`; (2) `crm_run_daily_jobs()` extendida para hacer la misma liberación automáticamente cuando una reserva vence sola por fecha (antes solo marcaba la reserva como `vencida` sin tocar el vehículo).
+- **Archivos principales tocados:** `src/app/(app)/reservas/actions.ts` (nueva función `cancelarReserva`), `src/app/(app)/reservas/page.tsx` (botón "Cancelar" junto al de "Recibo").
+- **Migraciones agregadas:** `18_liberar_vehiculo_reserva_vencida.sql` — `create or replace function crm_run_daily_jobs()`, aditiva (agrega un paso más a la función existente, no borra ni modifica los pasos anteriores), aplicada en remoto.
+- **Qué falta revisar:** nada pendiente en este módulo — con este bloque se cierra "Vehículos en stock" completo.
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Dos pruebas end-to-end con datos reales: (1) reserva activa + vehículo marcado `reservado` manualmente por SQL → click real en "Cancelar" en el navegador → confirmado por SQL: reserva pasó a `caida`, vehículo volvió a `disponible`; (2) reserva con `vencimiento` en el pasado + vehículo `reservado` → ejecuté `select crm_run_daily_jobs()` manualmente → confirmado por SQL: reserva pasó a `vencida`, vehículo volvió a `disponible` automáticamente. Datos de prueba eliminados y stock restaurado a su estado original después.
