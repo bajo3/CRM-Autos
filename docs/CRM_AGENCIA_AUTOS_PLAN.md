@@ -17,7 +17,7 @@
 - [x] Performance general *(paginación, índices y N+1 auditados — ver notas del bloque de índices y N+1 para el único hallazgo menor pendiente en la sincronización de MercadoLibre)*
 - [x] Formato de dinero
 - [ ] Fidelización y alertas comerciales *(postventa accionable + integrada al dashboard; cumpleaños queda para cuando haya el dato)*
-- [ ] Presupuestos *(base + casi todas las mejoras hechas; falta rediseño visual del form y del PDF)*
+- [ ] Presupuestos *(base + mejoras + PDF con branding hechos; falta solo el rediseño visual del formulario)*
 - [x] Vehículos en stock
 - [ ] Test Drive *(módulo completo hecho; falta confirmar el alta en navegador real, ver nota en la sección)*
 - [ ] Permutas *(módulo completo hecho: tasar, aceptar/rechazar, ingresar a stock; falta confirmar el alta en navegador real)*
@@ -25,7 +25,7 @@
 - [x] Taller / Preparación
 - [x] Consignados *(falta liquidación al dueño al venderse — requiere vincular con precio real de venta)*
 - [x] Ocultar Garantías y Reclamos
-- [ ] Documentos *(tipos auditados + recibo de seña desde reservas; falta mejorar el diseño del PDF)*
+- [x] Documentos
 - [ ] Catálogo *(vitrina pública con filtros hecha; falta mejorar el diseño del PDF)*
 - [x] Dashboard Centro de Acción Comercial
 
@@ -79,7 +79,7 @@
 - [x] Abrir presupuesto en modal, popup o nueva pestaña sin sacar al usuario de la página actual — el botón "Generar/Regenerar PDF" hacía `redirect()` a la URL firmada, sacando al usuario del CRM; ahora solo revalida y se queda en la ficha, y "Abrir PDF" (que ya abría en pestaña nueva) es un paso separado
 - [ ] Mejorar diseño visual del formulario (agrupación clara: vehículo / condiciones / financiación / extras)
 - [x] Mejorar resumen financiero — ya estaba bien resuelto en la ficha (card "Condiciones" con precio/bonificación/anticipo/saldo en negrita/cuotas×valor/gastos, todo con `formatARS`); no requirió cambios
-- [ ] Mejorar PDF comercial (branding de agencia, jerarquía visual, condiciones legibles)
+- [x] Mejorar PDF comercial (branding de agencia, jerarquía visual, condiciones legibles): resuelto en el motor compartido `documento.ts` (ver módulo Documentos) — usa `color_primario` de la empresa para el título, encabezados y acentos; las condiciones ya se mostraban en pares etiqueta/valor legibles con jerarquía por secciones (Cliente/Unidad/Condiciones)
 - [x] Aplicar formato de moneda en inputs (bloque anterior, `MoneyInput`)
 - [x] Mejorar mensaje de WhatsApp — ya estaba bien armado (precio/anticipo/saldo/cuotas/validez); no requirió cambios
 - [x] Vencimiento automático: `crm_run_daily_jobs()` ahora también marca `vencido` los presupuestos `enviado` con `validez` pasada (migración 15, aditiva — `create or replace function`, no destructiva)
@@ -158,11 +158,11 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - [x] Quitar `/garantias` y `/reclamos` del menú de navegación (`src/lib/nav.ts`) — no se van a implementar por ahora
 - [x] Verificado que no quedan links hacia esas rutas en el resto de la app (las páginas `/garantias` y `/reclamos` siguen existiendo pero sin entrada de menú)
 
-## Documentos
+## Documentos ✅ (2026-07-03)
 
 - [x] Módulo ya funcional (generación de boleto/recibo/etc. con PDF); quitado "PRONTO" del menú
 - [x] Auditar tipos de documento disponibles vs. los que una agencia necesita de verdad: los 10 tipos (`boleto`, `recibo_sena`, `recibo_pago`, `presupuesto`, `datero`, `autorizacion_test_drive`, `autorizacion_entrega`, `autorizacion_retiro_doc`, `ficha_cliente`, `ficha_vehiculo`) cubren bien el flujo real de una agencia argentina — sin gaps de tipos. **Sí había un gap de flujo:** no existía forma de generar un `recibo_sena` al tomar una reserva (solo estaba atado a una venta ya cerrada vía `generarDocumentoVenta`). Se agregó `generarReciboReserva` + botón "Recibo" en `/reservas` para reservas activas.
-- [ ] Mejorar diseño del PDF (branding, jerarquía)
+- [x] Mejorar diseño del PDF (branding, jerarquía): el motor `src/lib/pdf/documento.ts` ahora usa `empresa.color_primario` (ya existía en la base, usado en la vitrina pública, pero nunca en los PDFs) para dar identidad visual real por agencia — barra de acento superior, nombre de la empresa, título del documento, encabezados de sección y el monto destacado de los recibos, todo en el color de marca configurado (o un azul institucional por defecto si la agencia no configuró uno). De paso se corrigió un defecto real encontrado al probar: el guión largo "—" se mostraba como "?" en el texto (la función `safe()` no lo mapeaba a WinAnsi) — ahora `safe()` normaliza guiones/comillas tipográficas comunes antes de filtrar caracteres no soportados.
 - [x] Acceso rápido a documentos desde ficha de cliente y de vehículo — ya existía en ambas fichas (card "Documentos" con generación + listado + abrir), verificado al revisar este bloque
 - [ ] Probar flujo completo
 
@@ -350,3 +350,10 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - **Migraciones agregadas:** ninguna.
 - **Qué falta revisar:** la liquidación en sí (cálculo de comisión + monto a rendir al dueño) sigue sin implementar, es una decisión de producto pendiente.
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. **Intento de verificación en navegador sin éxito** por la limitación de herramienta ya documentada (formularios `useFormState`) — en este bloque se confirmó que el problema alcanza incluso al formulario de `/login` (nunca tocado en esta sesión), lo que descarta definitivamente que sea un bug de la app. La corrección se valida por revisión de código: es el mismo patrón exacto (`UPDATE ... WHERE ... AND estado = 'activa'`) ya verificado funcionando end-to-end en `cancelarReserva` e `ingresarPermutaAStock` en bloques anteriores de esta misma sesión. Recomendado confirmar manualmente en un navegador real antes de vender a un cliente.
+
+### Fecha: 2026-07-03 (bloque 19) — branding real en los PDFs
+- **Qué se implementó:** cierra "mejorar diseño del PDF" en los módulos Documentos y Presupuestos. El motor `src/lib/pdf/documento.ts` (compartido por ambos módulos) ahora usa `empresa.color_primario` — un dato que ya existía en la base y ya se usaba en la vitrina pública, pero nunca en los documentos generados — para dar identidad visual real por agencia: barra de acento superior, nombre de la empresa, título del documento, encabezados de sección ("Cliente"/"Unidad"/"Condiciones", etc.) y el monto destacado de los recibos, todo en el color configurado por cada agencia (o un azul institucional por defecto si no configuró ninguno). De paso, generando PDFs de prueba para verificar el cambio, se encontró y corrigió un defecto real preexistente: el guión largo "—" se mostraba como "?" en cualquier documento (la función `safe()` no lo traducía a WinAnsi) — ahora normaliza guiones y comillas tipográficas comunes antes de filtrar el resto.
+- **Archivos principales tocados:** `src/lib/pdf/documento.ts` (`color_primario` en `EmpresaDoc`, helper `brandColor()`, aplicado en título/encabezados/acentos; `safe()` mejorada), `src/app/(app)/presupuestos/actions.ts` y `src/app/(app)/documentos/actions.ts` (pasan `ctx.empresa?.color_primario` al construir `EmpresaDoc`).
+- **Migraciones agregadas:** ninguna (`color_primario` ya existía en la tabla `empresa`).
+- **Qué falta revisar:** el catálogo PDF (`src/lib/pdf/catalogo.ts`) usa un motor separado y no se tocó en este bloque — queda como su propio pendiente en el módulo Catálogo.
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Verificación real generando PDFs: se compiló `documento.ts` de forma standalone (`tsc` + `node`, sin depender del navegador) y se generaron un `presupuesto` y un `recibo_sena` con un color de marca de prueba (`#c2410c`) — se leyeron ambos PDFs directamente y se confirmó visualmente que el color se aplica correctamente en todos los elementos de jerarquía, y que el guión largo ya se muestra bien ("-" en vez de "?"). Archivos temporales de la prueba eliminados después.

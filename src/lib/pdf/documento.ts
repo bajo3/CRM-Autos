@@ -20,6 +20,7 @@ export type EmpresaDoc = {
   direccion?: string | null;
   localidad?: string | null;
   provincia?: string | null;
+  color_primario?: string | null;
 };
 
 export type DatosDocumento = {
@@ -73,10 +74,26 @@ const M = 50; // margen
 const INK = rgb(0.1, 0.1, 0.12);
 const GREY = rgb(0.42, 0.45, 0.5);
 const RULE = rgb(0.8, 0.82, 0.85);
+const BRAND_DEFAULT = rgb(0.12, 0.23, 0.54); // azul institucional si la agencia no configuró un color propio
 
-/** Quita caracteres fuera de WinAnsi para que pdf-lib no falle al dibujar. */
+/** Convierte "#RRGGBB" al color de pdf-lib. Si es inválido, usa el azul por defecto. */
+function brandColor(hex: string | null | undefined) {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex ?? "");
+  if (!m) return BRAND_DEFAULT;
+  const n = parseInt(m[1], 16);
+  return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
+}
+
+// Tipografía Unicode común (guiones, comillas, puntos suspensivos) que no
+// está en el rango \x00-\xFF pero sí tiene un equivalente razonable en WinAnsi.
+const TYPO_MAP: Record<string, string> = {
+  "—": "-", "–": "-", "‘": "'", "’": "'", "“": '"', "”": '"', "…": "...",
+};
+
+/** Normaliza tipografía Unicode común y quita el resto de caracteres fuera de WinAnsi. */
 function safe(s: unknown): string {
-  return String(s ?? "").replace(/[^\x00-\xFF]/g, "?");
+  const withTypo = String(s ?? "").replace(/[—–‘’“”…]/g, (c) => TYPO_MAP[c]);
+  return withTypo.replace(/[^\x00-\xFF]/g, "?");
 }
 
 function ars(n: number | null | undefined): string {
@@ -116,6 +133,7 @@ export async function generarPdf(
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const logo = await embedLogo(pdf, logoBytes);
+  const BRAND = brandColor(empresa.color_primario);
 
   let y = A4.h - M;
 
@@ -125,16 +143,18 @@ export async function generarPdf(
     const str = safe(s);
     page.drawText(str, { x: xRight - f.widthOfTextAtSize(str, size), y, size, font: f, color });
   };
-  const rule = () => {
-    page.drawLine({ start: { x: M, y }, end: { x: A4.w - M, y }, thickness: 1, color: RULE });
+  const rule = (color = RULE, thickness = 1) => {
+    page.drawLine({ start: { x: M, y }, end: { x: A4.w - M, y }, thickness, color });
   };
 
   // ---------- Encabezado ----------
+  // Barra de acento con el color de marca de la agencia (o el azul institucional por defecto).
+  page.drawRectangle({ x: 0, y: A4.h - 6, width: A4.w, height: 6, color: BRAND });
   if (logo) {
     const dims = logo.scale(40 / logo.height);
     page.drawImage(logo, { x: A4.w - M - dims.width, y: y - 30, width: dims.width, height: dims.height });
   }
-  text(empresa.nombre, M, 16, bold);
+  text(empresa.nombre, M, 16, bold, BRAND);
   y -= 16;
   const dir = [empresa.direccion, empresa.localidad, empresa.provincia].filter(Boolean).join(", ");
   if (dir) { text(dir, M, 9, font, GREY); y -= 12; }
@@ -147,11 +167,13 @@ export async function generarPdf(
   y -= 26;
 
   // ---------- Título + numeración ----------
-  text(TITULOS[tipo], M, 15, bold);
+  text(TITULOS[tipo], M, 15, bold, BRAND);
   right(`N.º ${datos.numero}`, A4.w - M, 11, bold);
   y -= 14;
   right(`Fecha: ${fechaAR(datos.fecha)}`, A4.w - M, 9, font, GREY);
-  y -= 22;
+  y -= 8;
+  rule(BRAND, 1.5);
+  y -= 20;
 
   // ---------- Helpers de bloques ----------
   const par = (label: string, value: string) => {
@@ -159,7 +181,7 @@ export async function generarPdf(
     text(value, M + 130, 10, bold);
     y -= 16;
   };
-  const heading = (s: string) => { text(s, M, 11, bold); y -= 16; };
+  const heading = (s: string) => { text(s, M, 11, bold, BRAND); y -= 16; };
   const wrapText = (s: string, size = 9) => {
     const maxW = A4.w - 2 * M;
     const words = safe(s).split(/\s+/);
@@ -190,8 +212,9 @@ export async function generarPdf(
     wrapText(`En concepto de ${concepto} por la unidad: ${vehTexto}${veh?.patente ? ` — Patente ${veh.patente}` : ""}.`);
     y -= 8;
     page.drawRectangle({ x: M, y: y - 28, width: A4.w - 2 * M, height: 38, color: rgb(0.96, 0.97, 0.98) });
+    page.drawRectangle({ x: M, y: y - 28, width: 3, height: 38, color: BRAND });
     text("Monto recibido", M + 12, 10, font, GREY);
-    right(ars(monto), A4.w - M - 12, 16, bold);
+    right(ars(monto), A4.w - M - 12, 16, bold, BRAND);
     y -= 30;
     if (tipo === "recibo_sena") {
       text("Saldo pendiente", M + 12, 9, font, GREY);

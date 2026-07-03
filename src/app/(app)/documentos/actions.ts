@@ -62,6 +62,7 @@ async function crearDocumento(args: {
     nombre: ctx.empresa?.nombre ?? "Agencia",
     cuit: ctx.empresa?.cuit, telefono: ctx.empresa?.telefono, email: ctx.empresa?.email,
     direccion: ctx.empresa?.direccion, localidad: ctx.empresa?.localidad, provincia: ctx.empresa?.provincia,
+    color_primario: ctx.empresa?.color_primario,
   };
   const logo = await cargarLogo(ctx.empresa?.logo_url);
 
