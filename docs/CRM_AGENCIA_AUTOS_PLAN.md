@@ -25,7 +25,7 @@
 - [x] Taller / Preparación
 - [x] Consignados *(falta liquidación al dueño al venderse — requiere vincular con precio real de venta)*
 - [x] Ocultar Garantías y Reclamos
-- [ ] Documentos
+- [ ] Documentos *(tipos auditados + recibo de seña desde reservas; falta mejorar el diseño del PDF)*
 - [ ] Catálogo *(vitrina pública con filtros hecha; falta mejorar el diseño del PDF)*
 - [x] Dashboard Centro de Acción Comercial
 
@@ -162,7 +162,7 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 ## Documentos
 
 - [x] Módulo ya funcional (generación de boleto/recibo/etc. con PDF); quitado "PRONTO" del menú
-- [ ] Auditar tipos de documento disponibles vs. los que una agencia necesita de verdad
+- [x] Auditar tipos de documento disponibles vs. los que una agencia necesita de verdad: los 10 tipos (`boleto`, `recibo_sena`, `recibo_pago`, `presupuesto`, `datero`, `autorizacion_test_drive`, `autorizacion_entrega`, `autorizacion_retiro_doc`, `ficha_cliente`, `ficha_vehiculo`) cubren bien el flujo real de una agencia argentina — sin gaps de tipos. **Sí había un gap de flujo:** no existía forma de generar un `recibo_sena` al tomar una reserva (solo estaba atado a una venta ya cerrada vía `generarDocumentoVenta`). Se agregó `generarReciboReserva` + botón "Recibo" en `/reservas` para reservas activas.
 - [ ] Mejorar diseño del PDF (branding, jerarquía)
 - [x] Acceso rápido a documentos desde ficha de cliente y de vehículo — ya existía en ambas fichas (card "Documentos" con generación + listado + abrir), verificado al revisar este bloque
 - [ ] Probar flujo completo
@@ -330,3 +330,10 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - **Migraciones agregadas:** ninguna.
 - **Qué falta revisar:** mejorar el diseño del PDF del catálogo (fotos más grandes, branding, portada) — el único pendiente que le queda al módulo Catálogo.
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, contra `/p/jesus-diaz` con datos reales: buscar "ford" filtró a 1 resultado (Ford Ranger); ordenar por "Precio: menor a mayor" mostró Volkswagen Gol Trend ($13.200.000) antes que Fiat Cronos ($16.500.000), orden correcto.
+
+### Fecha: 2026-07-02 (bloque 16)
+- **Qué se implementó:** auditoría de tipos de documento (pendiente del módulo Documentos). Los 10 tipos existentes cubren bien una agencia real, pero se encontró un gap de flujo real: no había forma de generar el `recibo_sena` al tomar una reserva — solo existía atado a una venta ya cerrada. Se agregó `generarReciboReserva()` (reutiliza el motor `crearDocumento` existente) + botón "Recibo" en `/reservas` para reservas en estado `activa`.
+- **Archivos principales tocados:** `src/app/(app)/documentos/actions.ts` (nueva función `generarReciboReserva`), `src/app/(app)/reservas/page.tsx` (columna Acciones con botón "Recibo").
+- **Migraciones agregadas:** ninguna.
+- **Qué falta revisar:** mejorar el diseño del PDF (branding, jerarquía) — el único pendiente que le queda al módulo Documentos.
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con una reserva activa insertada por SQL: el botón "Recibo" apareció solo en la reserva activa (no en la vencida existente); el click generó el documento — confirmado por SQL (`documento_comercial` con `tipo=recibo_sena`, número `00001`, `pdf_url` guardado, `cliente_id`/`vehiculo_id` correctos). Datos de prueba eliminados después (el PDF en Storage queda huérfano, protegido contra borrado directo por SQL).

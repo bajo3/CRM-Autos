@@ -108,6 +108,42 @@ export async function generarDocumentoVenta(ventaId: string, tipo: TipoDocumento
   redirect(`/documentos/${id}/abrir`);
 }
 
+type ReservaDoc = {
+  id: string; monto_sena: number; medio_pago: string | null; observaciones: string | null;
+  cliente_id: string | null; vehiculo_id: string | null;
+  cliente: Rel<{ nombre: string; apellido: string | null; dni_cuit: string | null; localidad: string | null; telefono: string | null }>;
+  vehiculo: Rel<{ marca: string; modelo: string; anio: number | null; patente: string | null; chasis: string | null; motor: string | null; color: string | null; kilometros: number | null; precio_venta: number | null }>;
+};
+
+/** Genera el recibo de seña de una reserva (todavía sin venta cerrada). */
+export async function generarReciboReserva(reservaId: string): Promise<void> {
+  const sb = createClient();
+  const { data: r } = await sb
+    .from("reserva")
+    .select("id,monto_sena,medio_pago,observaciones,cliente_id,vehiculo_id,cliente:cliente_id(nombre,apellido,dni_cuit,localidad,telefono),vehiculo:vehiculo_id(marca,modelo,anio,patente,chasis,motor,color,kilometros,precio_venta)")
+    .eq("id", reservaId)
+    .maybeSingle<ReservaDoc>();
+  if (!r) throw new Error("Reserva no encontrada.");
+
+  const cli = rel(r.cliente);
+  const veh = rel(r.vehiculo);
+  const precioTotal = veh?.precio_venta ?? null;
+  const datosBase: Omit<DatosDocumento, "numero" | "fecha"> = {
+    cliente: cli ? { nombre: `${cli.nombre} ${cli.apellido ?? ""}`.trim(), dni_cuit: cli.dni_cuit, localidad: cli.localidad, telefono: cli.telefono } : null,
+    vehiculo: veh ?? null,
+    precio_total: precioTotal,
+    sena: r.monto_sena,
+    saldo: precioTotal != null ? precioTotal - r.monto_sena : null,
+    forma_pago: r.medio_pago,
+    observaciones: r.observaciones,
+  };
+
+  const id = await crearDocumento({
+    tipo: "recibo_sena", datosBase, cliente_id: r.cliente_id, vehiculo_id: r.vehiculo_id,
+  });
+  redirect(`/documentos/${id}/abrir`);
+}
+
 // ---------- Presupuesto (datos manuales) ----------
 const emptyToUndef = <T extends z.ZodTypeAny>(s: T) =>
   z.union([s, z.literal("")]).transform((val) => (val === "" ? undefined : val));
