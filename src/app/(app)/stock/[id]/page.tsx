@@ -33,6 +33,10 @@ type PresupuestoRow = {
   id: string; precio: number | null; estado: string;
   cliente: Rel<{ nombre: string; apellido: string }>;
 };
+type PermutaOrigenRow = {
+  id: string; valor_pretendido: number | null; valor_tasado: number | null;
+  cliente: Rel<{ nombre: string; apellido: string }>;
+};
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +92,7 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
   const rol = ctx?.profile?.rol;
   if (!v) notFound();
 
-  const [{ data: gastos }, { data: vtv }, { data: consultas }, { data: fotos }, { data: documentos }, { data: historial }, { data: trabajosTaller }, { data: reservas }, { data: presupuestos }] = await Promise.all([
+  const [{ data: gastos }, { data: vtv }, { data: consultas }, { data: fotos }, { data: documentos }, { data: historial }, { data: trabajosTaller }, { data: reservas }, { data: presupuestos }, { data: permutaOrigen }] = await Promise.all([
     sb.from("gasto_vehiculo").select("*").eq("vehiculo_id", v.id).order("fecha", { ascending: false }),
     sb.from("vtv").select("*").eq("vehiculo_id", v.id).order("fecha_vencimiento", { ascending: false }),
     sb.from("consulta").select("id,pendiente,fecha,cliente:cliente_id(id,nombre,apellido,telefono)").eq("vehiculo_id", v.id).order("fecha", { ascending: false }).returns<ConsultaRow[]>(),
@@ -98,6 +102,9 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
     sb.from("taller_trabajo").select("id,trabajo,estado,costo_estimado,costo_final").eq("vehiculo_id", v.id).order("created_at", { ascending: false }).returns<TallerRow[]>(),
     sb.from("reserva").select("id,monto_sena,estado,cliente:cliente_id(nombre,apellido)").eq("vehiculo_id", v.id).order("created_at", { ascending: false }).returns<ReservaRow[]>(),
     sb.from("presupuesto").select("id,precio,estado,cliente:cliente_id(nombre,apellido)").eq("vehiculo_id", v.id).order("created_at", { ascending: false }).returns<PresupuestoRow[]>(),
+    v.permuta_origen_id
+      ? sb.from("permuta").select("id,valor_pretendido,valor_tasado,cliente:cliente_id(nombre,apellido)").eq("id", v.permuta_origen_id).maybeSingle<PermutaOrigenRow>()
+      : Promise.resolve({ data: null as PermutaOrigenRow | null }),
   ]);
 
   const totalGastos = (gastos ?? []).reduce((s, g) => s + Number(g.monto ?? 0), 0);
@@ -177,6 +184,19 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           ⚠️ Este auto está vendido pero hay <strong>{interesadosPendientes.length} interesado(s) pendiente(s)</strong>.
           Buen momento para ofrecerles una unidad similar.
+        </div>
+      )}
+
+      {permutaOrigen && (
+        <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          🔄 Esta unidad vino de una <strong>permuta</strong>
+          {(() => {
+            const c = rel(permutaOrigen.cliente);
+            return c ? ` con ${c.nombre} ${c.apellido}` : "";
+          })()}
+          {permutaOrigen.valor_tasado != null && ` · tasado en ${formatARS(permutaOrigen.valor_tasado)}`}
+          {" · "}
+          <Link href="/permutas" className="underline">ver permutas</Link>
         </div>
       )}
 

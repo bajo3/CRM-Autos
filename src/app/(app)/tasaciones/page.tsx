@@ -75,6 +75,14 @@ export default async function TasacionesPage() {
                             Registrar permuta
                           </Link>
                         )}
+                        {t.decision === "tomar" && (
+                          <Link
+                            href={`/stock/nuevo?precio_costo=${t.precio_compra_estimado ?? ""}&observaciones=${encodeURIComponent(t.descripcion ?? "")}&titularidad=propio`}
+                            className="rounded border px-2 py-0.5 text-xs text-brand-800 hover:bg-muted"
+                          >
+                            Comprar para stock
+                          </Link>
+                        )}
                       </div>
                     </TD>
                   </TR>

@@ -106,6 +106,7 @@ export async function ingresarPermutaAStock(id: string): Promise<void> {
     precio_costo: p.valor_tasado,
     estado: "en_preparacion",
     titularidad: "propio",
+    permuta_origen_id: id,
   });
   if (error) throw new Error(`No se pudo cargar el vehículo: ${error.message}`);
 

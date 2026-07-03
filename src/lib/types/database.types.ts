@@ -1882,6 +1882,7 @@ export type Database = {
           observaciones: string | null
           ocultar_precio: boolean
           patente: string | null
+          permuta_origen_id: string | null
           precio_costo: number | null
           precio_venta: number | null
           publicado_ml: boolean
@@ -1921,6 +1922,7 @@ export type Database = {
           observaciones?: string | null
           ocultar_precio?: boolean
           patente?: string | null
+          permuta_origen_id?: string | null
           precio_costo?: number | null
           precio_venta?: number | null
           publicado_ml?: boolean
@@ -1960,6 +1962,7 @@ export type Database = {
           observaciones?: string | null
           ocultar_precio?: boolean
           patente?: string | null
+          permuta_origen_id?: string | null
           precio_costo?: number | null
           precio_venta?: number | null
           publicado_ml?: boolean
@@ -1979,6 +1982,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehiculo_permuta_origen_id_fkey"
+            columns: ["permuta_origen_id"]
+            isOneToOne: false
+            referencedRelation: "permuta"
             referencedColumns: ["id"]
           },
         ]

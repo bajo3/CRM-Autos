@@ -149,7 +149,7 @@ async function ActividadCliente({
 }) {
   const sb = createClient();
 
-  const [{ data: seguimientos }, { data: consultas }, { data: ventas }, { data: reservas }, { data: documentos }, { data: presupuestos }, { data: vehiculos }] = await Promise.all([
+  const [{ data: seguimientos }, { data: consultas }, { data: ventas }, { data: reservas }, { data: documentos }, { data: presupuestos }, { data: vehiculos }, { data: tasaciones }, { data: permutas }, { data: encargos }] = await Promise.all([
     sb.from("seguimiento").select("id,fecha,motivo,notas,estado").eq("cliente_id", clienteId).order("fecha", { ascending: false })
       .returns<{ id: string; fecha: string; motivo: string | null; notas: string | null; estado: string }[]>(),
     sb.from("consulta").select("id,fecha,pendiente,vehiculo:vehiculo_id(marca,modelo)").eq("cliente_id", clienteId).order("fecha", { ascending: false })
@@ -165,6 +165,12 @@ async function ActividadCliente({
     // Solo los vehículos para el select de "consultar auto" (no todos los clientes).
     sb.from("vehiculo").select("id,marca,modelo,anio,patente").neq("estado", "vendido").order("created_at", { ascending: false })
       .returns<{ id: string; marca: string; modelo: string; anio: number | null; patente: string | null }[]>(),
+    sb.from("tasacion").select("id,descripcion,precio_compra_estimado,decision,created_at").eq("cliente_id", clienteId).order("created_at", { ascending: false })
+      .returns<{ id: string; descripcion: string | null; precio_compra_estimado: number | null; decision: string | null; created_at: string }[]>(),
+    sb.from("permuta").select("id,marca,modelo,anio,valor_pretendido,valor_tasado,estado,created_at").eq("cliente_id", clienteId).order("created_at", { ascending: false })
+      .returns<{ id: string; marca: string | null; modelo: string | null; anio: number | null; valor_pretendido: number | null; valor_tasado: number | null; estado: string; created_at: string }[]>(),
+    sb.from("encargo").select("id,marca_buscada,modelo_buscado,estado,urgencia,created_at").eq("cliente_id", clienteId).order("created_at", { ascending: false })
+      .returns<{ id: string; marca_buscada: string | null; modelo_buscado: string | null; estado: string; urgencia: string; created_at: string }[]>(),
   ]);
 
   const opcionesVehiculos = (vehiculos ?? []).map((v) => ({
@@ -393,6 +399,65 @@ async function ActividadCliente({
                     </li>
                   );
                 })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tasaciones, permutas y encargos: para ver todo el recorrido de "toma de usado" de este cliente en un solo lugar. */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Tasaciones</CardTitle></CardHeader>
+          <CardContent>
+            {(tasaciones ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin tasaciones.</p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {tasaciones!.map((t) => (
+                  <li key={t.id} className="flex items-center justify-between gap-2">
+                    <span className="truncate" title={t.descripcion ?? ""}>{formatDate(t.created_at)} · {t.descripcion ?? "—"}</span>
+                    <Badge tone={t.decision === "tomar" ? "ok" : t.decision === "rechazar" ? "danger" : "neutral"}>
+                      {t.decision ? humanize(t.decision) : "Sin decisión"}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Permutas</CardTitle></CardHeader>
+          <CardContent>
+            {(permutas ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin permutas.</p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {permutas!.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-2">
+                    <span className="truncate">{p.marca} {p.modelo}{p.anio ? ` ${p.anio}` : ""}</span>
+                    <Badge tone={toneForEstado(p.estado)}>{humanize(p.estado)}</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Encargos</CardTitle></CardHeader>
+          <CardContent>
+            {(encargos ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin encargos.</p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {encargos!.map((e) => (
+                  <li key={e.id} className="flex items-center justify-between gap-2">
+                    <span className="truncate">{e.marca_buscada} {e.modelo_buscado}</span>
+                    <Badge tone={toneForEstado(e.estado)}>{humanize(e.estado)}</Badge>
+                  </li>
+                ))}
               </ul>
             )}
           </CardContent>
