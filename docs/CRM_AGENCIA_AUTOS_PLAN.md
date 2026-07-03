@@ -18,7 +18,7 @@
 - [x] Formato de dinero
 - [ ] Fidelización y alertas comerciales *(postventa accionable + integrada al dashboard; cumpleaños queda para cuando haya el dato)*
 - [ ] Presupuestos *(base + casi todas las mejoras hechas; falta rediseño visual del form y del PDF)*
-- [ ] Vehículos en stock *(paginación + acciones rápidas hechas; falta auditoría del ciclo de estados completo)*
+- [ ] Vehículos en stock *(ficha completa con historial de reservas/presupuestos/taller; falta auditoría del ciclo de estados completo)*
 - [ ] Test Drive *(módulo completo hecho; falta confirmar el alta en navegador real, ver nota en la sección)*
 - [ ] Permutas *(módulo completo hecho: tasar, aceptar/rechazar, ingresar a stock; falta confirmar el alta en navegador real)*
 - [x] Tasaciones
@@ -89,13 +89,13 @@
 ## Vehículos en stock ✅ parcial (2026-07-02)
 
 - [x] Auditar listado: filtros y orden ya existían; se agregó paginación (30/página, mismo patrón que clientes) y `loading.tsx`
-- [ ] Ficha de vehículo: fotos, datos completos e historial ya existen (gastos, VTV, interesados, documentos, historial de cambios, matching de encargos); falta agregar reservas y presupuestos asociados a la unidad como sección propia
+- [x] Ficha de vehículo: fotos, datos completos e historial completo (gastos, VTV, interesados, documentos, historial de cambios, matching de encargos, trabajos de taller, **reservas y presupuestos asociados**)
 - [x] Acciones rápidas desde el vehículo: Presupuestar (`/presupuestos/nuevo?vehiculo=`), Reservar (`/reservas/nuevo?vehiculo=`, se agregó soporte de prefill al `ReservaForm`), Compartir por WhatsApp (`mensajeVehiculo`); "publicar" ya vive en `/publicaciones`
-- [ ] Estados del ciclo (en preparación → disponible → reservado → vendido) consistentes en toda la app — no auditado en este bloque
+- [ ] Estados del ciclo (en preparación → disponible → reservado → vendido) consistentes en toda la app — no auditado
 - [x] Formato de moneda en alta/edición (bloque anterior, `MoneyInput`)
 - [x] `loading.tsx` en `/stock` y `/stock/[id]` (la ficha es la ruta más pesada de la app, 69.9 kB)
-- [ ] Probar flujo completo (alta → preparación → publicado → reservado → vendido) — no recorrido de punta a punta en este bloque, solo se probaron las acciones rápidas nuevas
-- Nota: quedó pendiente para un próximo bloque el resto del ciclo de vida completo y la sección de reservas/presupuestos en la ficha.
+- [ ] Probar flujo completo (alta → preparación → publicado → reservado → vendido) — no recorrido de punta a punta
+- Nota: queda pendiente auditar el ciclo de estados completo del vehículo. La sección de reservas/presupuestos en la ficha ya está resuelta (ver Notas de implementación, bloque 13).
 
 ## Test Drive ✅ (2026-07-02)
 
@@ -308,3 +308,10 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - **Migraciones agregadas:** ninguna.
 - **Qué falta revisar:** del módulo Documentos siguen pendientes auditar tipos de documento y mejorar el diseño del PDF (branding); del módulo Consignados sigue pendiente la liquidación al dueño.
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con un trabajo de taller insertado por SQL: la card muestra "Detailing completo — $55.000 · Listo p/ publicar" correctamente. Dato de prueba eliminado después.
+
+### Fecha: 2026-07-02 (bloque 13)
+- **Qué se implementó:** sección "Reservas y presupuestos" en la ficha del vehículo (`/stock/[id]`) — cierra el último pendiente del módulo Vehículos en stock. Dos cards lado a lado con cliente, monto/precio y badge de estado; los presupuestos son clicables y llevan a la ficha real.
+- **Archivos principales tocados:** `src/app/(app)/stock/[id]/page.tsx` (queries `reserva` y `presupuesto` agregadas al `Promise.all`, nueva sección de 2 cards).
+- **Migraciones agregadas:** ninguna.
+- **Qué falta revisar:** ciclo de estados completo del vehículo (en_preparacion→disponible→reservado→vendido) sigue sin auditar.
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con datos reales de la demo: la ficha del Fiat Cronos mostró "Presupuestos (1) — Felipe Lentini · $19.500.000 · Borrador" con el link correcto a `/presupuestos/e08956d0-...`.

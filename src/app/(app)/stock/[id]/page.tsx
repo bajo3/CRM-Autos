@@ -25,6 +25,14 @@ type TallerRow = {
   id: string; trabajo: string | null; estado: string;
   costo_estimado: number | null; costo_final: number | null;
 };
+type ReservaRow = {
+  id: string; monto_sena: number | null; estado: string;
+  cliente: Rel<{ nombre: string; apellido: string }>;
+};
+type PresupuestoRow = {
+  id: string; precio: number | null; estado: string;
+  cliente: Rel<{ nombre: string; apellido: string }>;
+};
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +87,7 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
   const { data: v } = await sb.from("vehiculo").select("*").eq("id", params.id).maybeSingle();
   if (!v) notFound();
 
-  const [{ data: gastos }, { data: vtv }, { data: consultas }, { data: fotos }, { data: documentos }, { data: historial }, { data: trabajosTaller }] = await Promise.all([
+  const [{ data: gastos }, { data: vtv }, { data: consultas }, { data: fotos }, { data: documentos }, { data: historial }, { data: trabajosTaller }, { data: reservas }, { data: presupuestos }] = await Promise.all([
     sb.from("gasto_vehiculo").select("*").eq("vehiculo_id", v.id).order("fecha", { ascending: false }),
     sb.from("vtv").select("*").eq("vehiculo_id", v.id).order("fecha_vencimiento", { ascending: false }),
     sb.from("consulta").select("id,pendiente,fecha,cliente:cliente_id(id,nombre,apellido,telefono)").eq("vehiculo_id", v.id).order("fecha", { ascending: false }).returns<ConsultaRow[]>(),
@@ -87,6 +95,8 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
     sb.from("documento_comercial").select("id,tipo,numero,fecha_emision").eq("vehiculo_id", v.id).order("created_at", { ascending: false }).returns<DocRow[]>(),
     sb.from("historial_cambio").select("id,accion,fecha,valor_anterior,valor_nuevo,usuario:usuario_id(nombre,apellido)").eq("entidad", "vehiculo").eq("entidad_id", v.id).order("fecha", { ascending: false }).limit(15).returns<HistRow[]>(),
     sb.from("taller_trabajo").select("id,trabajo,estado,costo_estimado,costo_final").eq("vehiculo_id", v.id).order("created_at", { ascending: false }).returns<TallerRow[]>(),
+    sb.from("reserva").select("id,monto_sena,estado,cliente:cliente_id(nombre,apellido)").eq("vehiculo_id", v.id).order("created_at", { ascending: false }).returns<ReservaRow[]>(),
+    sb.from("presupuesto").select("id,precio,estado,cliente:cliente_id(nombre,apellido)").eq("vehiculo_id", v.id).order("created_at", { ascending: false }).returns<PresupuestoRow[]>(),
   ]);
 
   const totalGastos = (gastos ?? []).reduce((s, g) => s + Number(g.monto ?? 0), 0);
@@ -381,6 +391,52 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
                   Si dejás la fecha vacía, se calcula desde el último dígito de la patente y el calendario de la empresa.
                 </p>
               </form>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Reservas y presupuestos */}
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Reservas ({reservas?.length ?? 0})</CardTitle></CardHeader>
+          <CardContent>
+            {!reservas || reservas.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin reservas para este vehículo.</p>
+            ) : (
+              <ul className="space-y-1.5 text-sm">
+                {reservas.map((r) => {
+                  const c = rel(r.cliente);
+                  return (
+                    <li key={r.id} className="flex items-center justify-between gap-2">
+                      <span>{c ? `${c.nombre} ${c.apellido}` : "—"} · {formatARS(r.monto_sena)}</span>
+                      <Badge tone={toneForEstado(r.estado)}>{humanize(r.estado)}</Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Presupuestos ({presupuestos?.length ?? 0})</CardTitle></CardHeader>
+          <CardContent>
+            {!presupuestos || presupuestos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin presupuestos para este vehículo.</p>
+            ) : (
+              <ul className="space-y-1.5 text-sm">
+                {presupuestos.map((p) => {
+                  const c = rel(p.cliente);
+                  return (
+                    <li key={p.id} className="flex items-center justify-between gap-2">
+                      <Link href={`/presupuestos/${p.id}`} className="text-brand-800 hover:underline">
+                        {c ? `${c.nombre} ${c.apellido}` : "—"} · {formatARS(p.precio)}
+                      </Link>
+                      <Badge tone={toneForEstado(p.estado)}>{humanize(p.estado)}</Badge>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </CardContent>
         </Card>
