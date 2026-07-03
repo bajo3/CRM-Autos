@@ -221,7 +221,10 @@ export type Database = {
           dueno_nombre: string | null
           empresa_id: string
           estado: Database["public"]["Enums"]["estado_consignacion"]
+          fecha_liquidacion: string | null
           id: string
+          liquidado: boolean
+          monto_liquidado: number | null
           observaciones: string | null
           precio_minimo: number | null
           precio_pretendido: number | null
@@ -238,7 +241,10 @@ export type Database = {
           dueno_nombre?: string | null
           empresa_id: string
           estado?: Database["public"]["Enums"]["estado_consignacion"]
+          fecha_liquidacion?: string | null
           id?: string
+          liquidado?: boolean
+          monto_liquidado?: number | null
           observaciones?: string | null
           precio_minimo?: number | null
           precio_pretendido?: number | null
@@ -255,7 +261,10 @@ export type Database = {
           dueno_nombre?: string | null
           empresa_id?: string
           estado?: Database["public"]["Enums"]["estado_consignacion"]
+          fecha_liquidacion?: string | null
           id?: string
+          liquidado?: boolean
+          monto_liquidado?: number | null
           observaciones?: string | null
           precio_minimo?: number | null
           precio_pretendido?: number | null

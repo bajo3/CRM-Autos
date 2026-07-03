@@ -64,3 +64,36 @@ export async function cambiarEstadoConsignacion(id: string, estado: EstadoConsig
   if (error) throw new Error(error.message);
   revalidatePath("/consignados");
 }
+
+/** Calcula y registra el monto a rendir al dueño (precio de venta − comisión de la agencia). */
+export async function liquidarConsignacion(id: string): Promise<void> {
+  const sb = createClient();
+  const { data: c } = await sb
+    .from("consignacion")
+    .select("estado, liquidado, comision_acordada, vehiculo_id")
+    .eq("id", id)
+    .maybeSingle<{ estado: string; liquidado: boolean; comision_acordada: number | null; vehiculo_id: string | null }>();
+  if (!c) throw new Error("Consignación no encontrada.");
+  if (c.estado !== "vendida") throw new Error("Solo se puede liquidar una consignación en estado vendida.");
+  if (c.liquidado) throw new Error("Esta consignación ya fue liquidada.");
+  if (!c.vehiculo_id) throw new Error("La consignación no tiene un vehículo asociado.");
+
+  const { data: venta } = await sb
+    .from("venta")
+    .select("precio_final")
+    .eq("vehiculo_id", c.vehiculo_id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ precio_final: number }>();
+  if (!venta) throw new Error("No se encontró una venta registrada para este vehículo. Registrala en el módulo Ventas antes de liquidar.");
+
+  const comision = c.comision_acordada ?? 0;
+  const montoLiquidado = Math.round(venta.precio_final * (1 - comision / 100));
+
+  const { error } = await sb
+    .from("consignacion")
+    .update({ liquidado: true, monto_liquidado: montoLiquidado, fecha_liquidacion: new Date().toISOString().slice(0, 10) })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/consignados");
+}
