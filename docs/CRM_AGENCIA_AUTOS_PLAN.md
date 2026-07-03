@@ -14,7 +14,7 @@
 
 ## Estado general
 
-- [ ] Performance general *(paginación en todos los listados grandes hecha; falta auditoría de N+1/índices)*
+- [ ] Performance general *(paginación en todos los listados grandes + índices auditados; falta revisar N+1/selects \* sueltos)*
 - [x] Formato de dinero
 - [ ] Fidelización y alertas comerciales *(postventa accionable + integrada al dashboard; cumpleaños queda para cuando haya el dato)*
 - [ ] Presupuestos *(base + casi todas las mejoras hechas; falta rediseño visual del form y del PDF)*
@@ -41,7 +41,7 @@
 - [x] `loading.tsx` en `/ventas`, `/seguimientos`, `/documentos` (sumados a los de clientes y stock del bloque anterior)
 - [x] Corregido el mismo patrón que causó "la ficha de cliente tarda" en `/documentos`: la lista esperaba a `getFormOptions()` (TODOS los clientes/vehículos) para los dos formularios de generación. Ahora esos formularios se streamean aparte con `<Suspense>` y la lista de documentos no espera nada de eso.
 - [ ] Revisar N+1 y selects `*` innecesarios en páginas principales — no auditado en este bloque
-- [ ] Revisar índices en Postgres para los filtros más usados (solo migración aditiva) — no auditado en este bloque
+- [x] Revisar índices en Postgres para los filtros más usados: auditados los ~30 índices existentes (todos los `.eq("empresa_id",...)` implícitos por RLS ya estaban bien cubiertos desde el diseño original) y se encontraron 7 gaps reales introducidos por los bloques de hoy — las secciones nuevas de la ficha del vehículo (reserva/presupuesto/taller_trabajo/documento_comercial filtrados por `vehiculo_id`) y las queries nuevas del dashboard (test_drive por estado+fecha, encargo por urgencia) no tenían índice de soporte. Migración 17, aditiva (`create index if not exists`), aplicada en remoto.
 
 ## Formato de dinero ✅ (2026-07-02)
 
@@ -315,3 +315,10 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - **Migraciones agregadas:** ninguna.
 - **Qué falta revisar:** ciclo de estados completo del vehículo (en_preparacion→disponible→reservado→vendido) sigue sin auditar.
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, con datos reales de la demo: la ficha del Fiat Cronos mostró "Presupuestos (1) — Felipe Lentini · $19.500.000 · Borrador" con el link correcto a `/presupuestos/e08956d0-...`.
+
+### Fecha: 2026-07-02 (bloque 14)
+- **Qué se implementó:** auditoría de índices de Postgres (pendiente del módulo Performance general). Se revisaron los ~30 índices existentes (bien diseñados desde el schema original, siempre `empresa_id` primero por RLS) y se detectaron 7 gaps reales, todos introducidos por el trabajo de hoy: las nuevas secciones de la ficha del vehículo filtran `reserva`/`presupuesto`/`taller_trabajo`/`documento_comercial` por `vehiculo_id` sin índice de soporte, y el Centro de Acción Comercial filtra `test_drive` por estado+fecha y `encargo` por urgencia sin índice compuesto.
+- **Archivos principales tocados:** ninguno de código (solo migración).
+- **Migraciones agregadas:** `17_indices_faltantes.sql` — 7 `create index if not exists` (aditiva, no toca datos): `idx_reserva_vehiculo`, `idx_presupuesto_vehiculo`, `idx_taller_vehiculo`, `idx_doccom_vehiculo`, `idx_doccom_cliente`, `idx_testdrive_dashboard`, `idx_encargo_urgencia`. Aplicada en remoto vía Supabase MCP.
+- **Qué falta revisar:** auditoría de N+1 y `select("*")` sueltos en páginas principales (no se tocó en este bloque).
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde (sin cambios de código). Los 7 índices confirmados por SQL (`pg_indexes`) tras aplicar la migración.
