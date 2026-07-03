@@ -175,7 +175,8 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - [x] Quitar "PRONTO" del menú
 
 **Mejoras pendientes:**
-- [ ] Mejorar diseño del PDF del catálogo (fotos más grandes, branding, portada)
+- [x] Branding real del PDF del catálogo (color de marca de la empresa en header y precio) — ver "Notas de implementación" (2026-07-03, bloque catálogo)
+- [ ] Mejorar diseño del PDF del catálogo (fotos más grandes, portada) — pendiente de diseño, branding de color ya resuelto
 - [x] Mejorar vitrina pública: **botón de WhatsApp por vehículo ya existía**; se agregaron **filtros para el visitante** (`src/components/catalogos/vitrina-filtros.tsx`, client component): buscador por marca/modelo/versión + orden (recientes/precio asc/precio desc/año), todo client-side sin round-trip al servidor (la lista completa ya venía cargada por la función `stock_publico`)
 - [ ] Probar flujo completo (generar → compartir → abrir como cliente)
 
@@ -357,3 +358,10 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - **Migraciones agregadas:** ninguna (`color_primario` ya existía en la tabla `empresa`).
 - **Qué falta revisar:** el catálogo PDF (`src/lib/pdf/catalogo.ts`) usa un motor separado y no se tocó en este bloque — queda como su propio pendiente en el módulo Catálogo.
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Verificación real generando PDFs: se compiló `documento.ts` de forma standalone (`tsc` + `node`, sin depender del navegador) y se generaron un `presupuesto` y un `recibo_sena` con un color de marca de prueba (`#c2410c`) — se leyeron ambos PDFs directamente y se confirmó visualmente que el color se aplica correctamente en todos los elementos de jerarquía, y que el guión largo ya se muestra bien ("-" en vez de "?"). Archivos temporales de la prueba eliminados después.
+
+### Fecha: 2026-07-03 (bloque 20) — branding del catálogo PDF, cierra el pendiente del bloque anterior
+- **Qué se implementó:** el motor de catálogo (`src/lib/pdf/catalogo.ts`) es un archivo separado de `documento.ts` (tipos y helpers propios, sin código compartido), así que la mejora de branding no llegó ahí en el bloque 19. Se aplicó el mismo patrón: `color_primario` agregado a `EmpresaCat`, la constante `BRAND` fija reemplazada por `brandColor(empresa.color_primario)` (usada en la barra de header y en el precio destacado de cada ficha), y se detectó y corrigió el mismo defecto del guión largo en la función `safe()` local de este archivo (tenía el bug de forma independiente, no heredado de `documento.ts`).
+- **Archivos principales tocados:** `src/lib/pdf/catalogo.ts` (`color_primario` en `EmpresaCat`, helper `brandColor()`, `BRAND` ahora parametrizado y pasado a `drawCard()`, `safe()` con `TYPO_MAP`), `src/app/(app)/catalogos/actions.ts` (pasa `ctx.empresa?.color_primario` al construir `EmpresaCat`).
+- **Migraciones agregadas:** ninguna.
+- **Qué falta revisar:** diseño del catálogo PDF sigue pendiente en fotos más grandes y portada — es trabajo de diseño, no de branding; el color de marca ya queda resuelto en todo el sistema de documentos.
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. Verificación real: se compiló `catalogo.ts` de forma standalone (`tsc` + `node`) y se generó un catálogo de 2 vehículos con color de marca de prueba (`#b91c1c`) y una versión con guión largo ("1.6 Trendline — full") — se leyó el PDF resultante y se confirmó visualmente que el header y el precio usan el color configurado, y que el guión largo se muestra correctamente ("-"). Archivos temporales eliminados después.

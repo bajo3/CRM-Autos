@@ -13,6 +13,7 @@ export type EmpresaCat = {
   direccion?: string | null;
   localidad?: string | null;
   provincia?: string | null;
+  color_primario?: string | null;
 };
 
 export type VehiculoCat = {
@@ -27,14 +28,25 @@ const M = 40;
 const INK = rgb(0.1, 0.1, 0.12);
 const GREY = rgb(0.42, 0.45, 0.5);
 const RULE = rgb(0.82, 0.84, 0.87);
-const BRAND = rgb(0.118, 0.227, 0.541); // brand-800 aprox.
+const BRAND_DEFAULT = rgb(0.118, 0.227, 0.541); // brand-800 aprox.
+
+function brandColor(hex: string | null | undefined) {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex ?? "");
+  if (!m) return BRAND_DEFAULT;
+  const n = parseInt(m[1], 16);
+  return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
+}
 
 const PER_PAGE = 3;
 const HEADER_BOTTOM = A4.h - 90;
 const SLOT_H = 224;
 
+const TYPO_MAP: Record<string, string> = {
+  "—": "-", "–": "-", "‘": "'", "’": "'", "“": '"', "”": '"', "…": "...",
+};
 function safe(s: unknown): string {
-  return String(s ?? "").replace(/[^\x00-\xFF]/g, "?");
+  const withTypo = String(s ?? "").replace(/[—–‘’“”…]/g, (c) => TYPO_MAP[c]);
+  return withTypo.replace(/[^\x00-\xFF]/g, "?");
 }
 function ars(n: number | null | undefined): string {
   if (n == null) return "Consultar";
@@ -68,6 +80,7 @@ export async function generarCatalogoPdf(
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const BRAND = brandColor(empresa.color_primario);
 
   const totalPages = Math.max(1, Math.ceil(vehiculos.length / PER_PAGE));
   let pageNum = 0;
@@ -109,14 +122,14 @@ export async function generarCatalogoPdf(
     const slot = i % PER_PAGE;
     const page = slot === 0 ? newPage() : pdf.getPage(pdf.getPageCount() - 1);
     const top = HEADER_BOTTOM - slot * SLOT_H;
-    await drawCard(pdf, page, vehiculos[i], top, font, bold);
+    await drawCard(pdf, page, vehiculos[i], top, font, bold, BRAND);
   }
 
   return pdf.save();
 }
 
 async function drawCard(
-  pdf: PDFDocument, page: PDFPage, v: VehiculoCat, top: number, font: PDFFont, bold: PDFFont,
+  pdf: PDFDocument, page: PDFPage, v: VehiculoCat, top: number, font: PDFFont, bold: PDFFont, BRAND: ReturnType<typeof rgb>,
 ) {
   const cardH = SLOT_H - 16;
   const x = M;
