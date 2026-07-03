@@ -25,15 +25,16 @@ type Row = {
 
 export default async function PermutasPage() {
   const sb = createClient();
-  const ctx = await getSessionContext();
+  const [ctx, { data }] = await Promise.all([
+    getSessionContext(),
+    sb
+      .from("permuta")
+      .select("id,marca,modelo,anio,kilometros,patente,estado_general,valor_pretendido,valor_tasado,diferencia,estado,cliente:cliente_id(nombre,apellido)")
+      .order("created_at", { ascending: false })
+      .returns<Row[]>(),
+  ]);
   const puedeEditar = can(ctx?.profile?.rol, "stock.editar");
   const puedeCargarStock = can(ctx?.profile?.rol, "stock.crear");
-
-  const { data } = await sb
-    .from("permuta")
-    .select("id,marca,modelo,anio,kilometros,patente,estado_general,valor_pretendido,valor_tasado,diferencia,estado,cliente:cliente_id(nombre,apellido)")
-    .order("created_at", { ascending: false })
-    .returns<Row[]>();
 
   return (
     <div>

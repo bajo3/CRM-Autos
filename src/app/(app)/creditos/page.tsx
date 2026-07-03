@@ -23,21 +23,22 @@ type Row = {
 
 export default async function CreditosPage() {
   const sb = createClient();
-  const ctx = await getSessionContext();
+
+  const [ctx, { data }, { data: pagos }] = await Promise.all([
+    getSessionContext(),
+    sb
+      .from("credito")
+      .select("id,cantidad_cuotas,cuota_actual,fecha_inicio,fecha_fin_estimada,estado,venta:venta_id(cliente:cliente_id(nombre,apellido),vehiculo:vehiculo_id(marca,modelo))")
+      .order("fecha_fin_estimada", { ascending: true })
+      .returns<Row[]>(),
+    // Fecha del último pago por crédito (una sola consulta, sin N+1).
+    sb
+      .from("pago_cuota")
+      .select("credito_id, fecha_pago")
+      .order("fecha_pago", { ascending: false })
+      .returns<{ credito_id: string; fecha_pago: string }[]>(),
+  ]);
   const puedeCobrar = can(ctx?.profile?.rol, "creditos.cobrar");
-
-  const { data } = await sb
-    .from("credito")
-    .select("id,cantidad_cuotas,cuota_actual,fecha_inicio,fecha_fin_estimada,estado,venta:venta_id(cliente:cliente_id(nombre,apellido),vehiculo:vehiculo_id(marca,modelo))")
-    .order("fecha_fin_estimada", { ascending: true })
-    .returns<Row[]>();
-
-  // Fecha del último pago por crédito (una sola consulta, sin N+1).
-  const { data: pagos } = await sb
-    .from("pago_cuota")
-    .select("credito_id, fecha_pago")
-    .order("fecha_pago", { ascending: false })
-    .returns<{ credito_id: string; fecha_pago: string }[]>();
   const ultimoPago = new Map<string, string>();
   for (const p of pagos ?? []) {
     if (!ultimoPago.has(p.credito_id)) ultimoPago.set(p.credito_id, p.fecha_pago);

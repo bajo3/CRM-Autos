@@ -33,9 +33,6 @@ export default async function StockPage({
   searchParams: { estado?: string; q?: string; page?: string };
 }) {
   const sb = createClient();
-  const ctx = await getSessionContext();
-  const rol = ctx?.profile?.rol;
-  const verMargen = can(rol, "margenes.ver");
 
   const page = Math.max(1, Number(searchParams.page) || 1);
   const from = (page - 1) * PAGE_SIZE;
@@ -56,7 +53,12 @@ export default async function StockPage({
     );
   }
 
-  const { data: autos, count } = await query.returns<VehiculoRow[]>();
+  const [ctx, { data: autos, count }] = await Promise.all([
+    getSessionContext(),
+    query.returns<VehiculoRow[]>(),
+  ]);
+  const rol = ctx?.profile?.rol;
+  const verMargen = can(rol, "margenes.ver");
   const total = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const qs = (p: number) => {

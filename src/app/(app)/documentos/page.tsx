@@ -153,19 +153,21 @@ export default async function DocumentosPage({
   searchParams: { page?: string };
 }) {
   const sb = createClient();
-  const ctx = await getSessionContext();
-  const puedeGenerar = can(ctx?.profile?.rol, "documentos.generar");
 
   const page = Math.max(1, Number(searchParams.page) || 1);
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const { data, count } = await sb
-    .from("documento_comercial")
-    .select("id,tipo,numero,fecha_emision,pdf_url,cliente:cliente_id(nombre,apellido),vehiculo:vehiculo_id(marca,modelo)", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(from, to)
-    .returns<Row[]>();
+  const [ctx, { data, count }] = await Promise.all([
+    getSessionContext(),
+    sb
+      .from("documento_comercial")
+      .select("id,tipo,numero,fecha_emision,pdf_url,cliente:cliente_id(nombre,apellido),vehiculo:vehiculo_id(marca,modelo)", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, to)
+      .returns<Row[]>(),
+  ]);
+  const puedeGenerar = can(ctx?.profile?.rol, "documentos.generar");
   const total = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 

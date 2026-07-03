@@ -27,9 +27,13 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() valida la firma del JWT localmente (el proyecto usa claves asimétricas
+  // ES256) contra un JWKS cacheado en memoria, en vez de pegarle a la red en cada
+  // navegación como hace getUser(). Es seguro para la decisión de redirect del middleware
+  // porque el gate real de datos es RLS: un JWT alterado no puede pasar la verificación
+  // de firma, y si expiró simplemente no hay claims válidas.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   const path = request.nextUrl.pathname;
   const isAuthRoute = path.startsWith("/login");

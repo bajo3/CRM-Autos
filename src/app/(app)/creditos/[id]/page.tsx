@@ -32,14 +32,15 @@ type Pago = {
 
 export default async function CreditoDetallePage({ params }: { params: { id: string } }) {
   const sb = createClient();
-  const ctx = await getSessionContext();
+  const [ctx, { data: credito }] = await Promise.all([
+    getSessionContext(),
+    sb
+      .from("credito")
+      .select("id,cantidad_cuotas,cuota_actual,estado,fecha_inicio,fecha_fin_estimada,observaciones,venta:venta_id(id,precio_final,fecha_venta,cliente:cliente_id(nombre,apellido,telefono),vehiculo:vehiculo_id(marca,modelo,anio,patente))")
+      .eq("id", params.id)
+      .maybeSingle<Credito>(),
+  ]);
   const puedeCobrar = can(ctx?.profile?.rol, "creditos.cobrar");
-
-  const { data: credito } = await sb
-    .from("credito")
-    .select("id,cantidad_cuotas,cuota_actual,estado,fecha_inicio,fecha_fin_estimada,observaciones,venta:venta_id(id,precio_final,fecha_venta,cliente:cliente_id(nombre,apellido,telefono),vehiculo:vehiculo_id(marca,modelo,anio,patente))")
-    .eq("id", params.id)
-    .maybeSingle<Credito>();
 
   if (!credito) notFound();
 

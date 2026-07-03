@@ -56,14 +56,15 @@ const TIPO_DOT: Record<TipoEvento, string> = {
  */
 export default async function FichaCliente({ params }: { params: { id: string } }) {
   const sb = createClient();
-  const ctx = await getSessionContext();
+  const [ctx, { data: c }] = await Promise.all([
+    getSessionContext(),
+    sb
+      .from("cliente")
+      .select("id,empresa_id,nombre,apellido,telefono,whatsapp,email,dni_cuit,localidad,origen,estado,presupuesto_aprox,observaciones,proximo_seguimiento,created_at,vendedor:vendedor_id(nombre,apellido),vehiculo:vehiculo_interes_id(id,marca,modelo)")
+      .eq("id", params.id)
+      .maybeSingle<Cliente>(),
+  ]);
   const puedeGenerar = can(ctx?.profile?.rol, "documentos.generar");
-
-  const { data: c } = await sb
-    .from("cliente")
-    .select("id,empresa_id,nombre,apellido,telefono,whatsapp,email,dni_cuit,localidad,origen,estado,presupuesto_aprox,observaciones,proximo_seguimiento,created_at,vendedor:vendedor_id(nombre,apellido),vehiculo:vehiculo_interes_id(id,marca,modelo)")
-    .eq("id", params.id)
-    .maybeSingle<Cliente>();
   if (!c) notFound();
 
   const vendedor = rel(c.vendedor);

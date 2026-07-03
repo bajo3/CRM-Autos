@@ -36,42 +36,49 @@ Total: 4+ round-trips de red **seriales** antes de que el usuario vea un solo p�
 
 ---
 
-## Fase 1 — Velocidad ⚡ (bloqueante, primero)
+## Fase 1 — Velocidad ⚡ (bloqueante, primero) — ✅ COMPLETA (2026-07-03)
 
 ### 1.1 Middleware sin viaje de red
 
-- [ ] Reemplazar `getUser()` (red) en `src/lib/supabase/middleware.ts` por validación **local** del JWT:
-  - Opción A (preferida): `supabase.auth.getClaims()` — valida la firma localmente. Requiere migrar el proyecto Supabase a las **JWT signing keys asimétricas** (dashboard → Settings → JWT). Verificar primero con `execute_sql`/dashboard si ya está habilitado.
-  - Opción B (fallback si A no se puede): `getSession()` (lee la cookie sin red) para la decisión de redirect. Es seguro porque el gate real es RLS: una cookie truchada no puede leer datos; si el token venció, el layout recibe contexto nulo y redirige a `/login`.
-  - En ambos casos conservar el refresh de tokens (el `setAll` de cookies ya está armado).
-- [ ] Probar explícitamente: sesión vigente navega normal; sesión vencida termina en `/login`; logout sigue funcionando.
+- [x] Reemplazado `getUser()` (red) en `src/lib/supabase/middleware.ts` por `supabase.auth.getClaims()`.
+- [x] Probado explícitamente: sesión vigente navega normal; sesión vencida (logout) termina en `/login`; `/clientes` sin sesión redirige a `/login`; logout sigue funcionando.
 
 ### 1.2 `getSessionContext()`: de 3 viajes a 1
 
-- [ ] Envolver en `React.cache()` para que layout + página + componentes compartan una sola ejecución por request.
-- [ ] Una sola query con relación embebida: `profile.select("*, empresa(*)")` usando el patrón `rel()` del proyecto — elimina la segunda query.
-- [ ] Obtener el `user id` sin segundo `getUser()` de red (mismo mecanismo que 1.1: claims/JWT local).
-- [ ] Resultado esperado: **1 round-trip** por request para el contexto de sesión.
+- [x] Envuelto en `React.cache()` (`src/lib/auth/session.ts`) para que layout + página + componentes compartan una sola ejecución por request.
+- [x] Una sola query con relación embebida: `profile.select("*, empresa(*)")` + `rel()` — elimina la segunda query a `empresa`.
+- [x] `user id`/`email` se obtienen de los claims del JWT (sin segundo `getUser()` de red).
+- [x] Resultado: **1 round-trip** por request para sesión (antes eran 3: `getUser` + `profile` + `empresa`).
 
-### 1.3 `loading.tsx` en TODAS las rutas (34 faltantes)
+### 1.3 `loading.tsx` en TODAS las rutas (36 faltantes)
 
-- [ ] Crear skeletons reutilizables en `src/components/ui/skeletons.tsx`: `ListPageSkeleton` (header + tabla), `FormPageSkeleton` (header + campos), `FichaSkeleton` (header + cards).
-- [ ] Agregar `loading.tsx` a cada ruta de `src/app/(app)/**` que no tenga (usar el skeleton que corresponda al tipo de página). Rutas con `loading.tsx` hoy: raíz del grupo, `clientes/[id]`, `stock`, `stock/[id]`, `ventas`, `seguimientos`, `documentos`. **Todas las demás lo necesitan**, incluidas las `/nuevo` y `/editar`.
-- [ ] Con esto + prefetch de `<Link>` (App Router prefetchea el boundary de loading), el click de menú muestra esqueleto en <100 ms **siempre**.
+- [x] Creados skeletons reutilizables en `src/components/ui/skeletons.tsx`: `ListPageSkeleton`, `FormPageSkeleton`, `FichaSkeleton`.
+- [x] Agregado `loading.tsx` a las 36 rutas que no tenían (19 listados, 3 fichas, 14 formularios/configuración). Ahora las 43 rutas de `src/app/(app)/**` tienen esqueleto instantáneo.
 
 ### 1.4 Auditoría de queries por página
 
-- [ ] Grep de `await` secuenciales sobre `sb.from(...)` en `src/app/(app)/**/page.tsx`: todo lo paralelizable va a `Promise.all`.
-- [ ] Revisar `getFormOptions()` (`src/lib/data/options.ts`): que no cargue tablas enteras sin límite en formularios (`select` mínimo de columnas, filtro por estado activo/disponible, límite razonable).
-- [ ] Fichas pesadas (`clientes/[id]`, `stock/[id]`): lo secundario va en `<Suspense>` (patrón ya usado en ficha de cliente), lo crítico arriba.
+- [x] Auditadas las páginas con awaits secuenciales evitables; convertidas a `Promise.all` donde la segunda query NO dependía de la primera: `stock/[id]`, `documentos`, `creditos`, `creditos/[id]` (parcial: pagos sigue secuencial porque depende del id del crédito), `clientes/[id]`, `vtv`, `ventas/[id]`, `usuarios`, `reservas`, `presupuestos/[id]`, `postventa`, `permutas`, `stock` (lista), `presupuestos` (lista).
+  - Se dejaron **intencionalmente secuenciales** los casos donde `ctx` hace de gate de permisos antes de una query cara (`stock/[id]/editar`, `reportes`, `presupuestos/nuevo`): consultar sin permiso sería trabajo desperdiciado, no un bug de performance.
+- [x] `getFormOptions()` (`src/lib/data/options.ts`): agregado `.limit()` razonable (vendedores 200, vehículos 300, clientes 500) como piso de seguridad para cuando la base crezca; ya tenía columnas mínimas y filtros de estado.
+- [x] Fichas pesadas (`clientes/[id]`, `stock/[id]`) ya usaban `<Suspense>`/`Promise.all` para lo secundario desde la fase 1 histórica; sin cambios adicionales necesarios ahí.
 
 ### 1.5 Medición antes/después
 
-- [ ] Baseline ANTES de tocar nada: `npm run build && npm run start`, navegar 5 rutas típicas y anotar los tiempos de render del server log en este archivo.
-- [ ] Repetir DESPUÉS de 1.1–1.4 y documentar la mejora acá.
-- [ ] Criterio de aceptación: esqueleto visible al instante en toda navegación; render completo típico **< 1 s** en build de producción.
+- [x] Medido con `npm run build && npm run start` real (puerto 3000), navegación por `location.href` (full reload) y `performance.getEntriesByType('navigation')` en el browser real (Chrome vía preview tool). Sesión real de la empresa demo (Jesús Díaz Automotores).
 
-**Notas de implementación fase 1:** _(completar al ejecutar)_
+  | Ruta | TTFB antes (`responseStart`) | TTFB después | Duración total antes | Duración total después |
+  |------|---:|---:|---:|---:|
+  | `/stock` | 1002 ms | 385 ms | 1221 ms | 601 ms |
+  | `/clientes` | 961 ms | 381 ms | 998 ms | 421 ms |
+  | `/seguimientos` | 1020 ms | 398 ms | 1048 ms | 462 ms |
+
+  Mejora de **~60% en TTFB** solo con 1.1+1.2 (antes de sumar el efecto de 1.3, que no se puede medir con este método porque `loading.tsx` solo actúa en navegación client-side de `<Link>`, no en full reload — su efecto es 100% perceptual: esqueleto instantáneo en vez de pantalla congelada, confirmado visualmente).
+- [x] Criterio de aceptación cumplido: con 1.1–1.4, el render server-side típico bajó de ~1 s a ~0.4–0.6 s, y con 1.3 el usuario ve esqueleto al instante en cualquier navegación (ya no hay pantalla "trabada"). El delay de ~3 s reportado originalmente correspondía al peor caso (primera carga de sesión + build no productivo); en `next start` con los fixes de esta fase el peor caso medido fue 1.2 s.
+
+**Notas de implementación fase 1:**
+- El proyecto Supabase ya usaba **firma JWT asimétrica ES256** (confirmado decodificando el header del access_token), por lo que `getClaims()` verifica localmente contra un JWKS cacheado en memoria (`GLOBAL_JWKS` de `@supabase/auth-js`) en vez de caer a `getUser()` por red — no hizo falta ningún cambio de configuración en el dashboard de Supabase.
+- Bug de herramienta encontrado y evitado: `preview_click` sobre los links del sidebar aterrizaba de forma intermitente en una ruta distinta a la clickeada (confirmado con capturas de red y `location.href`); no es un bug de la app. Se resolvió midiendo con navegación por `location.href` (full reload) + `performance.getEntriesByType('navigation')`, que es determinístico.
+- Se agregó una config `"prod"` a `.claude/launch.json` (`npm run start`) para poder medir siempre sobre build de producción, tal como exige esta fase.
 
 ---
 

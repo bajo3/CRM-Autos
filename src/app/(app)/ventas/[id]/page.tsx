@@ -28,15 +28,16 @@ type Venta = {
 
 export default async function FichaVenta({ params }: { params: { id: string } }) {
   const sb = createClient();
-  const ctx = await getSessionContext();
+  const [ctx, { data: v }] = await Promise.all([
+    getSessionContext(),
+    sb
+      .from("venta")
+      .select("id,fecha_venta,precio_final,sena,saldo,forma_pago,estado_entrega,tiene_credito,tiene_permuta,observaciones,checklist_entrega,cliente:cliente_id(id,nombre,apellido),vehiculo:vehiculo_id(id,marca,modelo,anio,patente),vendedor:vendedor_id(nombre,apellido)")
+      .eq("id", params.id)
+      .maybeSingle<Venta>(),
+  ]);
   const puedeEditar = can(ctx?.profile?.rol, "ventas.crear");
   const puedeGenerar = can(ctx?.profile?.rol, "documentos.generar");
-
-  const { data: v } = await sb
-    .from("venta")
-    .select("id,fecha_venta,precio_final,sena,saldo,forma_pago,estado_entrega,tiene_credito,tiene_permuta,observaciones,checklist_entrega,cliente:cliente_id(id,nombre,apellido),vehiculo:vehiculo_id(id,marca,modelo,anio,patente),vendedor:vendedor_id(nombre,apellido)")
-    .eq("id", params.id)
-    .maybeSingle<Venta>();
   if (!v) notFound();
 
   const cli = rel(v.cliente);

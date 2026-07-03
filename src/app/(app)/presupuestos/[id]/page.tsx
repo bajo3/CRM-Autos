@@ -33,14 +33,15 @@ const formaLabel = (f: FormaPago | null) => FORMAS_PAGO.find((x) => x.value === 
 
 export default async function PresupuestoDetallePage({ params }: { params: { id: string } }) {
   const sb = createClient();
-  const ctx = await getSessionContext();
+  const [ctx, { data: p }] = await Promise.all([
+    getSessionContext(),
+    sb
+      .from("presupuesto")
+      .select("id,estado,precio,anticipo,bonificacion,gastos,cantidad_cuotas,valor_cuota,forma_pago,financiacion,permuta,validez,observaciones,pdf_url,created_at,cliente:cliente_id(id,nombre,apellido,telefono,whatsapp),vehiculo:vehiculo_id(marca,modelo,anio,patente),vendedor:vendedor_id(nombre,apellido)")
+      .eq("id", params.id)
+      .maybeSingle<Presupuesto>(),
+  ]);
   const puede = can(ctx?.profile?.rol, "documentos.generar");
-
-  const { data: p } = await sb
-    .from("presupuesto")
-    .select("id,estado,precio,anticipo,bonificacion,gastos,cantidad_cuotas,valor_cuota,forma_pago,financiacion,permuta,validez,observaciones,pdf_url,created_at,cliente:cliente_id(id,nombre,apellido,telefono,whatsapp),vehiculo:vehiculo_id(marca,modelo,anio,patente),vendedor:vendedor_id(nombre,apellido)")
-    .eq("id", params.id)
-    .maybeSingle<Presupuesto>();
   if (!p) notFound();
 
   const cliente = rel(p.cliente);

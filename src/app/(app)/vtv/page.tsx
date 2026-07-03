@@ -21,12 +21,14 @@ type Row = {
 
 export default async function VtvPage() {
   const sb = createClient();
-  const ctx = await getSessionContext();
-  const { data } = await sb
-    .from("vtv")
-    .select("id,patente,ultimo_digito,jurisdiccion,mes_sugerido,fecha_vencimiento,estado,vehiculo:vehiculo_id(marca,modelo)")
-    .order("fecha_vencimiento", { ascending: true })
-    .returns<Row[]>();
+  const [ctx, { data }] = await Promise.all([
+    getSessionContext(),
+    sb
+      .from("vtv")
+      .select("id,patente,ultimo_digito,jurisdiccion,mes_sugerido,fecha_vencimiento,estado,vehiculo:vehiculo_id(marca,modelo)")
+      .order("fecha_vencimiento", { ascending: true })
+      .returns<Row[]>(),
+  ]);
 
   return (
     <div>

@@ -9,13 +9,15 @@ export const dynamic = "force-dynamic";
 
 export default async function UsuariosPage() {
   const sb = createClient();
-  const ctx = await getSessionContext();
   // RLS limita a la propia empresa.
-  const { data } = await sb
-    .from("profile")
-    .select("id, nombre, apellido, email, telefono, rol, activo")
-    .order("created_at", { ascending: true })
-    .returns<Usuario[]>();
+  const [ctx, { data }] = await Promise.all([
+    getSessionContext(),
+    sb
+      .from("profile")
+      .select("id, nombre, apellido, email, telefono, rol, activo")
+      .order("created_at", { ascending: true })
+      .returns<Usuario[]>(),
+  ]);
 
   const puede = can(ctx?.profile?.rol, "usuarios.crear");
 

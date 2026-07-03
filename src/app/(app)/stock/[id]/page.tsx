@@ -81,10 +81,11 @@ function Spec({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default async function FichaVehiculo({ params }: { params: { id: string } }) {
   const sb = createClient();
-  const ctx = await getSessionContext();
+  const [ctx, { data: v }] = await Promise.all([
+    getSessionContext(),
+    sb.from("vehiculo").select("*").eq("id", params.id).maybeSingle(),
+  ]);
   const rol = ctx?.profile?.rol;
-
-  const { data: v } = await sb.from("vehiculo").select("*").eq("id", params.id).maybeSingle();
   if (!v) notFound();
 
   const [{ data: gastos }, { data: vtv }, { data: consultas }, { data: fotos }, { data: documentos }, { data: historial }, { data: trabajosTaller }, { data: reservas }, { data: presupuestos }] = await Promise.all([

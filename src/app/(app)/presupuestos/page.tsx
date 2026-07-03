@@ -23,8 +23,6 @@ type Row = {
 
 export default async function PresupuestosPage({ searchParams }: { searchParams: { estado?: string } }) {
   const sb = createClient();
-  const ctx = await getSessionContext();
-  const puede = can(ctx?.profile?.rol, "documentos.generar");
 
   let query = sb
     .from("presupuesto")
@@ -36,7 +34,8 @@ export default async function PresupuestosPage({ searchParams }: { searchParams:
     query = query.eq("estado", filtro as EstadoPresupuesto);
   }
 
-  const { data } = await query.returns<Row[]>();
+  const [ctx, { data }] = await Promise.all([getSessionContext(), query.returns<Row[]>()]);
+  const puede = can(ctx?.profile?.rol, "documentos.generar");
 
   return (
     <div>

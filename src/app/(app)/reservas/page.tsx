@@ -24,14 +24,15 @@ type Row = {
 
 export default async function ReservasPage() {
   const sb = createClient();
-  const ctx = await getSessionContext();
+  const [ctx, { data }] = await Promise.all([
+    getSessionContext(),
+    sb
+      .from("reserva")
+      .select("id,monto_sena,fecha_reserva,vencimiento,medio_pago,estado,cliente:cliente_id(nombre,apellido),vehiculo:vehiculo_id(marca,modelo)")
+      .order("vencimiento", { ascending: true })
+      .returns<Row[]>(),
+  ]);
   const puedeGenerar = can(ctx?.profile?.rol, "documentos.generar");
-
-  const { data } = await sb
-    .from("reserva")
-    .select("id,monto_sena,fecha_reserva,vencimiento,medio_pago,estado,cliente:cliente_id(nombre,apellido),vehiculo:vehiculo_id(marca,modelo)")
-    .order("vencimiento", { ascending: true })
-    .returns<Row[]>();
 
   return (
     <div>

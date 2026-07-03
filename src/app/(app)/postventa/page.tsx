@@ -19,14 +19,15 @@ type Row = {
 
 export default async function PostventaPage() {
   const sb = createClient();
-  const ctx = await getSessionContext();
+  const [ctx, { data }] = await Promise.all([
+    getSessionContext(),
+    sb
+      .from("postventa")
+      .select("id,fecha_alerta,realizada,notas,cliente:cliente_id(nombre,apellido,telefono,whatsapp)")
+      .order("fecha_alerta", { ascending: true })
+      .returns<Row[]>(),
+  ]);
   const empresaNombre = ctx?.empresa?.nombre ?? "nuestra agencia";
-
-  const { data } = await sb
-    .from("postventa")
-    .select("id,fecha_alerta,realizada,notas,cliente:cliente_id(nombre,apellido,telefono,whatsapp)")
-    .order("fecha_alerta", { ascending: true })
-    .returns<Row[]>();
 
   return (
     <div>

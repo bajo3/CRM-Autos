@@ -1,8 +1,11 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { rel, type Rel } from "@/lib/rel";
 import type { Database } from "@/lib/types/database.types";
 
 type Profile = Database["public"]["Tables"]["profile"]["Row"];
 type Empresa = Database["public"]["Tables"]["empresa"]["Row"];
+type ProfileConEmpresa = Profile & { empresa: Rel<Empresa> };
 
 export type SessionContext = {
   userId: string;
@@ -12,36 +15,28 @@ export type SessionContext = {
 };
 
 /**
- * Devuelve el usuario autenticado junto con su profile y empresa.
- * Las consultas pasan por RLS, así que solo trae datos de su propia empresa.
+ * Devuelve el usuario autenticado junto con su profile y empresa, en un solo
+ * round-trip a Supabase (getClaims valida el JWT localmente sin red — ver
+ * src/lib/supabase/middleware.ts — y profile+empresa se traen con un embed).
+ * Envuelto en React.cache: layout, página y componentes de un mismo request
+ * comparten una sola ejecución.
  */
-export async function getSessionContext(): Promise<SessionContext | null> {
+export const getSessionContext = cache(async (): Promise<SessionContext | null> => {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims) return null;
 
   const { data: profile } = await supabase
     .from("profile")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  let empresa: Empresa | null = null;
-  if (profile?.empresa_id) {
-    const { data } = await supabase
-      .from("empresa")
-      .select("*")
-      .eq("id", profile.empresa_id)
-      .maybeSingle();
-    empresa = data;
-  }
+    .select("*, empresa(*)")
+    .eq("id", claims.sub)
+    .maybeSingle<ProfileConEmpresa>();
 
   return {
-    userId: user.id,
-    email: user.email ?? null,
+    userId: claims.sub,
+    email: (claims.email as string | undefined) ?? null,
     profile: profile ?? null,
-    empresa,
+    empresa: profile ? rel(profile.empresa) : null,
   };
-}
+});
