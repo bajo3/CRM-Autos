@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import { MessageCircle, MapPin, Phone, Mail, Gauge, Calendar, Fuel } from "lucide-react";
+import { MapPin, Phone, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { waUrl, mensajeVehiculo } from "@/lib/data/whatsapp";
-import { humanize } from "@/lib/format";
+import { waUrl } from "@/lib/data/whatsapp";
+import { VitrinaFiltros } from "@/components/catalogos/vitrina-filtros";
 
 export const dynamic = "force-dynamic";
 
@@ -35,15 +35,6 @@ type StockPublico = {
   };
   vehiculos: VehPublico[];
 };
-
-function precioARS(n: number | null): string {
-  if (n == null) return "Consultar precio";
-  return `$ ${new Intl.NumberFormat("es-AR").format(Math.round(n))}`;
-}
-function km(n: number | null): string {
-  if (n == null) return "—";
-  return `${new Intl.NumberFormat("es-AR").format(n)} km`;
-}
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const sb = createClient();
@@ -110,62 +101,7 @@ export default async function StockPublicoPage({ params }: { params: { slug: str
             Por el momento no hay unidades publicadas. Volvé pronto.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {vehiculos.map((v) => (
-              <article key={v.id} className="flex flex-col overflow-hidden rounded-lg border bg-white shadow-sm transition hover:shadow-md">
-                <div className="relative aspect-[4/3] bg-gray-100">
-                  {v.foto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={v.foto} alt={`${v.marca} ${v.modelo}`} className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-gray-300">Sin foto</div>
-                  )}
-                  {v.destacado && (
-                    <span className="absolute left-2 top-2 rounded bg-amber-400 px-2 py-0.5 text-xs font-semibold text-amber-950">
-                      Destacado
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col p-4">
-                  <h3 className="font-semibold text-gray-900">
-                    {v.marca} {v.modelo}
-                  </h3>
-                  {v.version && <p className="text-sm text-gray-500">{v.version}</p>}
-                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600">
-                    {v.anio && (
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" /> {v.anio}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Gauge className="h-3 w-3" /> {km(v.kilometros)}
-                    </span>
-                    {v.combustible && (
-                      <span className="flex items-center gap-1">
-                        <Fuel className="h-3 w-3" /> {humanize(v.combustible)}
-                      </span>
-                    )}
-                    {v.transmision && <span>{humanize(v.transmision)}</span>}
-                  </div>
-                  <p className="mt-3 text-lg font-bold" style={{ color }}>
-                    {precioARS(v.precio)}
-                  </p>
-                  {v.mostrar_whatsapp && empresa.telefono && (
-                    <a
-                      href={waUrl(
-                        mensajeVehiculo(empresa.nombre, { marca: v.marca, modelo: v.modelo, anio: v.anio, precio: v.precio }),
-                        empresa.telefono,
-                      )}
-                      target="_blank"
-                      className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-green-700"
-                    >
-                      <MessageCircle className="h-4 w-4" /> Consultar por WhatsApp
-                    </a>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
+          <VitrinaFiltros vehiculos={vehiculos} empresaNombre={empresa.nombre} telefono={empresa.telefono} color={color} />
         )}
       </section>
 

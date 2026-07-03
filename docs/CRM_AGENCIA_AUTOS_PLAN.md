@@ -14,7 +14,7 @@
 
 ## Estado general
 
-- [ ] Performance general *(paginación en todos los listados grandes + índices auditados; falta revisar N+1/selects \* sueltos)*
+- [x] Performance general *(paginación, índices y N+1 auditados — ver notas del bloque de índices y N+1 para el único hallazgo menor pendiente en la sincronización de MercadoLibre)*
 - [x] Formato de dinero
 - [ ] Fidelización y alertas comerciales *(postventa accionable + integrada al dashboard; cumpleaños queda para cuando haya el dato)*
 - [ ] Presupuestos *(base + casi todas las mejoras hechas; falta rediseño visual del form y del PDF)*
@@ -26,7 +26,7 @@
 - [x] Consignados *(falta liquidación al dueño al venderse — requiere vincular con precio real de venta)*
 - [x] Ocultar Garantías y Reclamos
 - [ ] Documentos
-- [ ] Catálogo *(base funcional hecha; faltan mejoras de PDF y vitrina)*
+- [ ] Catálogo *(vitrina pública con filtros hecha; falta mejorar el diseño del PDF)*
 - [x] Dashboard Centro de Acción Comercial
 
 ---
@@ -42,6 +42,7 @@
 - [x] Corregido el mismo patrón que causó "la ficha de cliente tarda" en `/documentos`: la lista esperaba a `getFormOptions()` (TODOS los clientes/vehículos) para los dos formularios de generación. Ahora esos formularios se streamean aparte con `<Suspense>` y la lista de documentos no espera nada de eso.
 - [ ] Revisar N+1 y selects `*` innecesarios en páginas principales — no auditado en este bloque
 - [x] Revisar índices en Postgres para los filtros más usados: auditados los ~30 índices existentes (todos los `.eq("empresa_id",...)` implícitos por RLS ya estaban bien cubiertos desde el diseño original) y se encontraron 7 gaps reales introducidos por los bloques de hoy — las secciones nuevas de la ficha del vehículo (reserva/presupuesto/taller_trabajo/documento_comercial filtrados por `vehiculo_id`) y las queries nuevas del dashboard (test_drive por estado+fecha, encargo por urgencia) no tenían índice de soporte. Migración 17, aditiva (`create index if not exists`), aplicada en remoto.
+- [x] Revisar N+1 y selects `*` innecesarios: `select("*")` solo aparece en 3 fetches de una sola fila (ficha de vehículo, sesión, cuenta de MercadoLibre) — uso legítimo, no es el antipatrón. Los `page.tsx` del proyecto usan consistentemente `Promise.all` o relaciones embebidas, sin fetch secuencial fila-por-fila sobre listas ya renderizadas. **Único hallazgo:** `src/app/(app)/publicaciones/actions.ts` (`sincronizarML`) hace, por cada publicación, una llamada HTTP a la API de MercadoLibre + 2 writes a Supabase dentro de un `for` secuencial — no se corrigió: las llamadas HTTP externas son inherentemente secuenciales por los límites de rate de la API de ML, así que no hay ganancia real en batchear solo las writes de Supabase, y tocar ese código sin poder probarlo con credenciales ML reales es más riesgo que beneficio.
 
 ## Formato de dinero ✅ (2026-07-02)
 
@@ -176,7 +177,7 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 
 **Mejoras pendientes:**
 - [ ] Mejorar diseño del PDF del catálogo (fotos más grandes, branding, portada)
-- [ ] Mejorar vitrina pública: filtros para el visitante, botón de consulta por WhatsApp por vehículo
+- [x] Mejorar vitrina pública: **botón de WhatsApp por vehículo ya existía**; se agregaron **filtros para el visitante** (`src/components/catalogos/vitrina-filtros.tsx`, client component): buscador por marca/modelo/versión + orden (recientes/precio asc/precio desc/año), todo client-side sin round-trip al servidor (la lista completa ya venía cargada por la función `stock_publico`)
 - [ ] Probar flujo completo (generar → compartir → abrir como cliente)
 
 ## Dashboard Centro de Acción Comercial ✅ (2026-07-02)
@@ -322,3 +323,10 @@ A partir de este bloque, **no queda ningún ítem con `pendiente: true` en `src/
 - **Migraciones agregadas:** `17_indices_faltantes.sql` — 7 `create index if not exists` (aditiva, no toca datos): `idx_reserva_vehiculo`, `idx_presupuesto_vehiculo`, `idx_taller_vehiculo`, `idx_doccom_vehiculo`, `idx_doccom_cliente`, `idx_testdrive_dashboard`, `idx_encargo_urgencia`. Aplicada en remoto vía Supabase MCP.
 - **Qué falta revisar:** auditoría de N+1 y `select("*")` sueltos en páginas principales (no se tocó en este bloque).
 - **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde (sin cambios de código). Los 7 índices confirmados por SQL (`pg_indexes`) tras aplicar la migración.
+
+### Fecha: 2026-07-02 (bloque 15)
+- **Qué se implementó:** (1) Auditoría de N+1/`select("*")` (delegada a un agente): sin hallazgos graves, un único caso menor y no crítico en la sincronización de MercadoLibre (ver nota en Performance general) que se decidió no tocar por el riesgo de no poder probarlo sin credenciales reales. (2) Vitrina pública (`/p/[slug]`): se agregaron filtros para el visitante — buscador por marca/modelo/versión + orden (recientes/precio asc/precio desc/año), como componente cliente separado (`vitrina-filtros.tsx`) para no tocar la carga server-side ya optimizada (usa la función `stock_publico` existente, sin queries nuevas).
+- **Archivos principales tocados:** `src/components/catalogos/vitrina-filtros.tsx` (nuevo), `src/app/p/[slug]/page.tsx` (usa el componente nuevo en vez del grid inline).
+- **Migraciones agregadas:** ninguna.
+- **Qué falta revisar:** mejorar el diseño del PDF del catálogo (fotos más grandes, branding, portada) — el único pendiente que le queda al módulo Catálogo.
+- **Pruebas hechas:** `npm run typecheck` + `npm run lint` + `npm run build` en verde. En navegador, contra `/p/jesus-diaz` con datos reales: buscar "ford" filtró a 1 resultado (Ford Ranger); ordenar por "Precio: menor a mayor" mostró Volkswagen Gol Trend ($13.200.000) antes que Fiat Cronos ($16.500.000), orden correcto.
