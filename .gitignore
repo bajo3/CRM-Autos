@@ -34,3 +34,6 @@ yarn-error.log*
 /graphify-out/
 
 .vercel
+
+# fotos de stock subidas a Supabase Storage (no versionar binarios en git)
+/images/
