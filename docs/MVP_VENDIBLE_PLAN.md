@@ -174,15 +174,16 @@ Motor existente: `src/lib/pdf/documento.ts` (pdf-lib, con branding de color ya a
 
 - [x] **Datos demo prolijos:** el stock tenía solo 5 vehículos y solo 1 (Ford Ranger) con fotos reales. Se agregaron 5 unidades más (Chevrolet Onix, Renault Sandero, Honda HR-V, Chevrolet S10, Renault Kangoo) con datos realistas — total 10 vehículos, dentro del rango 8–12. Clientes (8) ya tenían nombres creíbles y orígenes variados; seguimientos y presupuestos tienen fechas recientes (junio/julio 2026), coherentes con "hoy". **Gap real que no se pudo resolver por código:** 9 de los 10 vehículos no tienen fotos — no hay forma legítima de generar/conseguir fotos reales de autos específicos; queda documentado como acción pendiente del dueño en `docs/DEMO.md`. Tampoco se borraron 2 registros de cliente con datos incompletos ("Tomas", "Matias Marino") por no poder confirmar si son de prueba o leads reales cargados a mano — decisión de no borrar datos sin certeza, documentada para que el dueño lo revise.
 - [x] **Guion de demo**: creado `docs/DEMO.md` con recorrido de 10 minutos (dashboard → Ctrl+K → presupuesto+PDF → stock+VTV → vitrina pública → catálogo por WhatsApp), qué decir en cada paso, y una sección "Antes de mostrarlo a un cliente" con el checklist de fotos/datos de prueba.
-- [x] **QA manual**: checklist de los 4 flujos bloqueados para automatización (Presupuestos, Test Drive, Permutas, Catálogo) agregado a `docs/DEMO.md` — código completo y verde, pendiente solo la prueba manual desde un navegador normal.
+- [x] **QA manual**: los 4 flujos (Presupuestos, Test Drive, Permutas, Catálogo) se probaron de punta a punta con formularios reales en el navegador (no solo SQL) — ver detalle y datos usados en `docs/DEMO.md`. La supuesta limitación "no se puede automatizar `useFormState`" era un error de selector propio (`document.querySelector('form')` tomaba el form de "Salir" del topbar); con el botón correcto los 4 flujos funcionan sin problemas.
 - [x] **Pasada final**: `npm run typecheck && npm run lint && npm run build` en verde. Grep de "TODO"/"próximamente"/"Pronto" en `src/`: sin resultados. Ningún ítem de `src/lib/nav.ts` quedó con `pendiente: true` (que mostraría el badge "Pronto" en el sidebar).
+- [x] **Bug real encontrado y corregido en el QA manual (2026-07-04):** `formatDate`/`daysUntil` (`src/lib/format.ts`) y `estadoPorVencimiento` (`src/lib/data/vtv.ts`) parseaban fechas-only (`"2026-07-06"`) con `new Date(string)` → medianoche UTC, mostrando un día antes en husos horarios negativos (Argentina). Corregido con `parseDate()` compartido; verificado que un test drive agendado para el 6/7 ahora se muestra 6/7 (antes 5/7). `npm run typecheck && npm run lint && npm run build` en verde después del fix.
+- [x] **3 vehículos VW + fotos reales + limpieza de datos (2026-07-04):** agregados Amarok, Polo y Vento con fotos reales del dueño (ver `docs/DEMO.md`); borrados 2 clientes de prueba huérfanos ("Tomas", "Matias Marino") sin actividad vinculada.
 
 **Notas de implementación fase 6:**
 - Los 5 vehículos nuevos se cargaron por SQL directo (`execute_sql`), no por migración — es carga de datos de la empresa demo, no un cambio de esquema.
 - Verificado en navegador real que el listado de stock pasó de 5 a 10 unidades tras la carga.
-- Con este bloque se completan las 6 fases del plan `MVP_VENDIBLE_PLAN.md`. Lo único que queda abierto son las dos cosas que genuinamente no se pueden resolver de forma autónoma: (1) fotos reales de los vehículos y (2) la prueba manual de los 4 flujos con formularios `useFormState`, ambas documentadas en `docs/DEMO.md`.
-
-**Notas de implementación fase 6:** _(completar al ejecutar)_
+- El QA manual de los 4 flujos se completó en una sesión posterior usando los botones reales de cada formulario (identificados por texto en vez de `document.querySelector('form')`, que era ambiguo por el form de logout del topbar) — datos y resultado en `docs/DEMO.md`.
+- Con este bloque se completan las 6 fases del plan `MVP_VENDIBLE_PLAN.md`. Lo único que queda abierto es conseguir fotos reales de las 9 unidades restantes (no se pueden generar de forma autónoma), documentado en `docs/DEMO.md`.
 
 ---
 

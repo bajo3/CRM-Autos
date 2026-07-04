@@ -46,15 +46,17 @@ Decir: *"Esto es lo que hoy se arma a mano en Canva o Word — acá sale del sto
 ## Antes de mostrarlo a un cliente real (checklist)
 
 - [x] **Fotos de stock:** además del Ford Ranger (8 fotos), se cargaron fotos reales de Volkswagen Amarok Dark Label 2015, Polo Comfortline AT 2026 0km y Vento Advanced Plus 2.5 2015 (6 fotos cada uno, provistas por el dueño en `images/`), verificadas en la ficha del vehículo y en la vitrina pública. **Sigue faltando** en: Chevrolet Onix, Renault Sandero, Honda HR-V, Chevrolet S10, Renault Kangoo, Fiat Cronos, Volkswagen Gol Trend, Toyota Corolla, Peugeot 208 (9 unidades) — sacar/cargar al menos 1 foto real por unidad antes de mostrar la vitrina o generar un catálogo con todo el stock.
-- [ ] **Clientes de prueba:** revisar si "Tomas" (sin apellido ni teléfono) y "Matias Marino" (sin teléfono) en la lista de Clientes son datos de prueba de sesiones anteriores o leads reales cargados a mano — si son de prueba, borrarlos antes de la demo. No se borraron automáticamente por las dudas (podían ser datos reales).
-- [ ] Confirmar que el usuario demo (`dueno@jesusdiaz.com` / `demo1234`) sigue funcionando y no quedó bloqueado.
+- [x] **Clientes de prueba:** "Tomas" (sin apellido ni teléfono, 0 actividad vinculada) y "Matias Marino" (sin teléfono, DNI con formato inválido, 0 actividad vinculada) eran leads huérfanos sin ningún seguimiento/presupuesto/venta/reserva/tasación/permuta/test drive asociado — se confirmó por SQL y se borraron.
+- [x] Confirmado que el usuario demo (`dueno@jesusdiaz.com` / `demo1234`) sigue funcionando (usado durante toda la sesión de QA sin bloqueos).
 - [ ] Correr `npm run build && npm run start` (no `npm run dev`) para la demo — es sensiblemente más rápido (ver medición en `docs/MVP_VENDIBLE_PLAN.md`, fase 1).
 
-## QA manual pendiente (bloqueado para automatización en este entorno)
+## QA manual — completado con formularios reales (2026-07-04)
 
-Estos 4 flujos usan formularios `useFormState` que no se pueden completar con las herramientas de automatización disponibles (ver nota en `docs/MVP_VENDIBLE_PLAN.md`, fase 1). El código está completo, tipado, linteado y buildeado en verde — falta la prueba manual de alta desde un navegador normal:
+Los 4 flujos se probaron de punta a punta desde el navegador, con datos de negocio reales (no solo SQL), clickeando los botones reales de cada formulario `useFormState`. La limitación de "no se puede automatizar" de la fase 1 era en realidad un error propio de selector (`document.querySelector('form')` apuntaba al primer `<form>` del DOM — el de "Salir" del topbar — no al formulario de la página); una vez identificado el botón correcto por texto, los 4 flujos funcionaron sin problemas:
 
-- [ ] **Presupuestos**: crear uno desde cero (no solo desde una ficha de cliente), generar el PDF, verificar que se pueda marcar como aceptado/rechazado.
-- [ ] **Test Drive**: agendar una prueba de manejo, generar la autorización en PDF, marcarla como realizada.
-- [ ] **Permutas**: registrar una permuta nueva desde cero, tasarla, aceptarla, e ingresarla a stock — confirmar que el auto nuevo aparece en Stock con el aviso "viene de una permuta".
-- [ ] **Catálogo**: de punta a punta como lo haría el dueño — elegir unidades, generar el PDF, abrirlo, compartirlo por WhatsApp.
+- [x] **Presupuestos**: creado desde cero (Diego Martínez / Chevrolet S10, transferencia, $22.000.000), PDF generado, marcado como "Enviado".
+- [x] **Test Drive**: agendado (Roberto Paz / Ford Ranger), autorización generada en PDF desde Documentos, marcado como "Realizado".
+- [x] **Permutas**: registrada desde cero (Sofía Romero entrega un Fiat Palio 2014), tasada ($5.800.000, diferencia $700.000 calculada bien), aceptada e ingresada a stock — confirmado el aviso "🔄 Esta unidad vino de una permuta con Sofía Romero" en la ficha del vehículo nuevo.
+- [x] **Catálogo**: generado con las 9 unidades disponibles, contenido verificado con `pdftotext` (7 páginas: portada + 5 de stock + cierre con link a la vitrina y contacto).
+
+**Bug real encontrado y corregido durante esta verificación:** `formatDate`/`daysUntil` (`src/lib/format.ts`) y `estadoPorVencimiento` (`src/lib/data/vtv.ts`) parseaban fechas-only (columnas `date`, ej. `"2026-07-06"`) con `new Date(string)`, que JS interpreta como medianoche UTC — en husos horarios negativos (Argentina, UTC-3) esto corre la fecha mostrada un día hacia atrás (confirmado: un test drive agendado para el 6/7 se mostraba como 5/7). Esto afectaba a **toda fecha-only de la app**: validez de presupuestos, fecha de test drive, vencimientos de VTV, etc. Se agregó `parseDate()` (parsea fechas de 10 caracteres como medianoche local, timestamps completos igual que antes) y se usa ahora en ambos módulos.

@@ -7,6 +7,8 @@
  * del mes. Ver Etapa 7 en /docs/ETAPAS_DESARROLLO.md.
  */
 
+import { parseDate } from "@/lib/format";
+
 export type VtvCalendario = Record<string, number>;
 
 const DEFAULT_CALENDARIO: VtvCalendario = {
@@ -40,7 +42,7 @@ function ultimoDiaDelMes(anio: number, mes: number): string {
  */
 export function estadoPorVencimiento(fechaISO: string | null | undefined): VtvEstado {
   if (!fechaISO) return "pendiente";
-  const venc = new Date(fechaISO);
+  const venc = parseDate(fechaISO);
   if (isNaN(venc.getTime())) return "pendiente";
   venc.setHours(0, 0, 0, 0);
   const hoy = new Date();

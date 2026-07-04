@@ -14,9 +14,20 @@ export function formatNumber(value: number | null | undefined): string {
   return new Intl.NumberFormat("es-AR").format(value);
 }
 
+/**
+ * Parsea un string de fecha respetando si es "fecha pura" (columna `date`,
+ * ej. "2026-07-06") o timestamp (`timestamptz`, ej. "2026-07-04T13:31:08+00").
+ * Las fechas puras se parsean a medianoche LOCAL (agregando "T00:00:00"): sin esto,
+ * `new Date("2026-07-06")` se interpreta como medianoche UTC y en husos horarios
+ * negativos (Argentina, UTC-3) se muestra un día antes del real.
+ */
+export function parseDate(value: string): Date {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
+}
+
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return "—";
-  const d = typeof value === "string" ? new Date(value) : value;
+  const d = typeof value === "string" ? parseDate(value) : value;
   if (isNaN(d.getTime())) return "—";
   return new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",
@@ -27,7 +38,7 @@ export function formatDate(value: string | Date | null | undefined): string {
 
 export function daysUntil(value: string | Date | null | undefined): number | null {
   if (!value) return null;
-  const d = typeof value === "string" ? new Date(value) : value;
+  const d = typeof value === "string" ? parseDate(value) : value;
   if (isNaN(d.getTime())) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
