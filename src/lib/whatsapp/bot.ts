@@ -51,8 +51,8 @@ async function stockResumen(sb: Db, empresaId: string, max = 20) {
   return data ?? [];
 }
 
-/** Reglas de handoff determinísticas: corren SIEMPRE, con o sin IA. */
-function chequeoHandoffPrevio(texto: string, config: BotConfig): { handoff: boolean; motivo?: string } {
+/** Reglas de handoff determinísticas: corren SIEMPRE, con o sin IA. Exportada para tests. */
+export function chequeoHandoffPrevio(texto: string, config: BotConfig): { handoff: boolean; motivo?: string } {
   const keywords = Array.isArray(config.keywords_handoff) ? (config.keywords_handoff as string[]) : [];
   if (contieneAlguna(texto, keywords)) return { handoff: true, motivo: "palabra_clave" };
   if (contieneAlguna(texto, KEYWORDS_ENOJO)) return { handoff: true, motivo: "enojo_reclamo" };
