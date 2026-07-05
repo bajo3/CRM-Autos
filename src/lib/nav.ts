@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Car, Users, CalendarClock, PackageSearch, FileText,
   ShoppingCart, BookmarkCheck, CreditCard, HeartHandshake, ClipboardCheck,
   FileSignature, Wrench, Megaphone, BadgePercent, Repeat2, Gauge,
-  BarChart3, UserCog, Settings, ListChecks, FileBox,
+  BarChart3, UserCog, Settings, ListChecks, FileBox, MessageCircle,
 } from "lucide-react";
 
 export type NavItem = {
@@ -39,6 +39,12 @@ export const NAV: NavSection[] = [
       { href: "/encargos", label: "Encargos", icon: PackageSearch },
       { href: "/consignados", label: "Consignados", icon: FileBox },
       { href: "/taller", label: "Taller / Preparación", icon: Wrench },
+    ],
+  },
+  {
+    title: "WhatsApp",
+    items: [
+      { href: "/whatsapp", label: "Bandeja", icon: MessageCircle },
     ],
   },
   {

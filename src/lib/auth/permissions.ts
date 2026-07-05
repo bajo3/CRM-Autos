@@ -28,6 +28,11 @@ export type Permiso =
   | "documentos.generar"
   | "catalogo.generar"
   | "whatsapp.enviar"
+  | "whatsapp.ver"
+  | "whatsapp.conectar"
+  | "whatsapp.bot"
+  | "whatsapp.plantillas"
+  | "whatsapp.programados"
   | "mercadolibre.publicar"
   | "reportes.ver"
   | "creditos.cobrar"
@@ -38,7 +43,9 @@ const TODOS: Permiso[] = [
   "stock.ver", "stock.crear", "stock.editar", "stock.eliminar",
   "clientes.ver", "clientes.ver_todos", "ventas.crear", "costos.ver",
   "margenes.ver", "precios.cambiar", "documentos.generar", "catalogo.generar",
-  "whatsapp.enviar", "mercadolibre.publicar", "reportes.ver",
+  "whatsapp.enviar", "whatsapp.ver", "whatsapp.conectar", "whatsapp.bot",
+  "whatsapp.plantillas", "whatsapp.programados",
+  "mercadolibre.publicar", "reportes.ver",
   "creditos.cobrar", "usuarios.crear", "empresa.configurar",
 ];
 
@@ -48,17 +55,21 @@ const MATRIZ: Record<Rol, Permiso[]> = {
     "stock.ver", "stock.crear", "stock.editar", "stock.eliminar",
     "clientes.ver", "clientes.ver_todos", "ventas.crear", "costos.ver",
     "margenes.ver", "precios.cambiar", "documentos.generar", "catalogo.generar",
-    "whatsapp.enviar", "mercadolibre.publicar", "reportes.ver",
+    "whatsapp.enviar", "whatsapp.ver", "whatsapp.conectar", "whatsapp.bot",
+    "whatsapp.plantillas", "whatsapp.programados",
+    "mercadolibre.publicar", "reportes.ver",
     "creditos.cobrar", "usuarios.crear",
   ],
   vendedor: [
     "stock.ver", "stock.crear", "stock.editar",
     "clientes.ver", "ventas.crear",
-    "documentos.generar", "catalogo.generar", "whatsapp.enviar",
+    "documentos.generar", "catalogo.generar",
+    "whatsapp.enviar", "whatsapp.ver", "whatsapp.programados",
   ],
   administrativo: [
     "stock.ver", "clientes.ver", "clientes.ver_todos",
-    "documentos.generar", "catalogo.generar", "whatsapp.enviar", "reportes.ver",
+    "documentos.generar", "catalogo.generar", "whatsapp.enviar", "whatsapp.ver",
+    "reportes.ver",
     "creditos.cobrar",
   ],
   gestoria: ["stock.ver", "documentos.generar"],
