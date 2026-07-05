@@ -187,6 +187,17 @@ Motor existente: `src/lib/pdf/documento.ts` (pdf-lib, con branding de color ya a
 
 ---
 
+## Módulo WhatsApp Business (post-MVP, 2026-07-05)
+
+Integración completa con WhatsApp Cloud API (conexión oficial por agencia, bandeja de
+conversaciones, bot IA limitado al negocio, mensajes programados y eventos automáticos desde
+ventas/leads) implementada como módulo aparte, con su propio plan de ejecución y QA detallado por
+etapa en **`docs/WHATSAPP_PLAN.md`** (5 etapas, todas `[x]` y verificadas) y documentación técnica en
+**`docs/whatsapp-integration.md`**. No modifica ninguna fase de este plan — se agrega como sección
+nueva de nav ("WhatsApp") y no toca funcionalidad existente.
+
+---
+
 ## Reglas de ejecución (para las sesiones con Sonnet)
 
 1. Leer este archivo, tomar el **primer ítem `[ ]` de la fase más baja incompleta**. No saltear fases.

@@ -107,7 +107,22 @@ NEXT_PUBLIC_APP_URL=        # URL pública (webhook, links)
   - **Verificado 2026-07-05**: se agregó `vitest` como devDependency (no existía ningún framework de tests en el proyecto) + `vitest.config.ts` + script `npm run test`. 43 tests en 5 archivos, todos verdes: `crypto.test.ts` (round-trip, IV aleatorio, error sin key, formato inválido), `telefono.test.ts` (normalización AR incluyendo la limitación conocida del "15" viejo, `coincideTelefono`, `soloDigitos`), `webhook-parser.test.ts` (fixture real de mensaje + de status, payloads vacíos/inválidos), `service.test.ts` (`dentroVentana24h` en el límite exacto de 24h, `botEfectivo`, `renderPlantilla`, `validarVariablesPlantilla`, `preview`), `bot.test.ts` (`chequeoHandoffPrevio` para las 4 categorías de derivación + keywords personalizadas, `detectarVehiculo`). `chequeoHandoffPrevio` se exportó desde `bot.ts` (antes privada) específicamente para poder testearla de forma aislada. typecheck+lint+build verdes.
 - [x] **5.4 Documentación**: `docs/whatsapp-integration.md` — arquitectura, envs, configuración de Meta paso a paso (app, webhook, verify token, Embedded Signup), cómo probar local (fixtures + FAKE_SEND + cron manual), limitaciones (ventana 24 h, plantillas, bot restringido a negocio), pendientes de producción.
   - Incluye 7 pendientes de producción documentados con honestidad: Embedded Signup real (falta META_CONFIG_ID + App Review), sync de plantillas con Meta, recordatorio de cuotas recurrente (limitación real del schema de créditos), frecuencia de cron en Vercel Hobby, descarga de medios, rate limits de Meta, y realtime real vs. polling.
-- [ ] **5.5 Cierre**: repasar el criterio de aceptación del pedido punto por punto, typecheck+lint+build, actualizar este plan y referencia cruzada en `MVP_VENDIBLE_PLAN.md`, commit checkpoint.
+- [x] **5.5 Cierre**: repasar el criterio de aceptación del pedido punto por punto, typecheck+lint+build, actualizar este plan y referencia cruzada en `MVP_VENDIBLE_PLAN.md`, commit checkpoint.
+  - **Criterio de aceptación del pedido original — repasado el 2026-07-05, 13/13 cumplidos:**
+    1. ✅ Una agencia puede conectar su WhatsApp desde el CRM (alta manual verificada E2E con test real contra Meta; Embedded Signup implementado, falta `META_CONFIG_ID` para probarlo en vivo — documentado).
+    2. ✅ El CRM recibe mensajes entrantes por webhook (verificado con fixtures reales y firma HMAC).
+    3. ✅ El mensaje crea o asocia cliente/lead (verificado: lead nuevo + matching por teléfono).
+    4. ✅ El chat aparece en la bandeja del CRM (verificado en navegador).
+    5. ✅ Un usuario puede responder manualmente (verificado, con pausa automática del bot).
+    6. ✅ El bot responde preguntas básicas usando stock real (8 escenarios verificados).
+    7. ✅ El vendedor puede pausar el bot (pausa automática por intervención + botones manuales pausar/reactivar).
+    8. ✅ Se pueden crear mensajes programados (manual por UI + automáticos desde ventas/leads/cuotas).
+    9. ✅ Los mensajes fuera de 24h usan plantillas (forzado en el composer y en el worker; verificado el `fallado` cuando no hay plantilla).
+    10. ✅ Todo queda guardado en historial (`whatsapp_mensaje` + `whatsapp_evento_log`).
+    11. ✅ Multiagencia respetado (RLS verificado con empresa de prueba real vía PostgREST, 0 filas cross-tenant).
+    12. ✅ No hay credenciales hardcodeadas (todo por variables de entorno, auditado por grep).
+    13. ✅ Hay documentación en Markdown (`docs/whatsapp-integration.md` + este plan).
+  - typecheck+lint+test+build verdes. Referencia cruzada agregada en `docs/MVP_VENDIBLE_PLAN.md` (nueva sección "Módulo WhatsApp Business (post-MVP)"). Commit checkpoint final.
 
 ---
 
