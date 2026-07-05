@@ -40,7 +40,8 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     isAuthRoute ||
     path.startsWith("/p/") || // stock público por empresa
-    path.startsWith("/api/mercadolibre/"); // callback OAuth + webhook de ML
+    path.startsWith("/api/mercadolibre/") || // callback OAuth + webhook de ML
+    path.startsWith("/api/whatsapp/"); // webhook de Meta + cron (protegen ellos mismos: firma/bearer)
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

@@ -2148,6 +2148,487 @@ export type Database = {
           },
         ]
       }
+      whatsapp_account: {
+        Row: {
+          access_token_encrypted: string | null
+          business_id: string | null
+          conectado_at: string | null
+          conectado_por: string | null
+          created_at: string
+          display_phone_number: string | null
+          empresa_id: string
+          estado: Database["public"]["Enums"]["estado_wa_cuenta"]
+          id: string
+          last_error: string | null
+          phone_number_id: string | null
+          updated_at: string
+          waba_id: string | null
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          business_id?: string | null
+          conectado_at?: string | null
+          conectado_por?: string | null
+          created_at?: string
+          display_phone_number?: string | null
+          empresa_id: string
+          estado?: Database["public"]["Enums"]["estado_wa_cuenta"]
+          id?: string
+          last_error?: string | null
+          phone_number_id?: string | null
+          updated_at?: string
+          waba_id?: string | null
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          business_id?: string | null
+          conectado_at?: string | null
+          conectado_por?: string | null
+          created_at?: string
+          display_phone_number?: string | null
+          empresa_id?: string
+          estado?: Database["public"]["Enums"]["estado_wa_cuenta"]
+          id?: string
+          last_error?: string | null
+          phone_number_id?: string | null
+          updated_at?: string
+          waba_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_account_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_account_conectado_por_fkey"
+            columns: ["conectado_por"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_bot_config: {
+        Row: {
+          created_at: string
+          direccion: string | null
+          empresa_id: string
+          financiacion: string | null
+          habilitado: boolean
+          horarios: string | null
+          id: string
+          keywords_handoff: Json
+          mensaje_fallback: string
+          nombre_comercial: string | null
+          pausa_intervencion_min: number
+          politica_permuta: string | null
+          tono: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          direccion?: string | null
+          empresa_id: string
+          financiacion?: string | null
+          habilitado?: boolean
+          horarios?: string | null
+          id?: string
+          keywords_handoff?: Json
+          mensaje_fallback?: string
+          nombre_comercial?: string | null
+          pausa_intervencion_min?: number
+          politica_permuta?: string | null
+          tono?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          direccion?: string | null
+          empresa_id?: string
+          financiacion?: string | null
+          habilitado?: boolean
+          horarios?: string | null
+          id?: string
+          keywords_handoff?: Json
+          mensaje_fallback?: string
+          nombre_comercial?: string | null
+          pausa_intervencion_min?: number
+          politica_permuta?: string | null
+          tono?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_bot_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_conversacion: {
+        Row: {
+          account_id: string | null
+          asignado_a: string | null
+          bot_activo: boolean
+          bot_pausado_hasta: string | null
+          cliente_id: string | null
+          created_at: string
+          empresa_id: string
+          estado: Database["public"]["Enums"]["estado_wa_conversacion"]
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          no_leidos: number
+          nombre_contacto: string | null
+          telefono: string
+          ultima_entrada_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          asignado_a?: string | null
+          bot_activo?: boolean
+          bot_pausado_hasta?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          empresa_id: string
+          estado?: Database["public"]["Enums"]["estado_wa_conversacion"]
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          no_leidos?: number
+          nombre_contacto?: string | null
+          telefono: string
+          ultima_entrada_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          asignado_a?: string | null
+          bot_activo?: boolean
+          bot_pausado_hasta?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          empresa_id?: string
+          estado?: Database["public"]["Enums"]["estado_wa_conversacion"]
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          no_leidos?: number
+          nombre_contacto?: string | null
+          telefono?: string
+          ultima_entrada_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversacion_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversacion_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_account"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversacion_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversacion_asignado_a_fkey"
+            columns: ["asignado_a"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_evento_log: {
+        Row: {
+          created_at: string
+          datos: Json | null
+          detalle: string | null
+          empresa_id: string
+          id: string
+          tipo: Database["public"]["Enums"]["tipo_wa_evento"]
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          datos?: Json | null
+          detalle?: string | null
+          empresa_id: string
+          id?: string
+          tipo: Database["public"]["Enums"]["tipo_wa_evento"]
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          datos?: Json | null
+          detalle?: string | null
+          empresa_id?: string
+          id?: string
+          tipo?: Database["public"]["Enums"]["tipo_wa_evento"]
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_evento_log_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_evento_log_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_mensaje: {
+        Row: {
+          conversacion_id: string
+          created_at: string
+          cuerpo: string | null
+          direccion: Database["public"]["Enums"]["direccion_wa_mensaje"]
+          empresa_id: string
+          enviado_por: string | null
+          enviado_por_bot: boolean
+          error_mensaje: string | null
+          estado: Database["public"]["Enums"]["estado_wa_mensaje"]
+          id: string
+          media_url: string | null
+          raw_payload: Json | null
+          tipo: Database["public"]["Enums"]["tipo_wa_mensaje"]
+          updated_at: string
+          wa_message_id: string | null
+        }
+        Insert: {
+          conversacion_id: string
+          created_at?: string
+          cuerpo?: string | null
+          direccion: Database["public"]["Enums"]["direccion_wa_mensaje"]
+          empresa_id: string
+          enviado_por?: string | null
+          enviado_por_bot?: boolean
+          error_mensaje?: string | null
+          estado?: Database["public"]["Enums"]["estado_wa_mensaje"]
+          id?: string
+          media_url?: string | null
+          raw_payload?: Json | null
+          tipo?: Database["public"]["Enums"]["tipo_wa_mensaje"]
+          updated_at?: string
+          wa_message_id?: string | null
+        }
+        Update: {
+          conversacion_id?: string
+          created_at?: string
+          cuerpo?: string | null
+          direccion?: Database["public"]["Enums"]["direccion_wa_mensaje"]
+          empresa_id?: string
+          enviado_por?: string | null
+          enviado_por_bot?: boolean
+          error_mensaje?: string | null
+          estado?: Database["public"]["Enums"]["estado_wa_mensaje"]
+          id?: string
+          media_url?: string | null
+          raw_payload?: Json | null
+          tipo?: Database["public"]["Enums"]["tipo_wa_mensaje"]
+          updated_at?: string
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_mensaje_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensaje_conversacion_id_fkey"
+            columns: ["conversacion_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversacion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensaje_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_plantilla: {
+        Row: {
+          categoria: Database["public"]["Enums"]["categoria_wa_plantilla"]
+          created_at: string
+          cuerpo: string
+          empresa_id: string
+          estado: Database["public"]["Enums"]["estado_wa_plantilla"]
+          id: string
+          idioma: string
+          nombre: string
+          updated_at: string
+          variables_schema: Json
+        }
+        Insert: {
+          categoria?: Database["public"]["Enums"]["categoria_wa_plantilla"]
+          created_at?: string
+          cuerpo: string
+          empresa_id: string
+          estado?: Database["public"]["Enums"]["estado_wa_plantilla"]
+          id?: string
+          idioma?: string
+          nombre: string
+          updated_at?: string
+          variables_schema?: Json
+        }
+        Update: {
+          categoria?: Database["public"]["Enums"]["categoria_wa_plantilla"]
+          created_at?: string
+          cuerpo?: string
+          empresa_id?: string
+          estado?: Database["public"]["Enums"]["estado_wa_plantilla"]
+          id?: string
+          idioma?: string
+          nombre?: string
+          updated_at?: string
+          variables_schema?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_plantilla_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_programado: {
+        Row: {
+          cliente_id: string | null
+          conversacion_id: string | null
+          created_at: string
+          creado_por: string | null
+          creado_por_sistema: boolean
+          cuerpo_texto: string | null
+          empresa_id: string
+          enviado_at: string | null
+          error_mensaje: string | null
+          estado: Database["public"]["Enums"]["estado_wa_programado"]
+          id: string
+          idioma: string | null
+          intentos_restantes: number
+          motivo: Database["public"]["Enums"]["motivo_wa_programado"]
+          plantilla_id: string | null
+          plantilla_nombre: string | null
+          send_at: string
+          telefono: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          cliente_id?: string | null
+          conversacion_id?: string | null
+          created_at?: string
+          creado_por?: string | null
+          creado_por_sistema?: boolean
+          cuerpo_texto?: string | null
+          empresa_id: string
+          enviado_at?: string | null
+          error_mensaje?: string | null
+          estado?: Database["public"]["Enums"]["estado_wa_programado"]
+          id?: string
+          idioma?: string | null
+          intentos_restantes?: number
+          motivo?: Database["public"]["Enums"]["motivo_wa_programado"]
+          plantilla_id?: string | null
+          plantilla_nombre?: string | null
+          send_at: string
+          telefono: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          cliente_id?: string | null
+          conversacion_id?: string | null
+          created_at?: string
+          creado_por?: string | null
+          creado_por_sistema?: boolean
+          cuerpo_texto?: string | null
+          empresa_id?: string
+          enviado_at?: string | null
+          error_mensaje?: string | null
+          estado?: Database["public"]["Enums"]["estado_wa_programado"]
+          id?: string
+          idioma?: string | null
+          intentos_restantes?: number
+          motivo?: Database["public"]["Enums"]["motivo_wa_programado"]
+          plantilla_id?: string | null
+          plantilla_nombre?: string | null
+          send_at?: string
+          telefono?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_programado_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_programado_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_programado_conversacion_id_fkey"
+            columns: ["conversacion_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversacion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_programado_plantilla_id_fkey"
+            columns: ["plantilla_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_plantilla"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_programado_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2281,6 +2762,48 @@ export type Database = {
       titularidad_vehiculo: "propio" | "consignado" | "tercero"
       transmision: "manual" | "automatica"
       urgencia: "baja" | "media" | "alta"
+      categoria_wa_plantilla: "utility" | "marketing" | "authentication"
+      direccion_wa_mensaje: "entrante" | "saliente"
+      estado_wa_conversacion: "abierta" | "pendiente" | "cerrada"
+      estado_wa_cuenta: "conectado" | "desconectado" | "error"
+      estado_wa_mensaje:
+        | "recibido"
+        | "enviado"
+        | "entregado"
+        | "leido"
+        | "fallado"
+      estado_wa_plantilla: "aprobada" | "pendiente" | "rechazada" | "desconocido"
+      estado_wa_programado: "pendiente" | "enviado" | "fallado" | "cancelado"
+      motivo_wa_programado:
+        | "seguimiento"
+        | "cuota"
+        | "postventa"
+        | "vtv"
+        | "service"
+        | "renovacion"
+        | "promo"
+        | "otro"
+      tipo_wa_evento:
+        | "conexion"
+        | "desconexion"
+        | "webhook_error"
+        | "mensaje_enviado"
+        | "mensaje_fallado"
+        | "bot_activado"
+        | "bot_pausado"
+        | "asignacion"
+        | "programado_creado"
+        | "programado_cancelado"
+        | "otro"
+      tipo_wa_mensaje:
+        | "texto"
+        | "imagen"
+        | "audio"
+        | "documento"
+        | "video"
+        | "plantilla"
+        | "sistema"
+        | "otro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2538,6 +3061,57 @@ export const Constants = {
       titularidad_vehiculo: ["propio", "consignado", "tercero"],
       transmision: ["manual", "automatica"],
       urgencia: ["baja", "media", "alta"],
+      categoria_wa_plantilla: ["utility", "marketing", "authentication"],
+      direccion_wa_mensaje: ["entrante", "saliente"],
+      estado_wa_conversacion: ["abierta", "pendiente", "cerrada"],
+      estado_wa_cuenta: ["conectado", "desconectado", "error"],
+      estado_wa_mensaje: [
+        "recibido",
+        "enviado",
+        "entregado",
+        "leido",
+        "fallado",
+      ],
+      estado_wa_plantilla: [
+        "aprobada",
+        "pendiente",
+        "rechazada",
+        "desconocido",
+      ],
+      estado_wa_programado: ["pendiente", "enviado", "fallado", "cancelado"],
+      motivo_wa_programado: [
+        "seguimiento",
+        "cuota",
+        "postventa",
+        "vtv",
+        "service",
+        "renovacion",
+        "promo",
+        "otro",
+      ],
+      tipo_wa_evento: [
+        "conexion",
+        "desconexion",
+        "webhook_error",
+        "mensaje_enviado",
+        "mensaje_fallado",
+        "bot_activado",
+        "bot_pausado",
+        "asignacion",
+        "programado_creado",
+        "programado_cancelado",
+        "otro",
+      ],
+      tipo_wa_mensaje: [
+        "texto",
+        "imagen",
+        "audio",
+        "documento",
+        "video",
+        "plantilla",
+        "sistema",
+        "otro",
+      ],
     },
   },
 } as const
