@@ -4,6 +4,7 @@ import { coincideTelefono, soloDigitos } from "./telefono";
 import { obtenerOCrearConversacion, preview, getAccountByPhoneNumberId, sendTextMessage, botEfectivo } from "./service";
 import { registrarEventoWa } from "./log";
 import { generarRespuestaBot } from "./bot";
+import { programarSeguimientosLeadWhatsapp } from "./eventos";
 import type { MensajeEntrante, EstadoSaliente } from "./webhook-parser";
 
 /**
@@ -70,6 +71,7 @@ async function asociarCliente(
     .select("id")
     .single();
   if (error) throw new Error(`No se pudo crear el lead: ${error.message}`);
+  await programarSeguimientosLeadWhatsapp(admin, { empresaId: params.empresaId, clienteId: nuevo.id });
   return nuevo.id;
 }
 

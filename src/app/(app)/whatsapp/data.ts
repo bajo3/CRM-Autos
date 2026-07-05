@@ -166,6 +166,7 @@ export async function listarPlantillasAprobadas(empresaId: string) {
     .from("whatsapp_plantilla")
     .select("id, nombre, idioma, cuerpo, variables_schema")
     .eq("empresa_id", empresaId)
+    .eq("estado", "aprobada")
     .order("nombre")
     .returns<{ id: string; nombre: string; idioma: string; cuerpo: string; variables_schema: unknown }[]>();
   return data ?? [];

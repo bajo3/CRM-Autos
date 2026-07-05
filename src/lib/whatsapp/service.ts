@@ -252,6 +252,23 @@ export function renderPlantilla(cuerpo: string, variables: string[]): string {
   });
 }
 
+/**
+ * Valida que las variables {{n}} de una plantilla sean secuenciales desde 1
+ * sin saltos (Meta exige esto para plantillas reales). Devuelve la cantidad
+ * de variables detectadas.
+ */
+export function validarVariablesPlantilla(cuerpo: string): { ok: true; cantidad: number } | { ok: false; error: string } {
+  const matches = [...cuerpo.matchAll(/\{\{(\d+)\}\}/g)].map((m) => parseInt(m[1], 10));
+  if (matches.length === 0) return { ok: true, cantidad: 0 };
+  const unicos = Array.from(new Set(matches)).sort((a, b) => a - b);
+  for (let i = 0; i < unicos.length; i++) {
+    if (unicos[i] !== i + 1) {
+      return { ok: false, error: `Las variables deben ser secuenciales desde {{1}} sin saltos (falta {{${i + 1}}}).` };
+    }
+  }
+  return { ok: true, cantidad: unicos.length };
+}
+
 /** Envía una plantilla aprobada (válido también fuera de la ventana de 24 h). */
 export async function sendTemplateMessage(
   sb: Db,

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { cancelarProgramadosDeCliente } from "@/lib/whatsapp/eventos";
 
 const emptyToUndef = <T extends z.ZodTypeAny>(s: T) =>
   z.union([s, z.literal("")]).transform((v) => (v === "" ? undefined : v));
@@ -59,6 +60,8 @@ export async function crearCliente(_prev: FormState, formData: FormData): Promis
   redirect(`/clientes/${data.id}`);
 }
 
+const ESTADOS_FINALES = ["vendido", "reservado", "perdido"];
+
 export async function actualizarCliente(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
   const ctx = await getSessionContext();
   if (!ctx?.profile?.empresa_id) return { error: "Sesión inválida." };
@@ -69,6 +72,10 @@ export async function actualizarCliente(id: string, _prev: FormState, formData: 
   const sb = createClient();
   const { error } = await sb.from("cliente").update(parsed.data).eq("id", id);
   if (error) return { error: `No se pudo actualizar: ${error.message}` };
+
+  if (ESTADOS_FINALES.includes(parsed.data.estado)) {
+    await cancelarProgramadosDeCliente(sb, { empresaId: ctx.profile.empresa_id, clienteId: id });
+  }
 
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${id}`);

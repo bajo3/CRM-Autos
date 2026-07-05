@@ -8,6 +8,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { CHECKLIST_ENTREGA, type ChecklistEntrega } from "@/lib/data/checklist";
 import { registrarCambio } from "@/lib/data/historial";
+import { programarMensajesVenta, programarRecordatorioCuota } from "@/lib/whatsapp/eventos";
 
 const num = z.coerce.number().min(0);
 const uuid = z.union([z.string().uuid(), z.literal("")]).transform((v) => (v === "" ? undefined : v)).optional();
@@ -75,6 +76,9 @@ export async function crearVenta(_prev: FormState, formData: FormData): Promise<
       cuota_actual: 0,
       estado: "activo",
     });
+    if (d.cliente_id) {
+      await programarRecordatorioCuota(sb, { empresaId: empresa_id, clienteId: d.cliente_id, fechaInicio: d.fecha_venta });
+    }
   }
 
   // Venta en efectivo -> alerta de postventa a 6 meses
@@ -85,6 +89,22 @@ export async function crearVenta(_prev: FormState, formData: FormData): Promise<
       cliente_id: d.cliente_id,
       fecha_alerta: addMonths(d.fecha_venta, 6),
       realizada: false,
+    });
+  }
+
+  // WhatsApp: seguimiento de entrega, postventa, service y renovación (si hay plantillas aprobadas).
+  if (d.cliente_id) {
+    let vehiculoDesc: string | null = null;
+    if (d.vehiculo_id) {
+      const { data: veh } = await sb.from("vehiculo").select("marca, modelo").eq("id", d.vehiculo_id).maybeSingle();
+      vehiculoDesc = veh ? `${veh.marca} ${veh.modelo}` : null;
+    }
+    await programarMensajesVenta(sb, {
+      empresaId: empresa_id,
+      ventaId: venta.id,
+      clienteId: d.cliente_id,
+      fechaVenta: d.fecha_venta,
+      vehiculoDesc,
     });
   }
 
