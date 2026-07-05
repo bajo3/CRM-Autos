@@ -45,6 +45,7 @@ export const NAV: NavSection[] = [
     title: "WhatsApp",
     items: [
       { href: "/whatsapp", label: "Bandeja", icon: MessageCircle },
+      { href: "/whatsapp/configuracion", label: "Configuración", icon: Settings },
     ],
   },
   {

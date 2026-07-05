@@ -89,11 +89,7 @@ async function clienteIdsPorVehiculo(
   return (clientes ?? []).map((c) => c.id);
 }
 
-export function botEfectivo(activo: boolean, pausadoHasta: string | null): boolean {
-  if (!activo) return false;
-  if (!pausadoHasta) return true;
-  return new Date(pausadoHasta).getTime() < Date.now();
-}
+export { botEfectivo } from "@/lib/whatsapp/service";
 
 export function nombreConversacion(c: ConversacionListItem): string {
   const cliente = rel(c.cliente);
@@ -173,6 +169,30 @@ export async function listarPlantillasAprobadas(empresaId: string) {
     .order("nombre")
     .returns<{ id: string; nombre: string; idioma: string; cuerpo: string; variables_schema: unknown }[]>();
   return data ?? [];
+}
+
+export type BotConfigRow = {
+  id: string;
+  habilitado: boolean;
+  nombre_comercial: string | null;
+  direccion: string | null;
+  horarios: string | null;
+  financiacion: string | null;
+  politica_permuta: string | null;
+  mensaje_fallback: string;
+  keywords_handoff: unknown;
+  tono: string;
+  pausa_intervencion_min: number;
+};
+
+export async function obtenerBotConfig(empresaId: string): Promise<BotConfigRow | null> {
+  const sb = createClient();
+  const { data } = await sb
+    .from("whatsapp_bot_config")
+    .select("id, habilitado, nombre_comercial, direccion, horarios, financiacion, politica_permuta, mensaje_fallback, keywords_handoff, tono, pausa_intervencion_min")
+    .eq("empresa_id", empresaId)
+    .maybeSingle<BotConfigRow>();
+  return data;
 }
 
 export async function listarVendedores(empresaId: string) {

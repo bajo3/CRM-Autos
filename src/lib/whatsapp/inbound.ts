@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database.types";
 import { coincideTelefono, soloDigitos } from "./telefono";
-import { obtenerOCrearConversacion, preview, getAccountByPhoneNumberId } from "./service";
+import { obtenerOCrearConversacion, preview, getAccountByPhoneNumberId, sendTextMessage, botEfectivo } from "./service";
 import { registrarEventoWa } from "./log";
+import { generarRespuestaBot } from "./bot";
 import type { MensajeEntrante, EstadoSaliente } from "./webhook-parser";
 
 /**
@@ -189,7 +190,81 @@ export async function procesarMensajeEntrante(
     await detectarYAsociarVehiculo(admin, { empresaId, clienteId, texto: msg.cuerpo });
   }
 
+  if (msg.cuerpo && botEfectivo(conv.bot_activo, conv.bot_pausado_hasta)) {
+    await responderConBot(admin, { empresaId, conversacionId: conv.id, telefono: msg.telefono, clienteId, texto: msg.cuerpo });
+  }
+
   return { conversacionId: conv.id, empresaId };
+}
+
+async function responderConBot(
+  admin: Db,
+  params: { empresaId: string; conversacionId: string; telefono: string; clienteId: string; texto: string },
+): Promise<void> {
+  const { data: previos } = await admin
+    .from("whatsapp_mensaje")
+    .select("direccion, cuerpo, enviado_por_bot, created_at")
+    .eq("conversacion_id", params.conversacionId)
+    .order("created_at", { ascending: false })
+    .limit(11);
+  // El mensaje recién insertado es el más reciente: se excluye porque bot.ts lo agrega aparte.
+  const historial = (previos ?? []).slice(1).reverse();
+
+  const { data: cliente } = await admin
+    .from("cliente")
+    .select("nombre, apellido")
+    .eq("id", params.clienteId)
+    .maybeSingle();
+  const clienteNombre = cliente ? `${cliente.nombre} ${cliente.apellido ?? ""}`.trim() : null;
+
+  const resultado = await generarRespuestaBot(admin, {
+    empresaId: params.empresaId,
+    texto: params.texto,
+    historial,
+    clienteNombre,
+  });
+
+  if (!resultado.handoff && !resultado.respuesta) return; // bot deshabilitado globalmente
+
+  if (resultado.handoff) {
+    const { data: config } = await admin
+      .from("whatsapp_bot_config")
+      .select("mensaje_fallback, pausa_intervencion_min")
+      .eq("empresa_id", params.empresaId)
+      .maybeSingle();
+    const minutos = config?.pausa_intervencion_min ?? 240;
+    await admin
+      .from("whatsapp_conversacion")
+      .update({
+        estado: "pendiente",
+        bot_pausado_hasta: new Date(Date.now() + minutos * 60_000).toISOString(),
+      })
+      .eq("id", params.conversacionId);
+    await registrarEventoWa(admin, {
+      empresaId: params.empresaId,
+      tipo: "bot_pausado",
+      detalle: `Handoff automático: ${resultado.motivoHandoff ?? "sin motivo"}`,
+      datos: { conversacion_id: params.conversacionId },
+    });
+    if (config?.mensaje_fallback) {
+      await sendTextMessage(admin, {
+        empresaId: params.empresaId,
+        telefono: params.telefono,
+        cuerpo: config.mensaje_fallback,
+        enviadoPorBot: true,
+      });
+    }
+    return;
+  }
+
+  if (resultado.respuesta) {
+    await sendTextMessage(admin, {
+      empresaId: params.empresaId,
+      telefono: params.telefono,
+      cuerpo: resultado.respuesta,
+      enviadoPorBot: true,
+    });
+  }
 }
 
 /** Aplica una actualización de estado (sent/delivered/read/failed) a un saliente. */

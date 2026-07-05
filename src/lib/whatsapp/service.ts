@@ -31,6 +31,17 @@ export function dentroVentana24h(
   return ahora.getTime() - new Date(ultimaEntradaAt).getTime() < VENTANA_MS;
 }
 
+/** ¿El bot debe responder en esta conversación en este momento? */
+export function botEfectivo(
+  activo: boolean,
+  pausadoHasta: string | null,
+  ahora: Date = new Date(),
+): boolean {
+  if (!activo) return false;
+  if (!pausadoHasta) return true;
+  return new Date(pausadoHasta).getTime() < ahora.getTime();
+}
+
 export async function getAccountForEmpresa(sb: Db, empresaId: string): Promise<Cuenta | null> {
   const { data } = await sb
     .from("whatsapp_account")
