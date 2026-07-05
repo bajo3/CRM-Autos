@@ -196,6 +196,28 @@ export async function obtenerBotConfig(empresaId: string): Promise<BotConfigRow 
   return data;
 }
 
+export type CuentaWaRow = {
+  id: string;
+  estado: "conectado" | "desconectado" | "error";
+  display_phone_number: string | null;
+  phone_number_id: string | null;
+  waba_id: string | null;
+  business_id: string | null;
+  conectado_at: string | null;
+  last_error: string | null;
+  conectado_por: Rel<{ nombre: string; apellido: string }>;
+};
+
+export async function obtenerCuentaWa(empresaId: string): Promise<CuentaWaRow | null> {
+  const sb = createClient();
+  const { data } = await sb
+    .from("whatsapp_account")
+    .select("id, estado, display_phone_number, phone_number_id, waba_id, business_id, conectado_at, last_error, conectado_por:conectado_por(nombre,apellido)")
+    .eq("empresa_id", empresaId)
+    .maybeSingle<CuentaWaRow>();
+  return data;
+}
+
 export async function listarVendedores(empresaId: string) {
   const sb = createClient();
   const { data } = await sb

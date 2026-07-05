@@ -4,7 +4,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { WhatsappBotConfigForm } from "@/components/forms/whatsapp-bot-config-form";
-import { obtenerBotConfig } from "../data";
+import { ConexionPanel } from "@/components/whatsapp/conexion-panel";
+import { obtenerBotConfig, obtenerCuentaWa } from "../data";
 
 export const dynamic = "force-dynamic";
 
@@ -20,13 +21,24 @@ export default async function WhatsappConfiguracionPage() {
   }
 
   const puedeEditar = can(ctx.profile.rol, "whatsapp.bot");
-  const config = await obtenerBotConfig(ctx.profile.empresa_id);
+  const puedeConectar = can(ctx.profile.rol, "whatsapp.conectar");
+  const [config, cuenta] = await Promise.all([
+    obtenerBotConfig(ctx.profile.empresa_id),
+    obtenerCuentaWa(ctx.profile.empresa_id),
+  ]);
 
   return (
-    <div>
+    <div className="space-y-4">
       <PageHeader
         title="Configuración de WhatsApp"
-        description="Datos comerciales y reglas del agente automático que responde por WhatsApp."
+        description="Conexión oficial, datos comerciales y reglas del agente automático."
+      />
+
+      <ConexionPanel
+        cuenta={cuenta}
+        appId={process.env.META_APP_ID || null}
+        configId={process.env.META_CONFIG_ID || null}
+        puedeAdministrar={puedeConectar}
       />
 
       {!puedeEditar ? (

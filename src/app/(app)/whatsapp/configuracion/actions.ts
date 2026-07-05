@@ -6,8 +6,162 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { registrarEventoWa } from "@/lib/whatsapp/log";
+import { encryptToken } from "@/lib/whatsapp/crypto";
+import { testearConexionMeta, intercambiarCodigoOAuth } from "@/lib/whatsapp/meta";
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string> };
+
+async function ctxConPermisoConexion() {
+  const ctx = await getSessionContext();
+  if (!ctx?.profile?.empresa_id) throw new Error("Sesión inválida.");
+  if (!can(ctx.profile.rol, "whatsapp.conectar")) throw new Error("Sin permiso para administrar la conexión de WhatsApp.");
+  return { empresaId: ctx.profile.empresa_id, userId: ctx.userId, email: ctx.email };
+}
+
+const manualSchema = z.object({
+  waba_id: z.string().trim().min(1, "Obligatorio."),
+  phone_number_id: z.string().trim().min(1, "Obligatorio."),
+  access_token: z.string().trim().min(1, "Obligatorio."),
+  business_id: z.string().trim().optional(),
+});
+
+export async function conectarWhatsappManual(_prev: FormState, formData: FormData): Promise<FormState> {
+  const { empresaId, userId, email } = await ctxConPermisoConexion();
+
+  const parsed = manualSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) fieldErrors[String(issue.path[0])] = issue.message;
+    return { error: "Revisá los campos marcados.", fieldErrors };
+  }
+  const d = parsed.data;
+
+  const test = await testearConexionMeta(d.phone_number_id, d.access_token);
+  const sb = createClient();
+
+  if (!test.ok) {
+    await sb.from("whatsapp_account").upsert(
+      {
+        empresa_id: empresaId,
+        waba_id: d.waba_id,
+        phone_number_id: d.phone_number_id,
+        business_id: d.business_id || null,
+        estado: "error",
+        last_error: test.error,
+      },
+      { onConflict: "empresa_id" },
+    );
+    await registrarEventoWa(sb, { empresaId, tipo: "webhook_error", detalle: `Falló la prueba de conexión manual: ${test.error}`, usuarioId: userId });
+    revalidatePath("/whatsapp/configuracion");
+    return { error: `No se pudo validar contra Meta: ${test.error}` };
+  }
+
+  const { error } = await sb.from("whatsapp_account").upsert(
+    {
+      empresa_id: empresaId,
+      waba_id: d.waba_id,
+      phone_number_id: d.phone_number_id,
+      business_id: d.business_id || null,
+      display_phone_number: test.displayPhoneNumber,
+      access_token_encrypted: encryptToken(d.access_token),
+      estado: "conectado",
+      conectado_por: userId,
+      conectado_at: new Date().toISOString(),
+      last_error: null,
+    },
+    { onConflict: "empresa_id" },
+  );
+  if (error) return { error: error.message };
+
+  await registrarEventoWa(sb, {
+    empresaId,
+    tipo: "conexion",
+    detalle: `WhatsApp conectado manualmente por ${email ?? "un usuario"} (${test.displayPhoneNumber}).`,
+    usuarioId: userId,
+  });
+
+  revalidatePath("/whatsapp/configuracion");
+  return {};
+}
+
+export async function desconectarWhatsapp(): Promise<void> {
+  const { empresaId, userId, email } = await ctxConPermisoConexion();
+  const sb = createClient();
+  const { error } = await sb
+    .from("whatsapp_account")
+    .update({ estado: "desconectado", access_token_encrypted: null, last_error: null })
+    .eq("empresa_id", empresaId);
+  if (error) throw new Error(error.message);
+
+  await registrarEventoWa(sb, {
+    empresaId,
+    tipo: "desconexion",
+    detalle: `WhatsApp desconectado por ${email ?? "un usuario"}.`,
+    usuarioId: userId,
+  });
+  revalidatePath("/whatsapp/configuracion");
+}
+
+/**
+ * Finaliza el flujo Embedded Signup: intercambia el `code` que devuelve el SDK
+ * de Meta por un access token, y guarda la cuenta con los datos que el propio
+ * flujo entrega por postMessage (waba_id, phone_number_id, business_id).
+ */
+export async function completarEmbeddedSignup(params: {
+  code: string;
+  wabaId: string;
+  phoneNumberId: string;
+  businessId: string | null;
+}): Promise<{ error?: string }> {
+  const { empresaId, userId, email } = await ctxConPermisoConexion();
+
+  const intercambio = await intercambiarCodigoOAuth(params.code);
+  if (!intercambio.ok) return { error: intercambio.error };
+
+  const test = await testearConexionMeta(params.phoneNumberId, intercambio.accessToken);
+  const sb = createClient();
+
+  if (!test.ok) {
+    await sb.from("whatsapp_account").upsert(
+      {
+        empresa_id: empresaId,
+        waba_id: params.wabaId,
+        phone_number_id: params.phoneNumberId,
+        business_id: params.businessId,
+        estado: "error",
+        last_error: test.error,
+      },
+      { onConflict: "empresa_id" },
+    );
+    return { error: test.error };
+  }
+
+  const { error } = await sb.from("whatsapp_account").upsert(
+    {
+      empresa_id: empresaId,
+      waba_id: params.wabaId,
+      phone_number_id: params.phoneNumberId,
+      business_id: params.businessId,
+      display_phone_number: test.displayPhoneNumber,
+      access_token_encrypted: encryptToken(intercambio.accessToken),
+      estado: "conectado",
+      conectado_por: userId,
+      conectado_at: new Date().toISOString(),
+      last_error: null,
+    },
+    { onConflict: "empresa_id" },
+  );
+  if (error) return { error: error.message };
+
+  await registrarEventoWa(sb, {
+    empresaId,
+    tipo: "conexion",
+    detalle: `WhatsApp conectado por Embedded Signup por ${email ?? "un usuario"} (${test.displayPhoneNumber}).`,
+    usuarioId: userId,
+  });
+  revalidatePath("/whatsapp/configuracion");
+  return {};
+}
 
 const configSchema = z.object({
   habilitado: z.coerce.boolean().default(false),

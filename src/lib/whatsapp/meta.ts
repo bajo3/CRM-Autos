@@ -56,3 +56,52 @@ export async function metaPost(
   }
   return json as MetaSendResponse;
 }
+
+/** Valida un phone_number_id + token contra la Graph API antes de guardar la conexión. */
+export async function testearConexionMeta(
+  phoneNumberId: string,
+  accessToken: string,
+): Promise<{ ok: true; displayPhoneNumber: string } | { ok: false; error: string }> {
+  if (envioSimulado()) {
+    return { ok: true, displayPhoneNumber: "+54 9 (simulado, WHATSAPP_FAKE_SEND=1)" };
+  }
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/${API_VERSION}/${phoneNumberId}?fields=display_phone_number,verified_name`,
+      { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
+    );
+    const json: unknown = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = json as { error?: { message?: string } };
+      return { ok: false, error: err.error?.message ?? `Meta respondió ${res.status}` };
+    }
+    const data = json as { display_phone_number?: string };
+    return { ok: true, displayPhoneNumber: data.display_phone_number ?? phoneNumberId };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "No se pudo contactar a Meta." };
+  }
+}
+
+/** Intercambia el `code` del flujo Embedded Signup por un access token de negocio. */
+export async function intercambiarCodigoOAuth(
+  code: string,
+): Promise<{ ok: true; accessToken: string } | { ok: false; error: string }> {
+  const appId = process.env.META_APP_ID;
+  const appSecret = process.env.META_APP_SECRET;
+  if (!appId || !appSecret) return { ok: false, error: "Falta META_APP_ID / META_APP_SECRET en el servidor." };
+
+  try {
+    const url = `https://graph.facebook.com/${API_VERSION}/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&code=${encodeURIComponent(code)}`;
+    const res = await fetch(url, { cache: "no-store" });
+    const json: unknown = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = json as { error?: { message?: string } };
+      return { ok: false, error: err.error?.message ?? `Meta respondió ${res.status}` };
+    }
+    const data = json as { access_token?: string };
+    if (!data.access_token) return { ok: false, error: "Meta no devolvió un access_token." };
+    return { ok: true, accessToken: data.access_token };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "No se pudo contactar a Meta." };
+  }
+}
