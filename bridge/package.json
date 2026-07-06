@@ -1,0 +1,21 @@
+{
+  "name": "crm-autos-whatsapp-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bridge Baileys (WhatsApp por QR, beta no oficial) que habla el mismo contrato Graph API / webhook de Meta que usa el CRM.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node --env-file=.env src/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "express": "^4.21.1",
+    "pino": "^9.5.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.9"
+  }
+}

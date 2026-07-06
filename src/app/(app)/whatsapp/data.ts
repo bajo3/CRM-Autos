@@ -199,6 +199,7 @@ export async function obtenerBotConfig(empresaId: string): Promise<BotConfigRow 
 export type CuentaWaRow = {
   id: string;
   estado: "conectado" | "desconectado" | "error";
+  provider: string;
   display_phone_number: string | null;
   phone_number_id: string | null;
   waba_id: string | null;
@@ -212,7 +213,7 @@ export async function obtenerCuentaWa(empresaId: string): Promise<CuentaWaRow | 
   const sb = createClient();
   const { data } = await sb
     .from("whatsapp_account")
-    .select("id, estado, display_phone_number, phone_number_id, waba_id, business_id, conectado_at, last_error, conectado_por:conectado_por(nombre,apellido)")
+    .select("id, estado, provider, display_phone_number, phone_number_id, waba_id, business_id, conectado_at, last_error, conectado_por:conectado_por(nombre,apellido)")
     .eq("empresa_id", empresaId)
     .maybeSingle<CuentaWaRow>();
   return data;

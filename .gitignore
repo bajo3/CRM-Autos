@@ -37,3 +37,8 @@ yarn-error.log*
 
 # fotos de stock subidas a Supabase Storage (no versionar binarios en git)
 /images/
+
+# bridge WhatsApp Baileys (beta QR) — servicio Node independiente
+/bridge/node_modules
+/bridge/sessions
+/bridge/.env

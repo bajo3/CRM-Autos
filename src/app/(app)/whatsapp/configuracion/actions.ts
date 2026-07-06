@@ -8,6 +8,7 @@ import { can } from "@/lib/auth/permissions";
 import { registrarEventoWa } from "@/lib/whatsapp/log";
 import { encryptToken } from "@/lib/whatsapp/crypto";
 import { testearConexionMeta, intercambiarCodigoOAuth } from "@/lib/whatsapp/meta";
+import { bridgeStart, bridgeStatus, bridgeLogout, type BridgeStatus } from "@/lib/whatsapp/bridge";
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string> };
 
@@ -43,6 +44,7 @@ export async function conectarWhatsappManual(_prev: FormState, formData: FormDat
     await sb.from("whatsapp_account").upsert(
       {
         empresa_id: empresaId,
+        provider: "meta",
         waba_id: d.waba_id,
         phone_number_id: d.phone_number_id,
         business_id: d.business_id || null,
@@ -59,6 +61,7 @@ export async function conectarWhatsappManual(_prev: FormState, formData: FormDat
   const { error } = await sb.from("whatsapp_account").upsert(
     {
       empresa_id: empresaId,
+      provider: "meta",
       waba_id: d.waba_id,
       phone_number_id: d.phone_number_id,
       business_id: d.business_id || null,
@@ -87,6 +90,22 @@ export async function conectarWhatsappManual(_prev: FormState, formData: FormDat
 export async function desconectarWhatsapp(): Promise<void> {
   const { empresaId, userId, email } = await ctxConPermisoConexion();
   const sb = createClient();
+
+  const { data: cuentaActual } = await sb
+    .from("whatsapp_account")
+    .select("provider")
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
+
+  if (cuentaActual?.provider === "baileys") {
+    try {
+      await bridgeLogout(empresaId);
+    } catch (err) {
+      // No bloquear la desconexión local si el bridge no responde (p.ej. ya está caído).
+      console.error("[whatsapp] fallo al desloguear el bridge Baileys:", err);
+    }
+  }
+
   const { error } = await sb
     .from("whatsapp_account")
     .update({ estado: "desconectado", access_token_encrypted: null, last_error: null })
@@ -100,6 +119,63 @@ export async function desconectarWhatsapp(): Promise<void> {
     usuarioId: userId,
   });
   revalidatePath("/whatsapp/configuracion");
+}
+
+/** Inicia (o retoma) la sesión Baileys (beta QR) del bridge para esta empresa. */
+export async function iniciarConexionQr(): Promise<{ error?: string }> {
+  const { empresaId } = await ctxConPermisoConexion();
+  try {
+    await bridgeStart(empresaId);
+    return {};
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "No se pudo iniciar la conexión por QR." };
+  }
+}
+
+/**
+ * Proxy del estado del bridge. Cuando pasa a 'connected', persiste la cuenta
+ * como provider:'baileys' (sin token: el bridge maneja su propia sesión).
+ */
+export async function estadoConexionQr(): Promise<BridgeStatus & { error?: string }> {
+  const { empresaId, userId, email } = await ctxConPermisoConexion();
+  let estado: BridgeStatus;
+  try {
+    estado = await bridgeStatus(empresaId);
+  } catch (err) {
+    return {
+      status: "disconnected",
+      error: err instanceof Error ? err.message : "No se pudo consultar el estado del bridge.",
+    };
+  }
+
+  if (estado.status === "connected") {
+    const sb = createClient();
+    const { error } = await sb.from("whatsapp_account").upsert(
+      {
+        empresa_id: empresaId,
+        provider: "baileys",
+        phone_number_id: `baileys-${empresaId}`,
+        display_phone_number: estado.phone ?? null,
+        access_token_encrypted: null,
+        estado: "conectado",
+        conectado_por: userId,
+        conectado_at: new Date().toISOString(),
+        last_error: null,
+      },
+      { onConflict: "empresa_id" },
+    );
+    if (!error) {
+      await registrarEventoWa(sb, {
+        empresaId,
+        tipo: "conexion",
+        detalle: `WhatsApp conectado vía bridge Baileys (beta QR) por ${email ?? "un usuario"}${estado.phone ? ` (${estado.phone})` : ""}.`,
+        usuarioId: userId,
+      });
+      revalidatePath("/whatsapp/configuracion");
+    }
+  }
+
+  return estado;
 }
 
 /**
@@ -126,6 +202,7 @@ export async function completarEmbeddedSignup(params: {
     await sb.from("whatsapp_account").upsert(
       {
         empresa_id: empresaId,
+        provider: "meta",
         waba_id: params.wabaId,
         phone_number_id: params.phoneNumberId,
         business_id: params.businessId,
@@ -141,6 +218,7 @@ export async function completarEmbeddedSignup(params: {
   const { error } = await sb.from("whatsapp_account").upsert(
     {
       empresa_id: empresaId,
+      provider: "meta",
       waba_id: params.wabaId,
       phone_number_id: params.phoneNumberId,
       business_id: params.businessId,

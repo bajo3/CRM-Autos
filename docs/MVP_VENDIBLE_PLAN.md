@@ -196,6 +196,14 @@ etapa en **`docs/WHATSAPP_PLAN.md`** (5 etapas, todas `[x]` y verificadas) y doc
 **`docs/whatsapp-integration.md`**. No modifica ninguna fase de este plan — se agrega como sección
 nueva de nav ("WhatsApp") y no toca funcionalidad existente.
 
+**Vía beta Baileys por QR (2026-07-06):** mientras la verificación de negocio de Meta para el
+Embedded Signup está pendiente, se agregó un transporte alternativo no oficial (bridge Node
+independiente en `bridge/`, protocolo WhatsApp Web vía Baileys) que habla exactamente el mismo
+contrato Graph API / webhook que Meta, para poder probar el módulo de punta a punta ya mismo.
+Detalle completo, arquitectura y advertencias de ToS en `docs/whatsapp-integration.md`, sección
+"Modo beta: Baileys por QR". El día que la API oficial esté aprobada, el cambio es solo un flip de
+`whatsapp_account.provider` — no requiere tocar `service.ts` ni ningún otro archivo del pipeline.
+
 ---
 
 ## Reglas de ejecución (para las sesiones con Sonnet)

@@ -2162,6 +2162,7 @@ export type Database = {
           id: string
           last_error: string | null
           phone_number_id: string | null
+          provider: string
           updated_at: string
           waba_id: string | null
         }
@@ -2178,6 +2179,7 @@ export type Database = {
           id?: string
           last_error?: string | null
           phone_number_id?: string | null
+          provider?: string
           updated_at?: string
           waba_id?: string | null
         }
@@ -2194,6 +2196,7 @@ export type Database = {
           id?: string
           last_error?: string | null
           phone_number_id?: string | null
+          provider?: string
           updated_at?: string
           waba_id?: string | null
         }

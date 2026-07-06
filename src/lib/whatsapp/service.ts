@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database.types";
 import { decryptToken } from "./crypto";
 import { metaPost, envioSimulado, WhatsAppApiError } from "./meta";
+import { bridgePost } from "./bridge";
 import { registrarEventoWa } from "./log";
 
 /**
@@ -72,6 +73,22 @@ function tokenDeCuenta(cuenta: Cuenta): string {
     throw new Error("La cuenta de WhatsApp no tiene token guardado.");
   }
   return decryptToken(cuenta.access_token_encrypted);
+}
+
+/**
+ * Punto único de envío: elige transporte según `cuenta.provider` sin bifurcar
+ * el resto del pipeline (persistencia, ventana 24h, logs son iguales para ambos).
+ * 'meta' exige token descifrado; 'baileys' habla con el bridge por empresa_id.
+ */
+async function enviarPorCuenta(
+  cuenta: Cuenta,
+  empresaId: string,
+  payload: Record<string, unknown>,
+): Promise<{ messages?: { id: string }[]; [k: string]: unknown }> {
+  if (cuenta.provider === "baileys") {
+    return bridgePost(empresaId, payload);
+  }
+  return metaPost(cuenta.phone_number_id!, tokenDeCuenta(cuenta), payload);
 }
 
 /** Busca o crea la conversación de una empresa con un teléfono (E.164 sin +). */
@@ -194,7 +211,7 @@ export async function sendTextMessage(
   }
 
   try {
-    const resp = await metaPost(cuenta.phone_number_id!, tokenDeCuenta(cuenta), {
+    const resp = await enviarPorCuenta(cuenta, params.empresaId, {
       messaging_product: "whatsapp",
       recipient_type: "individual",
       to: params.telefono,
@@ -317,7 +334,7 @@ export async function sendTemplateMessage(
   };
 
   try {
-    const resp = await metaPost(cuenta.phone_number_id!, tokenDeCuenta(cuenta), payload);
+    const resp = await enviarPorCuenta(cuenta, params.empresaId, payload);
     const waId = resp.messages?.[0]?.id ?? null;
     const mensajeId = await persistirSaliente(sb, {
       empresaId: params.empresaId,
@@ -368,6 +385,7 @@ export async function markMessageAsRead(
 ): Promise<void> {
   const cuenta = await getAccountForEmpresa(sb, params.empresaId);
   if (!cuenta || cuenta.estado !== "conectado" || !cuenta.phone_number_id) return;
+  if (cuenta.provider === "baileys") return; // el bridge (beta) no expone read receipts vía HTTP
   if (envioSimulado()) return;
   try {
     await metaPost(cuenta.phone_number_id, tokenDeCuenta(cuenta), {

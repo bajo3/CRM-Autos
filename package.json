@@ -10,7 +10,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "wa:cron": "node scripts/wa-cron.js"
+    "wa:cron": "node scripts/wa-cron.js",
+    "bridge": "npm --prefix bridge run start",
+    "bridge:install": "npm --prefix bridge install"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

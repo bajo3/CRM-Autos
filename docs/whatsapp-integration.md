@@ -217,6 +217,98 @@ prometer algo sin base.
 6. `npm run test` corre la suite de vitest (lógica pura: cripto, teléfonos, parser, ventana 24h,
    handoff, plantillas).
 
+## Modo beta: Baileys por QR
+
+Mientras la verificación de negocio de Meta para el Embedded Signup está pendiente, el módulo
+soporta un transporte alternativo **no oficial** (Baileys, conexión por QR como WhatsApp Web) para
+poder probar todo el pipeline del CRM de punta a punta ya mismo. La regla de oro: **el bridge habla
+exactamente el mismo contrato que Meta** — mismos payloads de envío (Graph API) y mismos webhooks
+entrantes (formato Meta, firmados con HMAC-SHA256) — así que el resto del CRM (service.ts, inbound,
+bot, bandeja, plantillas, worker) no se bifurca ni sabe qué transporte se está usando.
+
+### Arquitectura
+
+```
+CRM (Next.js)  <-- Graph API shape -->  bridge/ (Node/Express + Baileys)  <-- WhatsApp Web protocol -->  WhatsApp
+     |                                          |
+     | POST /sessions/:empresaId/messages       | sock.sendMessage(...)
+     |<-- webhook formato Meta, firmado --------| messages.upsert -> construirWebhookMensajeTexto()
+```
+
+- `whatsapp_account.provider` (migración `25_whatsapp_provider.sql`) distingue `'meta'` | `'baileys'`
+  por empresa. `src/lib/whatsapp/service.ts` tiene un único punto de envío (`enviarPorCuenta`) que
+  elige transporte según ese campo: todo lo demás (persistencia, ventana 24h, logs, bot) es idéntico.
+- `src/lib/whatsapp/bridge.ts` es el cliente del bridge desde el CRM: `bridgePost` devuelve el mismo
+  shape que `metaPost` (`meta.ts`) y lanza `WhatsAppApiError` en error, para que `service.ts` no tenga
+  que distinguir el origen del error. También expone `bridgeStatus`, `bridgeStart`, `bridgeLogout` y
+  `bridgeHabilitado()` (true solo si `WHATSAPP_BRIDGE_URL` está seteada en el servidor).
+- `bridge/` es un proyecto Node **independiente**, fuera del build de Next (`tsconfig.json` lo
+  excluye explícitamente). Vive en la raíz del repo, se commitea el código pero no
+  `bridge/node_modules`, `bridge/sessions` ni `bridge/.env` (gitignoreados).
+  - `bridge/src/index.js`: servidor Express, rutas y auth (`Authorization: Bearer BRIDGE_SECRET`).
+  - `bridge/src/session.js`: una sesión Baileys por empresa (`useMultiFileAuthState('sessions/<empresaId>')`),
+    reconexión automática salvo logout explícito, y el listener de `messages.upsert` que arma y postea
+    el webhook al CRM.
+  - `bridge/src/meta-format.js`: funciones puras de conversión (sin I/O) — traducir el payload de
+    envío Graph API a un `sendMessage` de Baileys, y armar el payload de webhook entrante con el shape
+    exacto que espera `webhook-parser.ts`. Tiene su propia suite vitest (`bridge/src/meta-format.test.js`).
+
+### Rutas del bridge
+
+| Ruta | Qué hace |
+| --- | --- |
+| `POST /sessions/:empresaId/start` | Inicia o retoma la sesión. Responde `{status}`. |
+| `GET /sessions/:empresaId/status` | `{status, qrDataUrl?, phone?}`. `status` es `qr` \| `connecting` \| `connected` \| `disconnected`. |
+| `POST /sessions/:empresaId/messages` | Body = payload Graph API. Solo soporta `type:"text"` en esta beta; otros tipos devuelven 400 con un mensaje estilo error de Graph (`code: 131009`). |
+| `DELETE /sessions/:empresaId` | Logout + borra las credenciales guardadas en disco. |
+
+### Cómo correr todo
+
+1. `bridge/.env` (copiar de `bridge/.env.example`, no se commitea): `BRIDGE_SECRET` propio,
+   `CRM_WEBHOOK_URL=http://localhost:3000/api/whatsapp/webhook`, y el **mismo** `META_APP_SECRET`
+   que usa el CRM (para que la firma HMAC valide en el webhook).
+2. `.env.local` del CRM: agregar `WHATSAPP_BRIDGE_URL=http://localhost:3900` y
+   `WHATSAPP_BRIDGE_SECRET=<el mismo valor que bridge/.env>`.
+3. `npm run bridge:install` (una vez) y después, en dos terminales:
+   - `npm run bridge`
+   - `npm run dev`
+4. Entrar a `/whatsapp/configuracion`: si `WHATSAPP_BRIDGE_URL` está seteada aparece la card
+   **"Conexión beta por QR (no oficial)"**. Click en "Conectar por QR (beta)", escanear el QR desde
+   WhatsApp (número de pruebas) → Dispositivos vinculados → Vincular un dispositivo.
+5. Al conectar, el CRM guarda `whatsapp_account` con `provider:'baileys'`,
+   `phone_number_id:'baileys-<empresaId>'` y sin `access_token_encrypted` (el bridge maneja su propia
+   sesión). A partir de ahí, enviar/recibir funciona igual que con Meta desde el resto del CRM.
+
+### Advertencia (ToS / riesgo de bloqueo)
+
+Baileys **no es la API oficial de WhatsApp**: automatiza el protocolo de WhatsApp Web. Usarlo viola
+los Términos de Servicio de WhatsApp y el número conectado puede ser **bloqueado sin aviso**. Esta
+vía es solo para la beta interna, con un número de pruebas — nunca usar el número real de la agencia.
+La UI muestra esta misma advertencia en la card de conexión.
+
+### Qué falta para pasar a la API oficial de Meta
+
+Nada del pipeline cambia. Cuando la verificación de negocio de Meta esté aprobada:
+
+1. Completar el Embedded Signup real desde la misma pantalla de configuración (ya implementado,
+   solo esperando `META_CONFIG_ID` habilitado en Meta) o el alta manual con token permanente.
+2. Eso deja `whatsapp_account.provider='meta'` para la empresa (los upserts de `conectarWhatsappManual`
+   / `completarEmbeddedSignup` ya lo fuerzan explícitamente).
+3. Opcionalmente, desconectar/apagar el bridge — el CRM deja de necesitarlo para esa empresa.
+
+No hace falta tocar `service.ts`, `inbound.ts`, el bot, la bandeja ni el worker de programados: todos
+ya funcionan por `provider`, no por transporte hardcodeado.
+
+### Pendiente conocido de esta beta
+
+- **Estados de salientes (sent/delivered/read)**: no se mapean desde Baileys al formato
+  `statuses` de Meta en esta primera versión — quedó fuera para no complicar el bridge. Los mensajes
+  enviados por Baileys quedan en estado `enviado` sin avanzar a `entregado`/`leído` en el CRM.
+- **Solo texto**: multimedia (imagen, audio, documento, video) no está soportado ni de entrada ni de
+  salida en la beta; el bridge devuelve 400 explícito si se intenta enviar un tipo no soportado.
+- **Read receipts salientes** (`markMessageAsRead` en `service.ts`) se saltean para cuentas
+  `provider:'baileys'`: el bridge no expone esa ruta en esta beta.
+
 ## Limitaciones de WhatsApp (y cómo las maneja el módulo)
 
 - **Ventana de 24 horas**: solo se puede mandar texto libre dentro de las 24h desde el último
