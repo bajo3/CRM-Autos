@@ -298,3 +298,50 @@ export async function generarAutorizacionTestDrive(formData: FormData): Promise<
   });
   redirect(`/documentos/${id}/abrir`);
 }
+
+// ---------- Autorización para conducir (titular autoriza a un tercero) ----------
+const autorizacionConducirSchema = z.object({
+  vehiculo_id: emptyToUndef(z.string().uuid()).optional(),
+  conductor_nombre: z.string().min(1),
+  conductor_dni: z.string().optional(),
+  conductor_licencia: z.string().optional(),
+  motivo: z.string().optional(),
+  fecha_desde: emptyToUndef(z.string()).optional(),
+  fecha_hasta: emptyToUndef(z.string()).optional(),
+  observaciones: z.string().optional(),
+});
+
+export async function generarAutorizacionConducir(formData: FormData): Promise<void> {
+  const parsed = autorizacionConducirSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) throw new Error("Cargá al menos el nombre del conductor.");
+  const d = parsed.data;
+
+  const sb = createClient();
+  let vehiculo = null as DatosDocumento["vehiculo"];
+  if (d.vehiculo_id) {
+    const { data } = await sb.from("vehiculo").select("marca,modelo,anio,patente,chasis,motor").eq("id", d.vehiculo_id)
+      .maybeSingle<{ marca: string; modelo: string; anio: number | null; patente: string | null; chasis: string | null; motor: string | null }>();
+    if (data) vehiculo = data;
+  }
+
+  const datosBase: Omit<DatosDocumento, "numero" | "fecha"> = {
+    vehiculo,
+    autorizado: { nombre: d.conductor_nombre, dni: d.conductor_dni || null, licencia: d.conductor_licencia || null },
+    fecha_evento: d.fecha_desde || null,
+    fecha_hasta: d.fecha_hasta || null,
+    motivo: d.motivo || null,
+    observaciones: d.observaciones || null,
+  };
+
+  const id = await crearDocumento({
+    tipo: "autorizacion_conducir", datosBase, vehiculo_id: d.vehiculo_id,
+  });
+  redirect(`/documentos/${id}/abrir`);
+}
+
+// ---------- Datero generado desde /documentos (selector de cliente) ----------
+export async function generarDateroDesdeCliente(formData: FormData): Promise<void> {
+  const clienteId = String(formData.get("cliente_id") ?? "");
+  if (!/^[0-9a-fA-F-]{36}$/.test(clienteId)) throw new Error("Elegí un cliente para generar el datero.");
+  await generarDocumentoCliente(clienteId, "datero");
+}

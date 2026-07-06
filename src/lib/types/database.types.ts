@@ -2735,6 +2735,7 @@ export type Database = {
         | "autorizacion_retiro_doc"
         | "ficha_cliente"
         | "ficha_vehiculo"
+        | "autorizacion_conducir"
       tipo_doc_vehiculo:
         | "cedula"
         | "titulo"
@@ -3031,6 +3032,7 @@ export const Constants = {
         "autorizacion_retiro_doc",
         "ficha_cliente",
         "ficha_vehiculo",
+        "autorizacion_conducir",
       ],
       tipo_doc_vehiculo: [
         "cedula",

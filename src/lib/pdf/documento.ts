@@ -10,7 +10,8 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
 export type TipoDocumento =
   | "recibo_sena" | "recibo_pago" | "boleto" | "presupuesto"
   | "datero" | "ficha_cliente" | "ficha_vehiculo"
-  | "autorizacion_test_drive" | "autorizacion_entrega" | "autorizacion_retiro_doc";
+  | "autorizacion_test_drive" | "autorizacion_entrega" | "autorizacion_retiro_doc"
+  | "autorizacion_conducir";
 
 export type EmpresaDoc = {
   nombre: string;
@@ -40,6 +41,8 @@ export type DatosDocumento = {
   // Persona autorizada (test drive / entrega / retiro de documentación).
   autorizado?: { nombre: string; dni?: string | null; licencia?: string | null } | null;
   fecha_evento?: string | null; // ISO (p. ej. fecha de test drive)
+  fecha_hasta?: string | null; // ISO — fin de vigencia (autorización para conducir)
+  motivo?: string | null; // destino / razón (autorización para conducir)
   precio_total?: number | null;
   sena?: number | null;
   saldo?: number | null;
@@ -67,6 +70,7 @@ const TITULOS: Record<TipoDocumento, string> = {
   autorizacion_test_drive: "AUTORIZACIÓN DE PRUEBA DE MANEJO",
   autorizacion_entrega: "AUTORIZACIÓN DE ENTREGA",
   autorizacion_retiro_doc: "AUTORIZACIÓN DE RETIRO DE DOCUMENTACIÓN",
+  autorizacion_conducir: "AUTORIZACIÓN PARA CONDUCIR",
 };
 
 const A4 = { w: 595.28, h: 841.89 };
@@ -178,10 +182,25 @@ export async function generarPdf(
   // ---------- Helpers de bloques ----------
   const par = (label: string, value: string) => {
     text(label, M, 9, font, GREY);
-    text(value, M + 130, 10, bold);
-    y -= 16;
+    text(value, M + 140, 10, bold);
+    y -= 6;
+    page.drawLine({ start: { x: M, y }, end: { x: A4.w - M, y }, thickness: 0.4, color: rgb(0.92, 0.93, 0.95) });
+    y -= 10;
   };
-  const heading = (s: string) => { text(s, M, 11, bold, BRAND); y -= 16; };
+  const heading = (s: string) => {
+    const h = 18;
+    page.drawRectangle({ x: M, y: y - 4, width: A4.w - 2 * M, height: h, color: rgb(0.96, 0.97, 0.98) });
+    page.drawRectangle({ x: M, y: y - 4, width: 3, height: h, color: BRAND });
+    text(s.toUpperCase(), M + 10, 10, bold, BRAND);
+    y -= h + 6;
+  };
+  const montoBox = (label: string, monto: number | null | undefined) => {
+    page.drawRectangle({ x: M, y: y - 28, width: A4.w - 2 * M, height: 38, color: rgb(0.96, 0.97, 0.98) });
+    page.drawRectangle({ x: M, y: y - 28, width: 3, height: 38, color: BRAND });
+    text(label, M + 12, 10, font, GREY);
+    right(ars(monto), A4.w - M - 12, 16, bold, BRAND);
+    y -= 44;
+  };
   const wrapText = (s: string, size = 9) => {
     const maxW = A4.w - 2 * M;
     const words = safe(s).split(/\s+/);
@@ -211,16 +230,12 @@ export async function generarPdf(
     y -= 4;
     wrapText(`En concepto de ${concepto} por la unidad: ${vehTexto}${veh?.patente ? ` — Patente ${veh.patente}` : ""}.`);
     y -= 8;
-    page.drawRectangle({ x: M, y: y - 28, width: A4.w - 2 * M, height: 38, color: rgb(0.96, 0.97, 0.98) });
-    page.drawRectangle({ x: M, y: y - 28, width: 3, height: 38, color: BRAND });
-    text("Monto recibido", M + 12, 10, font, GREY);
-    right(ars(monto), A4.w - M - 12, 16, bold, BRAND);
-    y -= 30;
+    montoBox("Monto recibido", monto);
     if (tipo === "recibo_sena") {
       text("Saldo pendiente", M + 12, 9, font, GREY);
       right(ars(datos.saldo), A4.w - M - 12, 10, bold);
-      y -= 22;
-    } else y -= 8;
+      y -= 14;
+    }
   } else if (tipo === "presupuesto") {
     heading("Cliente");
     par("Nombre", clienteNombre);
@@ -234,7 +249,7 @@ export async function generarPdf(
     if (veh?.color) par("Color", veh.color);
     y -= 4;
     heading("Condiciones");
-    par("Precio", ars(datos.precio_total));
+    montoBox("Precio", datos.precio_total);
     if (datos.bonificacion != null) par("Bonificación", ars(datos.bonificacion));
     if (datos.permuta) par("Permuta", datos.permuta);
     if (datos.anticipo != null) par("Anticipo", ars(datos.anticipo));
@@ -260,7 +275,7 @@ export async function generarPdf(
     if (veh?.color) par("Color", veh.color);
     y -= 4;
     heading("Precio y pago");
-    par("Precio total", ars(datos.precio_total));
+    montoBox("Precio total", datos.precio_total);
     if (datos.sena != null) par("Seña entregada", ars(datos.sena));
     if (datos.saldo != null) par("Saldo", ars(datos.saldo));
     if (datos.forma_pago) par("Forma de pago", datos.forma_pago);
@@ -312,6 +327,36 @@ export async function generarPdf(
     if (veh?.estado) par("Estado", veh.estado);
     if (veh?.ubicacion) par("Ubicación", veh.ubicacion);
     if (veh?.fecha_ingreso) par("Ingreso", fechaAR(veh.fecha_ingreso));
+  } else if (tipo === "autorizacion_conducir") {
+    const persona = datos.autorizado ?? (cli ? { nombre: cli.nombre, dni: cli.dni_cuit, licencia: null } : null);
+    const desde = datos.fecha_evento ?? datos.fecha;
+    wrapText(
+      `Por la presente, ${empresa.nombre}${empresa.cuit ? ` (CUIT ${empresa.cuit})` : ""}, en su carácter de ` +
+      `titular / poseedor del vehículo que se detalla, autoriza a ${persona?.nombre ?? "—"} a conducir y ` +
+      `circular con dicho vehículo.`,
+    );
+    y -= 6;
+    heading("Conductor autorizado");
+    par("Nombre", persona?.nombre ?? "—");
+    if (persona?.dni) par("DNI", persona.dni);
+    if (persona?.licencia) par("Licencia", persona.licencia);
+    y -= 4;
+    heading("Vehículo");
+    par("Marca / Modelo", vehTexto);
+    if (veh?.patente) par("Patente", veh.patente);
+    if (veh?.motor) par("Motor", veh.motor);
+    if (veh?.chasis) par("Chasis", veh.chasis);
+    y -= 4;
+    heading("Vigencia y destino");
+    par("Desde", fechaAR(desde));
+    par("Hasta", datos.fecha_hasta ? fechaAR(datos.fecha_hasta) : "Sin vencimiento");
+    par("Motivo / destino", datos.motivo ? safe(datos.motivo) : "—");
+    y -= 6;
+    wrapText(
+      "El conductor autorizado declara poseer licencia de conducir vigente y habilitante, y asume la " +
+      "responsabilidad civil y penal derivada de la circulación del vehículo durante el período autorizado. " +
+      "La presente autorización podrá ser revocada en cualquier momento por el titular.",
+    );
   } else if (tipo === "autorizacion_test_drive" || tipo === "autorizacion_entrega" || tipo === "autorizacion_retiro_doc") {
     const persona = datos.autorizado ?? (cli ? { nombre: cli.nombre, dni: cli.dni_cuit, licencia: null } : null);
     const cuando = datos.fecha_evento ?? datos.fecha;
@@ -348,15 +393,19 @@ export async function generarPdf(
   const firmas: [string, string] | null =
     tipo === "recibo_sena" || tipo === "recibo_pago" || tipo === "boleto"
       ? ["Firma del vendedor", "Firma del comprador"]
-      : tipo === "autorizacion_test_drive" || tipo === "autorizacion_entrega" || tipo === "autorizacion_retiro_doc"
-        ? ["Por la agencia", "Firma del autorizado"]
-        : null;
+      : tipo === "autorizacion_conducir"
+        ? ["Firma del titular / autorizante", "Firma del conductor autorizado"]
+        : tipo === "autorizacion_test_drive" || tipo === "autorizacion_entrega" || tipo === "autorizacion_retiro_doc"
+          ? ["Por la agencia", "Firma del autorizado"]
+          : null;
   if (firmas) {
-    const yF = 120;
+    const yF = 140;
     page.drawLine({ start: { x: M, y: yF }, end: { x: M + 180, y: yF }, thickness: 1, color: RULE });
     page.drawLine({ start: { x: A4.w - M - 180, y: yF }, end: { x: A4.w - M, y: yF }, thickness: 1, color: RULE });
     page.drawText(safe(firmas[0]), { x: M + 30, y: yF - 14, size: 9, font, color: GREY });
     page.drawText(safe(firmas[1]), { x: A4.w - M - 150, y: yF - 14, size: 9, font, color: GREY });
+    page.drawText("Aclaracion / DNI", { x: M + 30, y: yF - 26, size: 7, font, color: GREY });
+    page.drawText("Aclaracion / DNI", { x: A4.w - M - 150, y: yF - 26, size: 7, font, color: GREY });
   }
 
   // ---------- Footer con datos legales de la empresa ----------
