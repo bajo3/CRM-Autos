@@ -41,7 +41,8 @@ export async function updateSession(request: NextRequest) {
     isAuthRoute ||
     path.startsWith("/p/") || // stock público por empresa
     path.startsWith("/api/mercadolibre/") || // callback OAuth + webhook de ML
-    path.startsWith("/api/whatsapp/"); // webhook de Meta + cron (protegen ellos mismos: firma/bearer)
+    path.startsWith("/api/whatsapp/") || // webhook de Meta + cron (protegen ellos mismos: firma/bearer)
+    path.startsWith("/api/meta/"); // deauthorize + data-deletion de Meta (protegen ellos mismos: signed_request)
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

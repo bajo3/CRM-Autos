@@ -57,7 +57,7 @@ Ver `.env.example.whatsapp` en la raíz del repo. Resumen:
 | `WHATSAPP_CRON_SECRET` | Sí | Bearer del worker `/api/whatsapp/cron`. |
 | `WHATSAPP_API_VERSION` | No (default `v21.0`) | Versión de la Graph API. |
 | `WHATSAPP_FAKE_SEND` | No | `1` en dev/QA: simula envíos y pruebas de conexión sin llamar a Meta. **No usar en producción.** |
-| `META_APP_ID` / `META_APP_SECRET` | Solo para Embedded Signup / firma de webhook | Del dashboard de tu app de Meta. |
+| `META_APP_ID` / `META_APP_SECRET` | Solo para Embedded Signup / firma de webhook | Del dashboard de tu app de Meta. `META_APP_SECRET` también verifica el `signed_request` de `/api/meta/deauthorize` y `/api/meta/data-deletion`. |
 | `META_CONFIG_ID` | Solo para Embedded Signup | Config de "WhatsApp Embedded Signup" de tu app. |
 | `ANTHROPIC_API_KEY` | No | Bot con IA (Claude Haiku). Sin esto, el bot usa un motor determinístico local con datos reales — sigue funcionando, sin costo de API. |
 | `NEXT_PUBLIC_SITE_URL` | Ya existía en el proyecto | URL pública (webhook, links). No crear una variable nueva para esto. |
@@ -115,6 +115,9 @@ Migración `supabase/migrations/22_whatsapp.sql` (aditiva). Todas las tablas tie
    Configuración, según la versión del panel) y copiar su ID → `META_CONFIG_ID`. Requiere que la
    app esté en modo Business y (para producción real, con clientes ajenos a tu propia cuenta) pasar
    App Review para los permisos `whatsapp_business_management` y `whatsapp_business_messaging`.
+6. Para App Review: en **Configuración → Básica → Avanzada** de la app, completar **Deauthorize
+   callback URL** (`https://TU-DOMINIO/api/meta/deauthorize`) y **Data Deletion Request URL**
+   (`https://TU-DOMINIO/api/meta/data-deletion`).
 
 ## Webhooks
 
@@ -128,6 +131,39 @@ Migración `supabase/migrations/22_whatsapp.sql` (aditiva). Todas las tablas tie
   idempotencia real la da el índice único de `wa_message_id`.
 - La ruta está excluida del middleware de autenticación (`src/lib/supabase/middleware.ts`) porque
   Meta no manda cookies de sesión — se protege sola con la firma.
+
+## Cumplimiento de Meta (App Review): deauthorize + data deletion
+
+Facebook Login for Business exige dos callbacks públicos para aprobar los permisos de WhatsApp
+Business (`whatsapp_business_management`, `whatsapp_business_messaging`). Ambos reciben un
+`signed_request` (POST, `x-www-form-urlencoded`) firmado con `META_APP_SECRET`
+(`HMAC-SHA256(payload_b64, app_secret)`, verificado en `src/lib/whatsapp/meta-signed-request.ts`,
+con tests en el archivo hermano `.test.ts`). Se ubican fuera de `/api/whatsapp/` porque no son
+parte de la Cloud API sino del lado "Facebook Login" de la app; están excluidos del middleware de
+sesión igual que el resto de callbacks de Meta.
+
+- **`POST /api/meta/deauthorize`**: Meta lo llama cuando el usuario quita la app desde su
+  configuración de Facebook. Busca la `whatsapp_account` por `fb_user_id`, la marca
+  `estado='desconectado'` y borra el token cifrado (conserva el historial de conversaciones, igual
+  que la desconexión manual).
+- **`POST /api/meta/data-deletion`**: Meta lo llama cuando el usuario pide borrar sus datos. Lo
+  único personal del usuario de Facebook que el CRM guarda es `fb_user_id` (vincula la conexión con
+  su cuenta) — se borra junto con el token. El historial de conversaciones de WhatsApp es dato
+  comercial de la agencia con sus propios clientes, no del usuario de Facebook que autorizó la app,
+  y no se toca. Responde `{url, confirmation_code}` con una URL de estado.
+- **`GET /api/meta/data-deletion?id=<código>`**: página de estado que Meta exige mostrarle al
+  usuario. El borrado es sincrónico (ocurre en el propio POST), así que esta página siempre confirma
+  "completado" para cualquier código con formato válido.
+
+`whatsapp_account.fb_user_id` (migración `24_meta_compliance.sql`) se completa solo por Embedded
+Signup (`authResponse.userID` del SDK de Facebook) — el alta manual no pasa por Facebook Login y
+queda `null`. Si un cliente conectó por alta manual, estos callbacks no tienen cómo ubicarlo (no hay
+`fb_user_id` que buscar); es una limitación inherente a no haber pasado por OAuth de Facebook.
+
+No se implementó un flujo `GET /api/meta/oauth/start` + `/callback` por redirect: el Embedded Signup
+ya usa el SDK de Facebook en un popup (`FB.login` con `response_type: "code"`) y el intercambio del
+`code` se hace server-side en `completarEmbeddedSignup` (`src/app/(app)/whatsapp/configuracion/actions.ts`).
+Agregar un segundo flujo por redirect duplicaría esa lógica sin necesidad.
 
 ## Worker de mensajes programados
 

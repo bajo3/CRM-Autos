@@ -74,8 +74,9 @@ export function ConexionPanel({
   const [mostrarManual, setMostrarManual] = useState(!appId || !configId);
 
   useEffect(() => {
+    const ORIGENES_META = ["https://www.facebook.com", "https://web.facebook.com"];
     function onMessage(event: MessageEvent) {
-      if (!event.origin.includes("facebook.com")) return;
+      if (!ORIGENES_META.includes(event.origin)) return;
       try {
         const data = JSON.parse(event.data);
         if (data.type !== "WA_EMBEDDED_SIGNUP" || data.event !== "FINISH") return;
@@ -99,7 +100,7 @@ export function ConexionPanel({
       await cargarSdkFacebook(appId);
       window.FB!.login(
         (response: unknown) => {
-          const r = response as { authResponse?: { code?: string } };
+          const r = response as { authResponse?: { code?: string; userID?: string } };
           const code = r.authResponse?.code;
           if (!code) {
             setSignupError("Se cerró la ventana de Meta sin completar la conexión.");
@@ -119,6 +120,7 @@ export function ConexionPanel({
               wabaId: ids.wabaId,
               phoneNumberId: ids.phoneNumberId,
               businessId: null,
+              fbUserId: r.authResponse?.userID ?? null,
             });
             if (res.error) setSignupError(res.error);
             window.sessionStorage.removeItem("wa_embedded_signup_ids");

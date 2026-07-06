@@ -112,6 +112,7 @@ export async function completarEmbeddedSignup(params: {
   wabaId: string;
   phoneNumberId: string;
   businessId: string | null;
+  fbUserId: string | null;
 }): Promise<{ error?: string }> {
   const { empresaId, userId, email } = await ctxConPermisoConexion();
 
@@ -128,6 +129,7 @@ export async function completarEmbeddedSignup(params: {
         waba_id: params.wabaId,
         phone_number_id: params.phoneNumberId,
         business_id: params.businessId,
+        fb_user_id: params.fbUserId,
         estado: "error",
         last_error: test.error,
       },
@@ -142,6 +144,7 @@ export async function completarEmbeddedSignup(params: {
       waba_id: params.wabaId,
       phone_number_id: params.phoneNumberId,
       business_id: params.businessId,
+      fb_user_id: params.fbUserId,
       display_phone_number: test.displayPhoneNumber,
       access_token_encrypted: encryptToken(intercambio.accessToken),
       estado: "conectado",

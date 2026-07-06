@@ -2158,6 +2158,7 @@ export type Database = {
           display_phone_number: string | null
           empresa_id: string
           estado: Database["public"]["Enums"]["estado_wa_cuenta"]
+          fb_user_id: string | null
           id: string
           last_error: string | null
           phone_number_id: string | null
@@ -2173,6 +2174,7 @@ export type Database = {
           display_phone_number?: string | null
           empresa_id: string
           estado?: Database["public"]["Enums"]["estado_wa_cuenta"]
+          fb_user_id?: string | null
           id?: string
           last_error?: string | null
           phone_number_id?: string | null
@@ -2188,6 +2190,7 @@ export type Database = {
           display_phone_number?: string | null
           empresa_id?: string
           estado?: Database["public"]["Enums"]["estado_wa_cuenta"]
+          fb_user_id?: string | null
           id?: string
           last_error?: string | null
           phone_number_id?: string | null
