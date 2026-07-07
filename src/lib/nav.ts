@@ -31,6 +31,15 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    title: "WhatsApp",
+    items: [
+      { href: "/whatsapp", label: "Bandeja", icon: MessageCircle },
+      { href: "/whatsapp/programados", label: "Programados", icon: CalendarClock },
+      { href: "/whatsapp/plantillas", label: "Plantillas", icon: FileText },
+      { href: "/whatsapp/configuracion", label: "Configuración", icon: Settings },
+    ],
+  },
+  {
     title: "Stock",
     items: [
       { href: "/stock", label: "Stock de autos", icon: Car },
@@ -39,15 +48,6 @@ export const NAV: NavSection[] = [
       { href: "/encargos", label: "Encargos", icon: PackageSearch },
       { href: "/consignados", label: "Consignados", icon: FileBox },
       { href: "/taller", label: "Taller / Preparación", icon: Wrench },
-    ],
-  },
-  {
-    title: "WhatsApp",
-    items: [
-      { href: "/whatsapp", label: "Bandeja", icon: MessageCircle },
-      { href: "/whatsapp/programados", label: "Programados", icon: CalendarClock },
-      { href: "/whatsapp/plantillas", label: "Plantillas", icon: FileText },
-      { href: "/whatsapp/configuracion", label: "Configuración", icon: Settings },
     ],
   },
   {

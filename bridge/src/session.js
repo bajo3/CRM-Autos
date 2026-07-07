@@ -50,6 +50,7 @@ async function postWebhookFirmado(payload) {
     try {
       const res = await fetch(url, { method: "POST", headers, body: rawBody });
       if (!res.ok) throw new Error(`webhook respondió ${res.status}`);
+      logger.warn("webhook entregado al CRM");
       return;
     } catch (err) {
       logger.error({ err: String(err), intento }, "fallo al postear webhook al CRM");
@@ -125,12 +126,20 @@ export async function iniciarSesion(empresaId) {
   });
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    logger.warn({ empresaId, type, cantidad: messages.length }, "evento messages.upsert");
     if (type !== "notify") return;
     for (const msg of messages) {
-      if (msg.key?.fromMe) continue;
+      if (msg.key?.fromMe) {
+        logger.warn({ jid: msg.key?.remoteJid }, "mensaje descartado: fromMe");
+        continue;
+      }
       if (msg.key?.remoteJid?.endsWith("@g.us")) continue; // beta: solo chats individuales
       const texto = textoDeMensajeBaileys(msg);
-      if (!texto) continue; // beta: solo texto
+      if (!texto) {
+        logger.warn({ jid: msg.key?.remoteJid, tipos: Object.keys(msg.message || {}) }, "mensaje descartado: sin texto");
+        continue;
+      }
+      logger.warn({ jid: msg.key.remoteJid }, "mensaje entrante de texto, reenviando al CRM");
 
       const telefono = telefonoDesdeJid(msg.key.remoteJid);
       const phoneNumberId = `baileys-${empresaId}`;

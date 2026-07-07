@@ -1,3 +1,5 @@
+import { readdir } from "node:fs/promises";
+import path from "node:path";
 import express from "express";
 import { pino } from "pino";
 import { iniciarSesion, obtenerEstado, enviarTexto, cerrarSesion } from "./session.js";
@@ -74,6 +76,24 @@ app.delete("/sessions/:empresaId", async (req, res) => {
   }
 });
 
+/** Retoma al arrancar las sesiones con credenciales guardadas en disco. */
+async function retomarSesionesGuardadas() {
+  let dirs;
+  try {
+    dirs = await readdir(path.resolve(process.cwd(), "sessions"), { withFileTypes: true });
+  } catch {
+    return; // sin directorio sessions todavía: nada que retomar
+  }
+  for (const d of dirs) {
+    if (!d.isDirectory()) continue;
+    logger.info({ empresaId: d.name }, "retomando sesión guardada");
+    iniciarSesion(d.name).catch((err) =>
+      logger.error({ err: String(err), empresaId: d.name }, "fallo al retomar sesión guardada"),
+    );
+  }
+}
+
 app.listen(PORT, () => {
   logger.info(`Bridge WhatsApp (Baileys, beta) escuchando en :${PORT}`);
+  retomarSesionesGuardadas();
 });
