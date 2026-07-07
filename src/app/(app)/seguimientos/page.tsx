@@ -6,10 +6,9 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, humanize } from "@/lib/format";
 import { rel, type Rel } from "@/lib/rel";
-import { waUrl } from "@/lib/data/whatsapp";
 import { cn } from "@/lib/utils";
-import { MessageCircle } from "lucide-react";
 import { NuevoSeguimientoForm } from "@/components/seguimientos/nuevo-seguimiento-form";
+import { FilaAcciones } from "@/components/seguimientos/fila-acciones";
 import { cambiarEstadoSeguimiento } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -121,17 +120,7 @@ export default async function SeguimientosPage({
                     <TD><Badge tone={toneForEstado(s.estado)}>{humanize(s.estado)}</Badge></TD>
                     <TD>
                       <div className="flex items-center gap-1">
-                        {tel && (
-                          <a
-                            href={waUrl(mensaje, tel)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Enviar WhatsApp"
-                            className="rounded-md border p-1.5 text-ok hover:bg-muted"
-                          >
-                            <MessageCircle className="h-3.5 w-3.5" />
-                          </a>
-                        )}
+                        {tel && <FilaAcciones seguimientoId={s.id} telefono={tel} mensajeGenerico={mensaje} />}
                         {(s.estado === "pendiente" || s.estado === "vencido") && (
                           <>
                             <form action={cambiarEstadoSeguimiento.bind(null, s.id, "realizado")}>

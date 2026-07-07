@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTextMessage, sendTemplateMessage } from "@/lib/whatsapp/service";
 import { registrarEventoWa } from "@/lib/whatsapp/log";
+import { enviarRecordatoriosSeguimientos } from "@/lib/whatsapp/recordatorios";
 
 export const dynamic = "force-dynamic";
 
@@ -112,12 +113,15 @@ async function ejecutar(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  const recordatorios = await enviarRecordatoriosSeguimientos(admin);
+
   return NextResponse.json({
     ok: true,
     revisados: pendientes?.length ?? 0,
     enviados,
     reintentados,
     fallados,
+    recordatorios,
   });
 }
 

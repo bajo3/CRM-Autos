@@ -202,7 +202,11 @@ export async function sendTextMessage(
     accountId: cuenta.id,
   });
 
-  if (!dentroVentana24h(conv.ultima_entrada_at)) {
+  // La ventana de 24h es una regla de la Cloud API de Meta (anti-spam de la
+  // plataforma oficial), no del protocolo de WhatsApp: un número conectado
+  // por Baileys (beta, no oficial) es una sesión personal más y puede
+  // escribirle a cualquiera en cualquier momento, como cualquier usuario.
+  if (cuenta.provider !== "baileys" && !dentroVentana24h(conv.ultima_entrada_at)) {
     return {
       ok: false,
       error:

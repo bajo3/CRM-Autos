@@ -4,7 +4,7 @@ import { coincideTelefono, soloDigitos } from "./telefono";
 import { obtenerOCrearConversacion, preview, getAccountByPhoneNumberId, sendTextMessage, botEfectivo } from "./service";
 import { registrarEventoWa } from "./log";
 import { generarRespuestaBot } from "./bot";
-import { programarSeguimientosLeadWhatsapp } from "./eventos";
+import { programarSeguimientosLeadWhatsapp, cerrarSeguimientosPorRespuesta } from "./eventos";
 import type { MensajeEntrante, EstadoSaliente } from "./webhook-parser";
 
 /**
@@ -187,6 +187,8 @@ export async function procesarMensajeEntrante(
       no_leidos: conv.no_leidos + 1,
     })
     .eq("id", conv.id);
+
+  await cerrarSeguimientosPorRespuesta(admin, { empresaId, clienteId });
 
   if (msg.cuerpo) {
     await detectarYAsociarVehiculo(admin, { empresaId, clienteId, texto: msg.cuerpo });

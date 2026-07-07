@@ -166,6 +166,35 @@ export async function programarSeguimientosLeadWhatsapp(
   }
 }
 
+/**
+ * Cierra automáticamente los seguimientos vencidos/de hoy de un cliente cuando
+ * vuelve a escribir por WhatsApp: el contacto que el seguimiento pedía ya se
+ * dio, así que el vendedor no tiene que ir a marcarlo a mano. No toca
+ * seguimientos futuros (todavía no vencen).
+ */
+export async function cerrarSeguimientosPorRespuesta(
+  sb: Db,
+  params: { empresaId: string; clienteId: string },
+): Promise<void> {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const { data } = await sb
+    .from("seguimiento")
+    .update({ estado: "realizado" })
+    .eq("empresa_id", params.empresaId)
+    .eq("cliente_id", params.clienteId)
+    .in("estado", ["pendiente", "vencido"])
+    .lte("fecha", hoy)
+    .select("id");
+  if (data && data.length > 0) {
+    await registrarEventoWa(sb, {
+      empresaId: params.empresaId,
+      tipo: "otro",
+      detalle: `${data.length} seguimiento(s) cerrados automáticamente: el cliente respondió por WhatsApp.`,
+      datos: { cliente_id: params.clienteId },
+    });
+  }
+}
+
 /** Cancela los programados pendientes de un cliente (al pasar a vendido/reservado/perdido). */
 export async function cancelarProgramadosDeCliente(
   sb: Db,

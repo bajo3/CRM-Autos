@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
+import { redactarMensajeSeguimiento } from "@/lib/whatsapp/sugerencias";
 
 type EstadoSeguimiento = "pendiente" | "realizado" | "vencido" | "cancelado";
 
@@ -30,6 +31,30 @@ export async function buscarClientesParaSeguimiento(query: string): Promise<Clie
     .limit(8)
     .returns<ClienteOpcion[]>();
   return data ?? [];
+}
+
+/** Redacta con IA un mensaje de WhatsApp para retomar contacto por un seguimiento puntual. */
+export async function sugerirMensajeWa(seguimientoId: string): Promise<{ texto?: string; error?: string }> {
+  const ctx = await getSessionContext();
+  if (!ctx?.profile?.empresa_id) return { error: "Sesión inválida." };
+
+  const sb = createClient();
+  const { data: seguimiento } = await sb
+    .from("seguimiento")
+    .select("motivo, cliente:cliente_id(nombre,apellido)")
+    .eq("id", seguimientoId)
+    .maybeSingle();
+  if (!seguimiento) return { error: "No se encontró el seguimiento." };
+
+  const c = Array.isArray(seguimiento.cliente) ? seguimiento.cliente[0] : seguimiento.cliente;
+  const clienteNombre = c ? `${c.nombre} ${c.apellido ?? ""}`.trim() : "el cliente";
+
+  const texto = await redactarMensajeSeguimiento({
+    empresaNombre: ctx.empresa?.nombre ?? "la agencia",
+    clienteNombre,
+    motivo: seguimiento.motivo,
+  });
+  return { texto };
 }
 
 /** Alta rápida de seguimiento desde la propia pantalla de Seguimientos (sin pasar por la ficha del cliente). */
