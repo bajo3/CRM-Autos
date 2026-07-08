@@ -6,7 +6,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { WhatsappBotConfigForm } from "@/components/forms/whatsapp-bot-config-form";
 import { ConexionPanel } from "@/components/whatsapp/conexion-panel";
 import { ConexionQrPanel } from "@/components/whatsapp/conexion-qr-panel";
-import { bridgeHabilitado } from "@/lib/whatsapp/bridge";
 import { obtenerBotConfig, obtenerCuentaWa } from "../data";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +42,7 @@ export default async function WhatsappConfiguracionPage() {
         puedeAdministrar={puedeConectar}
       />
 
-      {puedeConectar && bridgeHabilitado() && (
+      {puedeConectar && (
         <ConexionQrPanel yaConectadoBaileys={cuenta?.estado === "conectado" && cuenta?.provider === "baileys"} />
       )}
 
