@@ -9,9 +9,15 @@ import {
   telefonoDesdeJid,
   textoDeMensajeBaileys,
 } from "./meta-format.js";
+import {
+  enviarTextoHumanizado,
+  leerConfigHumanizer,
+  marcarLeidoHumanizado,
+} from "./humanizer.js";
 
 const SESSIONS_DIR = path.resolve(process.cwd(), "sessions");
 const logger = pino({ level: process.env.BRIDGE_LOG_LEVEL || "warn" });
+const humanizerConfig = leerConfigHumanizer();
 
 /**
  * Estado en memoria por empresa: socket de Baileys, último QR (data URL),
@@ -22,7 +28,15 @@ const logger = pino({ level: process.env.BRIDGE_LOG_LEVEL || "warn" });
 const sesiones = new Map();
 
 function estadoInicial() {
-  return { status: "disconnected", qrDataUrl: null, phone: null, sock: null, iniciando: false };
+  return {
+    status: "disconnected",
+    qrDataUrl: null,
+    phone: null,
+    sock: null,
+    iniciando: false,
+    sendQueue: Promise.resolve(),
+    ultimoEnvioAt: 0,
+  };
 }
 
 function getEstado(empresaId) {
@@ -152,6 +166,12 @@ export async function iniciarSesion(empresaId) {
         texto,
       });
       await postWebhookFirmado(payload);
+      void marcarLeidoHumanizado({
+        sock: estado.sock,
+        msg,
+        config: humanizerConfig,
+        logger,
+      });
     }
   });
 
@@ -166,8 +186,29 @@ export async function enviarTexto(empresaId, jid, contenido) {
     err.status = 409;
     throw err;
   }
-  const resultado = await estado.sock.sendMessage(jid, contenido);
-  return resultado?.key?.id;
+  const tarea = estado.sendQueue
+    .catch(() => {})
+    .then(async () => {
+      if (!estado.sock || estado.status !== "connected") {
+        const err = new Error("La sesión de WhatsApp (Baileys) no está conectada.");
+        err.status = 409;
+        throw err;
+      }
+      const resultado = await enviarTextoHumanizado({
+        sock: estado.sock,
+        jid,
+        contenido,
+        getUltimoEnvioAt: () => estado.ultimoEnvioAt,
+        setUltimoEnvioAt: (valor) => {
+          estado.ultimoEnvioAt = valor;
+        },
+        config: humanizerConfig,
+        logger,
+      });
+      return resultado?.key?.id;
+    });
+  estado.sendQueue = tarea.catch(() => {});
+  return tarea;
 }
 
 export function obtenerEstado(empresaId) {

@@ -204,6 +204,12 @@ Detalle completo, arquitectura y advertencias de ToS en `docs/whatsapp-integrati
 "Modo beta: Baileys por QR". El día que la API oficial esté aprobada, el cambio es solo un flip de
 `whatsapp_account.provider` — no requiere tocar `service.ts` ni ningún otro archivo del pipeline.
 
+**Hardening anti-baneo para Baileys (2026-07-08):** agregado al bridge un humanizer configurable:
+cola por sesión, presencia `composing`, pausas según largo del texto, separación aleatoria entre
+salientes y tilde azul diferido para entrantes. Documentado en `docs/whatsapp-integration.md` y
+`bridge/.env.example`. Reduce comportamiento robótico, pero no elimina el riesgo propio de usar un
+transporte no oficial.
+
 ---
 
 ## Reglas de ejecución (para las sesiones con Sonnet)

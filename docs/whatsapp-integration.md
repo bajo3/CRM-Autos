@@ -286,6 +286,35 @@ los Términos de Servicio de WhatsApp y el número conectado puede ser **bloquea
 vía es solo para la beta interna, con un número de pruebas — nunca usar el número real de la agencia.
 La UI muestra esta misma advertencia en la card de conexión.
 
+### Protección anti-baneo del bridge
+
+El bridge aplica una capa de ritmo humano para bajar señales obvias de automatización en el modo
+Baileys:
+
+- Los mensajes salientes pasan por una cola por sesión, para no disparar varias respuestas al mismo
+  tiempo.
+- Antes de enviar, manda presencia `composing`, espera según el largo del texto y recién después
+  envía el mensaje.
+- Entre mensajes salientes agrega una separación aleatoria configurable.
+- Los mensajes entrantes se marcan como leídos con demora aleatoria, después de entregar el webhook
+  al CRM.
+
+Variables en `bridge/.env.example`:
+
+| Variable | Default | Uso |
+|---|---:|---|
+| `BRIDGE_HUMANIZER_ENABLED` | `1` | Activa/desactiva toda la capa de ritmo humano. |
+| `BRIDGE_SEND_MIN_MS` / `BRIDGE_SEND_MAX_MS` | `6000` / `18000` | Rango de espera entre mensajes salientes. |
+| `BRIDGE_TYPING_MIN_MS` / `BRIDGE_TYPING_MAX_MS` | `2500` / `22000` | Rango para la pausa de "escribiendo...". |
+| `BRIDGE_TYPING_CHARS_PER_SECOND` | `7` | Velocidad usada para estimar la pausa por largo de texto. |
+| `BRIDGE_READ_RECEIPTS_ENABLED` | `1` | Activa/desactiva el tilde azul automático. |
+| `BRIDGE_READ_MIN_MS` / `BRIDGE_READ_MAX_MS` | `2500` / `12000` | Rango de demora para marcar entrantes como leídos. |
+
+Esto **reduce** comportamiento robótico, pero no vuelve oficial ni seguro el transporte. Para bajar
+riesgo operativo: usar número de prueba, no mandar campañas masivas, evitar textos repetidos,
+responder principalmente a conversaciones iniciadas por el cliente y migrar a Cloud API oficial en
+cuanto Meta apruebe la cuenta.
+
 ### Qué falta para pasar a la API oficial de Meta
 
 Nada del pipeline cambia. Cuando la verificación de negocio de Meta esté aprobada:
@@ -306,8 +335,9 @@ ya funcionan por `provider`, no por transporte hardcodeado.
   enviados por Baileys quedan en estado `enviado` sin avanzar a `entregado`/`leído` en el CRM.
 - **Solo texto**: multimedia (imagen, audio, documento, video) no está soportado ni de entrada ni de
   salida en la beta; el bridge devuelve 400 explícito si se intenta enviar un tipo no soportado.
-- **Read receipts salientes** (`markMessageAsRead` en `service.ts`) se saltean para cuentas
-  `provider:'baileys'`: el bridge no expone esa ruta en esta beta.
+- **Read receipts desde el CRM** (`markMessageAsRead` en `service.ts`) se saltean para cuentas
+  `provider:'baileys'`: el bridge no expone una ruta de lectura manual desde Next. En cambio, el
+  bridge marca los entrantes como leídos automáticamente con demora humana configurable.
 
 ## Limitaciones de WhatsApp (y cómo las maneja el módulo)
 
