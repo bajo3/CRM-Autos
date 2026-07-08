@@ -41,7 +41,7 @@ export default async function TasacionesPage() {
       {!data || data.length === 0 ? (
         <EmptyState title="No hay tasaciones registradas" description="Registrá la evaluación de un usado que te ofrecen." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Cliente</TH><TH>Vehículo</TH><TH>Compra</TH><TH>Venta</TH><TH>Margen</TH><TH>Decisión</TH><TH>Acciones</TH></TR></THead>
             <TBody>

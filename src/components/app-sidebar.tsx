@@ -34,18 +34,18 @@ export function AppSidebar({ empresaNombre }: { empresaNombre: string }) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-brand-900 text-white transition-transform lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/10 bg-gradient-to-b from-brand-900 to-[#0e1a3d] text-white shadow-pop transition-transform lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="flex h-14 items-center justify-between border-b border-white/10 px-4">
           <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-white/10">
-              <Car className="h-5 w-5" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 shadow-sm">
+              <Car className="h-4 w-4" />
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-semibold">CRM Automotor</p>
-              <p className="truncate text-xs text-white/60">{empresaNombre}</p>
+              <p className="text-sm font-semibold tracking-tight">CRM Automotor</p>
+              <p className="truncate text-xs text-white/50">{empresaNombre}</p>
             </div>
           </Link>
           <button onClick={() => setOpen(false)} className="lg:hidden" aria-label="Cerrar menú">
@@ -56,7 +56,7 @@ export function AppSidebar({ empresaNombre }: { empresaNombre: string }) {
         <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-3">
           {NAV.map((section) => (
             <div key={section.title} className="mb-4">
-              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/35">
                 {section.title}
               </p>
               {section.items.map((item) => {
@@ -67,10 +67,10 @@ export function AppSidebar({ empresaNombre }: { empresaNombre: string }) {
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                       isActive(item.href)
-                        ? "bg-white/15 font-medium text-white"
-                        : "text-white/70 hover:bg-white/10 hover:text-white",
+                        ? "bg-white/10 font-medium text-white shadow-[inset_2px_0_0_0_theme(colors.brand.500)]"
+                        : "text-white/65 hover:bg-white/5 hover:text-white",
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" />

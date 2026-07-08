@@ -1,4 +1,4 @@
-import { Phone, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Phone, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { PageHeader } from "@/components/ui/page-header";
@@ -7,14 +7,15 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, daysUntil } from "@/lib/format";
 import { rel, type Rel } from "@/lib/rel";
-import { waUrl, mensajePostventa } from "@/lib/data/whatsapp";
+import { mensajePostventa } from "@/lib/data/whatsapp";
+import { AbrirChatButton } from "@/components/whatsapp/abrir-chat-button";
 import { marcarPostventaRealizada } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 type Row = {
   id: string; fecha_alerta: string; realizada: boolean; notas: string | null;
-  cliente: Rel<{ nombre: string; apellido: string; telefono: string | null; whatsapp: string | null }>;
+  cliente: Rel<{ id: string; nombre: string; apellido: string; telefono: string | null; whatsapp: string | null }>;
 };
 
 export default async function PostventaPage() {
@@ -23,7 +24,7 @@ export default async function PostventaPage() {
     getSessionContext(),
     sb
       .from("postventa")
-      .select("id,fecha_alerta,realizada,notas,cliente:cliente_id(nombre,apellido,telefono,whatsapp)")
+      .select("id,fecha_alerta,realizada,notas,cliente:cliente_id(id,nombre,apellido,telefono,whatsapp)")
       .order("fecha_alerta", { ascending: true })
       .returns<Row[]>(),
   ]);
@@ -38,7 +39,7 @@ export default async function PostventaPage() {
       {!data || data.length === 0 ? (
         <EmptyState title="No hay alertas de postventa" description="Las ventas en efectivo generan una alerta automática a los 6 meses." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Cliente</TH><TH>Alerta</TH><TH>Vencimiento</TH><TH>Estado</TH><TH>Acciones</TH></TR></THead>
             <TBody>
@@ -64,15 +65,8 @@ export default async function PostventaPage() {
                               <Phone className="h-4 w-4" />
                             </a>
                           )}
-                          {tel && (
-                            <a
-                              href={waUrl(mensajePostventa(empresaNombre, c?.nombre), tel)}
-                              target="_blank"
-                              title="WhatsApp"
-                              className="rounded-md border p-1.5 text-ok hover:bg-muted"
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                            </a>
+                          {tel && c?.id && (
+                            <AbrirChatButton clienteId={c.id} mensaje={mensajePostventa(empresaNombre, c?.nombre)} />
                           )}
                           <form action={marcarPostventaRealizada.bind(null, p.id)}>
                             <button

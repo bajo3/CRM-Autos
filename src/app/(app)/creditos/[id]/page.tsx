@@ -117,7 +117,7 @@ export default async function CreditoDetallePage({ params }: { params: { id: str
       {!pagos || pagos.length === 0 ? (
         <EmptyState title="Sin pagos registrados" description="Registrá el primer pago con el botón de arriba." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Cuota</TH><TH>Fecha</TH><TH>Monto</TH><TH>Observación</TH></TR></THead>
             <TBody>

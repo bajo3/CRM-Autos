@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Car } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -72,6 +72,17 @@ export default async function StockPage({
   for (const v of vtvs ?? []) {
     if (!vtvPorVehiculo.has(v.vehiculo_id)) vtvPorVehiculo.set(v.vehiculo_id, v.fecha_vencimiento);
   }
+
+  // Foto de portada por vehículo (principal, o la primera cargada si no hay principal): una sola consulta, sin N+1.
+  const { data: fotos } = ids.length > 0
+    ? await sb.from("foto_vehiculo").select("vehiculo_id,url,es_principal").in("vehiculo_id", ids)
+        .order("es_principal", { ascending: false }).order("orden", { ascending: true })
+        .returns<{ vehiculo_id: string; url: string; es_principal: boolean }[]>()
+    : { data: [] as { vehiculo_id: string; url: string; es_principal: boolean }[] };
+  const fotoPorVehiculo = new Map<string, string>();
+  for (const f of fotos ?? []) {
+    if (!fotoPorVehiculo.has(f.vehiculo_id)) fotoPorVehiculo.set(f.vehiculo_id, f.url);
+  }
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const qs = (p: number) => {
     const sp = new URLSearchParams();
@@ -126,7 +137,7 @@ export default async function StockPage({
           }
         />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead>
               <TR>
@@ -143,13 +154,29 @@ export default async function StockPage({
               </TR>
             </THead>
             <TBody>
-              {autos.map((a) => (
+              {autos.map((a) => {
+                const foto = fotoPorVehiculo.get(a.id);
+                return (
                 <TR key={a.id}>
                   <TD>
-                    <Link href={`/stock/${a.id}`} className="font-medium text-brand-700 hover:underline">
-                      {a.marca} {a.modelo}
-                    </Link>
-                    {a.version && <span className="block text-xs text-muted-foreground">{a.version}</span>}
+                    <div className="flex items-center gap-3">
+                      <Link href={`/stock/${a.id}`} className="block h-11 w-16 shrink-0 overflow-hidden rounded-md border bg-muted">
+                        {foto ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={foto} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                            <Car className="h-4 w-4" />
+                          </div>
+                        )}
+                      </Link>
+                      <div>
+                        <Link href={`/stock/${a.id}`} className="font-medium text-brand-700 hover:underline">
+                          {a.marca} {a.modelo}
+                        </Link>
+                        {a.version && <span className="block text-xs text-muted-foreground">{a.version}</span>}
+                      </div>
+                    </div>
                   </TD>
                   <TD>{a.anio ?? "—"}</TD>
                   <TD>{a.kilometros != null ? formatNumber(a.kilometros) : "—"}</TD>
@@ -171,7 +198,8 @@ export default async function StockPage({
                     {!a.publicado_web && !a.publicado_ml ? "—" : ""}
                   </TD>
                 </TR>
-              ))}
+                );
+              })}
             </TBody>
           </Table>
         </div>

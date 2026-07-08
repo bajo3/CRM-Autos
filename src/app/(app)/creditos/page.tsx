@@ -53,7 +53,7 @@ export default async function CreditosPage() {
       {!data || data.length === 0 ? (
         <EmptyState title="No hay créditos activos" description="Las ventas con financiación generan acá el seguimiento de cuotas." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Cliente</TH><TH>Vehículo</TH><TH>Cuota</TH><TH>Último pago</TH><TH>Fin estimado</TH><TH>Estado</TH>{puedeCobrar && <TH>Acciones</TH>}</TR></THead>
             <TBody>

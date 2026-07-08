@@ -102,13 +102,13 @@ export default async function CatalogosPage({
             <form method="get" action="/catalogos" className="mb-3 flex flex-wrap items-center gap-2">
               <input
                 name="q" defaultValue={searchParams.q ?? ""} placeholder="Buscar marca o modelo…"
-                className="h-9 w-full max-w-xs rounded-md border border-input bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-9 w-full max-w-xs rounded-lg border border-input bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
-              <select name="estado" defaultValue={estado} className="h-9 rounded-md border border-input bg-white px-3 text-sm shadow-sm">
+              <select name="estado" defaultValue={estado} className="h-9 rounded-lg border border-input bg-white px-3 text-sm shadow-sm">
                 <option value="">Todos (menos vendidos)</option>
                 {ESTADOS.map((e) => <option key={e} value={e}>{humanize(e)}</option>)}
               </select>
-              <select name="orden" defaultValue={orden} className="h-9 rounded-md border border-input bg-white px-3 text-sm shadow-sm">
+              <select name="orden" defaultValue={orden} className="h-9 rounded-lg border border-input bg-white px-3 text-sm shadow-sm">
                 {Object.entries(ORDENES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
               <Button type="submit" variant="outline" size="sm">Filtrar</Button>
@@ -124,13 +124,13 @@ export default async function CatalogosPage({
                     <label htmlFor="nombre" className="mb-1 block text-sm font-medium">Nombre del catálogo</label>
                     <input
                       id="nombre" name="nombre" defaultValue={`Catálogo ${formatDate(new Date())}`}
-                      className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="h-9 w-full rounded-lg border border-input bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     />
                   </div>
                   <Button type="submit"><FileText className="h-4 w-4" /> Generar catálogo PDF</Button>
                 </div>
 
-                <div className="max-h-80 divide-y overflow-y-auto rounded-md border">
+                <div className="max-h-80 divide-y overflow-y-auto rounded-lg border">
                   {autos.map((a) => (
                     <label key={a.id} className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-muted/50">
                       <input type="checkbox" name="vehiculo_ids" value={a.id} defaultChecked className="h-4 w-4 rounded border-input" />

@@ -85,7 +85,7 @@ export function UsuariosAdmin({
     <div>
       {puede && <InviteForm />}
 
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
         <Table>
           <THead>
             <TR>

@@ -15,7 +15,7 @@ import { rel } from "@/lib/rel";
 
 function CentroAccionSkeleton() {
   return (
-    <div className="divide-y rounded-lg border bg-card">
+    <div className="divide-y rounded-xl border border-border/70 bg-card shadow-elevate">
       {[0, 1, 2].map((i) => (
         <div key={i} className="flex animate-pulse items-center gap-3 px-4 py-3">
           <div className="h-4 w-4 rounded bg-gray-200" />

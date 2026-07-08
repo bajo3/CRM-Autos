@@ -1,22 +1,40 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { MessageCircle, Sparkles, Loader2 } from "lucide-react";
-import { waUrl } from "@/lib/data/whatsapp";
 import { sugerirMensajeWa } from "@/app/(app)/seguimientos/actions";
+import { abrirConversacionCliente } from "@/app/(app)/whatsapp/actions";
 
-/** Botones de WhatsApp de una fila de Seguimientos: mensaje rápido genérico o redactado con IA. */
+/** Botones de WhatsApp de una fila de Seguimientos: mensaje rápido genérico o redactado con IA — ambos abren la Bandeja del CRM. */
 export function FilaAcciones({
   seguimientoId,
-  telefono,
+  clienteId,
   mensajeGenerico,
 }: {
   seguimientoId: string;
-  telefono: string;
+  clienteId: string;
   mensajeGenerico: string;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  function abrir(mensaje: string) {
+    setError(null);
+    startTransition(async () => {
+      const res = await abrirConversacionCliente(clienteId, mensaje);
+      if (res.error || !res.href) {
+        setError(res.error ?? "No se pudo abrir la conversación.");
+        return;
+      }
+      router.push(res.href);
+    });
+  }
+
+  function rapido() {
+    abrir(mensajeGenerico);
+  }
 
   function sugerir() {
     setError(null);
@@ -26,21 +44,21 @@ export function FilaAcciones({
         setError(res.error ?? "No se pudo redactar el mensaje.");
         return;
       }
-      window.open(waUrl(res.texto, telefono), "_blank", "noopener,noreferrer");
+      abrir(res.texto);
     });
   }
 
   return (
     <span className="inline-flex items-center gap-1">
-      <a
-        href={waUrl(mensajeGenerico, telefono)}
-        target="_blank"
-        rel="noopener noreferrer"
-        title="Enviar WhatsApp (mensaje rápido)"
-        className="rounded-md border p-1.5 text-ok hover:bg-muted"
+      <button
+        type="button"
+        onClick={rapido}
+        disabled={pending}
+        title="Escribir por WhatsApp (mensaje rápido)"
+        className="rounded-md border p-1.5 text-ok hover:bg-muted disabled:opacity-50"
       >
         <MessageCircle className="h-3.5 w-3.5" />
-      </a>
+      </button>
       <button
         type="button"
         onClick={sugerir}

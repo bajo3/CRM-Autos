@@ -44,7 +44,7 @@ export default async function ReservasPage() {
       {!data || data.length === 0 ? (
         <EmptyState title="No hay reservas" description="Las señas que tomes quedarán registradas con su vencimiento." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Cliente</TH><TH>Vehículo</TH><TH>Seña</TH><TH>Reserva</TH><TH>Vence</TH><TH>Estado</TH><TH>Acciones</TH></TR></THead>
             <TBody>

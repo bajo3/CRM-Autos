@@ -358,7 +358,9 @@ export type Database = {
           fecha_fin_estimada: string | null
           fecha_inicio: string
           id: string
+          mensaje_renovacion_enviado: boolean
           observaciones: string | null
+          recordatorio_cuota_mes: string | null
           updated_at: string
           venta_id: string
         }
@@ -372,7 +374,9 @@ export type Database = {
           fecha_fin_estimada?: string | null
           fecha_inicio?: string
           id?: string
+          mensaje_renovacion_enviado?: boolean
           observaciones?: string | null
+          recordatorio_cuota_mes?: string | null
           updated_at?: string
           venta_id: string
         }
@@ -386,7 +390,9 @@ export type Database = {
           fecha_fin_estimada?: string | null
           fecha_inicio?: string
           id?: string
+          mensaje_renovacion_enviado?: boolean
           observaciones?: string | null
+          recordatorio_cuota_mes?: string | null
           updated_at?: string
           venta_id?: string
         }
@@ -1123,6 +1129,7 @@ export type Database = {
           empresa_id: string
           fecha_alerta: string
           id: string
+          mensaje_enviado: boolean
           notas: string | null
           realizada: boolean
           venta_id: string | null
@@ -1133,6 +1140,7 @@ export type Database = {
           empresa_id: string
           fecha_alerta: string
           id?: string
+          mensaje_enviado?: boolean
           notas?: string | null
           realizada?: boolean
           venta_id?: string | null
@@ -1143,6 +1151,7 @@ export type Database = {
           empresa_id?: string
           fecha_alerta?: string
           id?: string
+          mensaje_enviado?: boolean
           notas?: string | null
           realizada?: boolean
           venta_id?: string | null

@@ -285,7 +285,7 @@ export default async function DocumentosPage({
         <EmptyState title="No hay documentos generados" description="Generá un presupuesto acá, o recibos y boletos desde la ficha de cada venta." />
       ) : (
         <>
-          <div className="rounded-lg border bg-card">
+          <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
             <Table>
               <THead><TR><TH>N.º</TH><TH>Tipo</TH><TH>Cliente</TH><TH>Vehículo</TH><TH>Fecha</TH><TH></TH></TR></THead>
               <TBody>

@@ -16,11 +16,11 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-lg border border-dashed bg-card px-6 py-14 text-center",
+        "flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-card px-6 py-14 text-center",
         className,
       )}
     >
-      <div className="mb-3 rounded-full bg-muted p-3 text-muted-foreground">
+      <div className="mb-3 rounded-full bg-brand-50 p-3 text-brand-700">
         <Inbox className="h-6 w-6" />
       </div>
       <p className="font-medium text-foreground">{title}</p>

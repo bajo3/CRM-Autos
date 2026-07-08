@@ -75,7 +75,7 @@ export default async function PresupuestosPage({ searchParams }: { searchParams:
           description={puede ? "Creá el primer presupuesto con el botón de arriba." : "Todavía no se cargaron presupuestos."}
         />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead>
               <TR><TH>Cliente</TH><TH>Vehículo</TH><TH>Precio</TH><TH>Estado</TH><TH>Validez</TH><TH>Creado</TH><TH></TH></TR>

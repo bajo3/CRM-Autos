@@ -49,7 +49,7 @@ export default async function VentasPage({
       {!data || data.length === 0 ? (
         <EmptyState title="No hay ventas registradas" description="Las ventas que cierres aparecerán acá con su seguimiento de entrega." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Fecha</TH><TH>Cliente</TH><TH>Vehículo</TH><TH>Precio</TH><TH>Saldo</TH><TH>Pago</TH><TH>Entrega</TH></TR></THead>
             <TBody>

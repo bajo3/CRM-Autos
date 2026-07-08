@@ -4,11 +4,11 @@ import { cn } from "@/lib/utils";
 export type Tone = "neutral" | "ok" | "warn" | "danger" | "info";
 
 const TONES: Record<Tone, string> = {
-  neutral: "bg-muted text-muted-foreground",
-  ok: "bg-green-100 text-green-800",
-  warn: "bg-amber-100 text-amber-800",
-  danger: "bg-red-100 text-red-800",
-  info: "bg-blue-100 text-blue-800",
+  neutral: "bg-muted text-muted-foreground ring-1 ring-inset ring-border",
+  ok: "bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20",
+  warn: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20",
+  danger: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20",
+  info: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20",
 };
 
 /** Mapea estados del dominio a un tono semántico. */

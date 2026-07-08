@@ -6,6 +6,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { sendTextMessage, sendTemplateMessage } from "@/lib/whatsapp/service";
 import { registrarEventoWa } from "@/lib/whatsapp/log";
+import { normalizarTelefonoAr } from "@/lib/whatsapp/telefono";
 
 async function ctxConPermiso(permiso: Parameters<typeof can>[1]) {
   const ctx = await getSessionContext();
@@ -216,6 +217,67 @@ export async function crearClienteDesdeConversacion(conversacionId: string, nomb
 
   await sb.from("whatsapp_conversacion").update({ cliente_id: nuevo.id }).eq("id", conversacionId);
   revalidatePath(`/whatsapp/${conversacionId}`);
+}
+
+/**
+ * Encuentra (o crea) la conversación de WhatsApp de un cliente para que
+ * cualquier acción de "escribirle" del CRM abra la Bandeja en vez de
+ * wa.me externo — así todo el historial queda centralizado acá.
+ */
+export async function abrirConversacionCliente(
+  clienteId: string,
+  mensajeSugerido?: string,
+): Promise<{ href?: string; error?: string }> {
+  const { empresaId } = await ctxConPermiso("whatsapp.ver");
+  const sb = createClient();
+
+  const { data: cuenta } = await sb
+    .from("whatsapp_account")
+    .select("estado")
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
+  if (!cuenta || cuenta.estado !== "conectado") {
+    return { error: "No hay una cuenta de WhatsApp conectada. Conectala en Configuración." };
+  }
+
+  const { data: cliente } = await sb
+    .from("cliente")
+    .select("nombre, apellido, telefono, whatsapp")
+    .eq("id", clienteId)
+    .maybeSingle();
+  const telOriginal = cliente?.whatsapp || cliente?.telefono;
+  if (!telOriginal) return { error: "El cliente no tiene teléfono cargado." };
+  const telefono = normalizarTelefonoAr(telOriginal);
+  if (!telefono) return { error: "No se pudo interpretar el teléfono del cliente." };
+
+  const { data: existentes } = await sb
+    .from("whatsapp_conversacion")
+    .select("id")
+    .eq("empresa_id", empresaId)
+    .or(`cliente_id.eq.${clienteId},telefono.eq.${telefono}`)
+    .limit(1);
+
+  let conversacionId = existentes?.[0]?.id;
+  if (!conversacionId) {
+    const nombreContacto = cliente ? `${cliente.nombre} ${cliente.apellido ?? ""}`.trim() : null;
+    const { data: nueva, error } = await sb
+      .from("whatsapp_conversacion")
+      .insert({
+        empresa_id: empresaId,
+        cliente_id: clienteId,
+        telefono,
+        nombre_contacto: nombreContacto,
+        estado: "abierta",
+        bot_activo: false,
+      })
+      .select("id")
+      .single();
+    if (error || !nueva) return { error: "No se pudo abrir la conversación." };
+    conversacionId = nueva.id;
+  }
+
+  const draft = mensajeSugerido ? `?draft=${encodeURIComponent(mensajeSugerido)}` : "";
+  return { href: `/whatsapp/${conversacionId}${draft}` };
 }
 
 export async function crearSeguimientoDesdeConversacion(

@@ -46,7 +46,7 @@ export default async function PermutasPage() {
       {!data || data.length === 0 ? (
         <EmptyState title="No hay permutas registradas" description="Registrá el usado que un cliente entrega en parte de pago." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Cliente</TH><TH>Vehículo</TH><TH>Pretendido</TH><TH>Tasado</TH><TH>Diferencia</TH><TH>Estado</TH><TH>Acciones</TH></TR></THead>
             <TBody>

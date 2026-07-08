@@ -1,7 +1,10 @@
+import { Suspense } from "react";
+import { Bell } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { humanize } from "@/lib/format";
 import { GlobalSearch } from "@/components/global-search";
 import { NuevoMenu } from "@/components/nuevo-menu";
+import { NotificationBellServer } from "@/components/notification-bell-server";
 
 export function Topbar({
   nombre,
@@ -24,18 +27,21 @@ export function Topbar({
         <GlobalSearch />
       </div>
       <div className="flex items-center gap-1.5 sm:gap-3">
+        <Suspense fallback={<button className="rounded-md p-2 text-muted-foreground" disabled><Bell className="h-5 w-5" /></button>}>
+          <NotificationBellServer />
+        </Suspense>
         <NuevoMenu />
         <div className="hidden text-right leading-tight sm:block">
           <p className="text-sm font-medium">{nombre || "Usuario"}</p>
           <p className="text-xs text-muted-foreground">{humanize(rol)}</p>
         </div>
-        <div className="hidden h-9 w-9 items-center justify-center rounded-full bg-brand-800 text-sm font-semibold text-white sm:flex">
+        <div className="hidden h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-600 to-brand-800 text-sm font-semibold text-white shadow-sm ring-2 ring-white sm:flex">
           {iniciales}
         </div>
         <form action={logout}>
           <button
             type="submit"
-            className="rounded-md border px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted sm:px-3"
+            className="rounded-lg border px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted sm:px-3"
           >
             Salir
           </button>

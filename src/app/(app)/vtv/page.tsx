@@ -39,7 +39,7 @@ export default async function VtvPage() {
       {!data || data.length === 0 ? (
         <EmptyState title="No hay VTV registradas" description="Cargá la VTV de cada unidad para recibir alertas 60/30/7 días antes del vencimiento." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Vehículo</TH><TH>Patente</TH><TH>Últ. dígito</TH><TH>Mes sugerido</TH><TH>Vencimiento</TH><TH>Faltan</TH><TH>Alerta</TH></TR></THead>
             <TBody>

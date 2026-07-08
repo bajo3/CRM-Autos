@@ -38,7 +38,7 @@ export default async function TallerPage() {
       {!data || data.length === 0 ? (
         <EmptyState title="No hay trabajos de taller cargados" description="Cargá el service, detailing o reparación que necesita un vehículo." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Vehículo</TH><TH>Trabajo</TH><TH>Responsable</TH><TH>Estimado</TH><TH>Final</TH><TH>Ingreso</TH><TH>Estado</TH><TH>Acciones</TH></TR></THead>
             <TBody>

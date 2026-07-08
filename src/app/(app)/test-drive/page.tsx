@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, humanize } from "@/lib/format";
 import { rel, type Rel } from "@/lib/rel";
 import { waUrl } from "@/lib/data/whatsapp";
+import { AbrirChatButton } from "@/components/whatsapp/abrir-chat-button";
 import { cambiarEstadoTestDrive } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
 type Row = {
   id: string; fecha: string | null; hora: string | null; estado: string;
   conductor_nombre: string | null; telefono: string | null;
-  cliente: Rel<{ nombre: string; apellido: string }>;
+  cliente: Rel<{ id: string; nombre: string; apellido: string }>;
   vehiculo: Rel<{ marca: string; modelo: string }>;
 };
 
@@ -24,7 +25,7 @@ export default async function TestDrivePage() {
   const sb = createClient();
   const { data } = await sb
     .from("test_drive")
-    .select("id,fecha,hora,estado,conductor_nombre,telefono,cliente:cliente_id(nombre,apellido),vehiculo:vehiculo_id(marca,modelo)")
+    .select("id,fecha,hora,estado,conductor_nombre,telefono,cliente:cliente_id(id,nombre,apellido),vehiculo:vehiculo_id(marca,modelo)")
     .order("fecha", { ascending: false })
     .returns<Row[]>();
 
@@ -38,7 +39,7 @@ export default async function TestDrivePage() {
       {!data || data.length === 0 ? (
         <EmptyState title="No hay test drives agendados" description="Agendá una prueba de manejo desde acá o desde la ficha del vehículo." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Fecha</TH><TH>Cliente</TH><TH>Vehículo</TH><TH>Conductor</TH><TH>Estado</TH><TH>Acciones</TH></TR></THead>
             <TBody>
@@ -60,7 +61,13 @@ export default async function TestDrivePage() {
                             <Phone className="h-4 w-4" />
                           </a>
                         )}
-                        {wa && (
+                        {wa && c?.id ? (
+                          <AbrirChatButton
+                            clienteId={c.id}
+                            mensaje={`¡Hola${t.conductor_nombre ? ` ${t.conductor_nombre}` : ""}! Te confirmo el test drive${veh ? ` del ${veh.marca} ${veh.modelo}` : ""}${t.fecha ? ` para el ${formatDate(t.fecha)}` : ""}.`}
+                          />
+                        ) : wa ? (
+                          // Conductor sin cliente vinculado en el CRM: no hay a quién asociar la conversación en la Bandeja.
                           <a
                             href={waUrl(`¡Hola${t.conductor_nombre ? ` ${t.conductor_nombre}` : ""}! Te confirmo el test drive${veh ? ` del ${veh.marca} ${veh.modelo}` : ""}${t.fecha ? ` para el ${formatDate(t.fecha)}` : ""}.`, wa)}
                             target="_blank"
@@ -69,7 +76,7 @@ export default async function TestDrivePage() {
                           >
                             <MessageCircle className="h-4 w-4" />
                           </a>
-                        )}
+                        ) : null}
                         {t.estado === "agendado" && (
                           <>
                             <form action={cambiarEstadoTestDrive.bind(null, t.id, "realizado")}>

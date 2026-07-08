@@ -43,7 +43,7 @@ export function RegistrarPagoButton({
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg"
+            className="w-full max-w-md rounded-xl border border-border/70 bg-card p-6 shadow-pop"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold">Registrar pago de cuota</h2>

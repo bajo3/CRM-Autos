@@ -52,7 +52,7 @@ export async function BandejaShell({
   return (
     <div className="flex h-[calc(100vh-6.5rem)] min-w-0 gap-4 overflow-x-auto overflow-y-hidden">
       <LiveRefresh />
-      <aside className="flex w-64 shrink-0 flex-col overflow-hidden rounded-lg border bg-card">
+      <aside className="flex w-64 shrink-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-card shadow-elevate">
         <div className="border-b p-3">
           <form action="/whatsapp" method="get" className="space-y-2">
             <input
@@ -97,7 +97,7 @@ export async function BandejaShell({
         )}
       </aside>
 
-      <div className="min-w-[420px] flex-1 overflow-hidden rounded-lg border bg-card">{children}</div>
+      <div className="min-w-[420px] flex-1 overflow-hidden rounded-xl border border-border/70 bg-card shadow-elevate">{children}</div>
     </div>
   );
 }

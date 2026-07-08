@@ -33,6 +33,28 @@ export function mensajeCumpleanos(empresaNombre: string, nombreCliente?: string 
   return `¡Feliz cumpleaños${nombreCliente ? ` ${nombreCliente}` : ""}! 🎉 Todo el equipo de ${empresaNombre} te desea un muy buen día. ¡Gracias por confiar en nosotros!`;
 }
 
+/** Recordatorio automático de la próxima cuota de un crédito, con fecha e importe. */
+export function mensajeRecordatorioCuota(
+  nombreCliente: string | null | undefined,
+  numeroCuota: number,
+  fechaVencimiento: string,
+  importe: number | null,
+): string {
+  const fecha = new Date(`${fechaVencimiento}T00:00:00`).toLocaleDateString("es-AR");
+  const montoTxt = importe ? ` por $ ${new Intl.NumberFormat("es-AR").format(Math.round(importe))}` : "";
+  return `¡Hola${nombreCliente ? ` ${nombreCliente}` : ""}! Te recordamos que la cuota ${numeroCuota} de tu crédito vence el ${fecha}${montoTxt}. ¡Cualquier consulta, escribinos!`;
+}
+
+/** Última cuota de un crédito: pie para ofrecer cambio/venta/renovación. */
+export function mensajeRenovacionCredito(empresaNombre: string, nombreCliente?: string | null): string {
+  return `¡Hola${nombreCliente ? ` ${nombreCliente}` : ""}! Somos ${empresaNombre} 🚗 Tu crédito está llegando a la última cuota. ¿Ya pensaste si querés cambiar, vender o renovar tu auto? Contanos y te mostramos las opciones que tenemos.`;
+}
+
+/** A 6 meses de cualquier venta: pie para ofrecer cambio/venta (no solo recontacto genérico). */
+export function mensajeRenovacionPostventa(empresaNombre: string, nombreCliente?: string | null): string {
+  return `¡Hola${nombreCliente ? ` ${nombreCliente}` : ""}! Somos ${empresaNombre} 🚗 Ya pasaron unos meses desde tu compra — ¿cómo te está yendo con el auto? Si estás pensando en cambiarlo, venderlo o necesitás algo, contanos, ¡estamos para ayudarte!`;
+}
+
 /** Plantillas “de ejemplo” mostradas en la UI (el catálogo completa el link real). */
 export const PLANTILLAS_WA: { key: string; label: string; texto: string }[] = [
   { key: "catalogo", label: "Catálogo", texto: "¡Hola! Te comparto el catálogo de {empresa} 🚗 {link}" },

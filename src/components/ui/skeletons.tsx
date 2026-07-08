@@ -9,7 +9,7 @@ export function ListPageSkeleton({ rows = 6 }: { rows?: number }) {
     <div className="animate-pulse">
       <div className="mb-4 h-8 w-48 rounded bg-gray-200" />
       <div className="mb-4 h-9 w-full max-w-xl rounded bg-gray-100" />
-      <div className="space-y-2 rounded-lg border bg-card p-4">
+      <div className="space-y-2 rounded-xl border border-border/70 bg-card shadow-elevate p-4">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="h-8 rounded bg-gray-100" />
         ))}
@@ -24,7 +24,7 @@ export function FormPageSkeleton() {
       <div className="mb-3 h-4 w-32 rounded bg-gray-200" />
       <div className="mb-1 h-7 w-56 rounded bg-gray-200" />
       <div className="mb-5 h-4 w-80 rounded bg-gray-100" />
-      <div className="space-y-4 rounded-lg border bg-card p-4">
+      <div className="space-y-4 rounded-xl border border-border/70 bg-card shadow-elevate p-4">
         <div className="grid gap-4 sm:grid-cols-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="space-y-1.5">

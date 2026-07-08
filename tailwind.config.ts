@@ -52,6 +52,15 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
+      boxShadow: {
+        // Nombrados "elevate*" (no "card"/"pop-over") a propósito: Tailwind
+        // autogenera utilidades shadow-{color} para cada color del theme, y
+        // un boxShadow custom con el mismo nombre que un color (ej. "card")
+        // queda pisado en silencio por esa utilidad de color.
+        elevate: "0 1px 2px 0 rgba(16,24,40,0.04), 0 2px 8px -2px rgba(16,24,40,0.06)",
+        "elevate-hover": "0 4px 16px -4px rgba(16,24,40,0.12), 0 2px 4px -2px rgba(16,24,40,0.06)",
+        pop: "0 8px 24px -6px rgba(16,24,40,0.16)",
+      },
     },
   },
   plugins: [],

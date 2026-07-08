@@ -87,7 +87,7 @@ export default async function ClientesPage({
       {!clientes || clientes.length === 0 ? (
         <EmptyState title="No hay clientes que coincidan" description="Ajustá los filtros o cargá un nuevo lead." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead>
               <TR>

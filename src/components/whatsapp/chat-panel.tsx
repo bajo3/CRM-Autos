@@ -29,14 +29,16 @@ export function ChatPanel({
   mensajesIniciales,
   dentroVentana,
   plantillas,
+  draftInicial,
 }: {
   conversacionId: string;
   telefono: string;
   mensajesIniciales: MensajeRow[];
   dentroVentana: boolean;
   plantillas: Plantilla[];
+  draftInicial?: string;
 }) {
-  const [texto, setTexto] = useState("");
+  const [texto, setTexto] = useState(draftInicial ?? "");
   const [plantillaId, setPlantillaId] = useState(plantillas[0]?.id ?? "");
   const [variables, setVariables] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);

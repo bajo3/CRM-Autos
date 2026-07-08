@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 type Row = {
   id: string; fecha: string; hora: string | null; motivo: string | null; estado: string;
-  cliente: Rel<{ nombre: string; apellido: string; telefono: string | null; whatsapp: string | null }>;
+  cliente: Rel<{ id: string; nombre: string; apellido: string; telefono: string | null; whatsapp: string | null }>;
   vendedor: Rel<{ nombre: string; apellido: string }>;
 };
 
@@ -46,7 +46,7 @@ export default async function SeguimientosPage({
   let query = sb
     .from("seguimiento")
     .select(
-      "id,fecha,hora,motivo,estado,cliente:cliente_id(nombre,apellido,telefono,whatsapp),vendedor:vendedor_id(nombre,apellido)",
+      "id,fecha,hora,motivo,estado,cliente:cliente_id(id,nombre,apellido,telefono,whatsapp),vendedor:vendedor_id(nombre,apellido)",
       { count: "exact" },
     );
 
@@ -102,7 +102,7 @@ export default async function SeguimientosPage({
           }
         />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Fecha</TH><TH>Cliente</TH><TH>Motivo</TH><TH>Vendedor</TH><TH>Estado</TH><TH>Acciones</TH></TR></THead>
             <TBody>
@@ -120,7 +120,7 @@ export default async function SeguimientosPage({
                     <TD><Badge tone={toneForEstado(s.estado)}>{humanize(s.estado)}</Badge></TD>
                     <TD>
                       <div className="flex items-center gap-1">
-                        {tel && <FilaAcciones seguimientoId={s.id} telefono={tel} mensajeGenerico={mensaje} />}
+                        {tel && c?.id && <FilaAcciones seguimientoId={s.id} clienteId={c.id} mensajeGenerico={mensaje} />}
                         {(s.estado === "pendiente" || s.estado === "vencido") && (
                           <>
                             <form action={cambiarEstadoSeguimiento.bind(null, s.id, "realizado")}>

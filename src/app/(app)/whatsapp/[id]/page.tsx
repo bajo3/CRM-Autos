@@ -24,7 +24,7 @@ export default async function ConversacionPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: FiltrosBandeja;
+  searchParams: FiltrosBandeja & { draft?: string };
 }) {
   const ctx = await getSessionContext();
   if (!can(ctx?.profile?.rol, "whatsapp.ver") || !ctx?.profile?.empresa_id) {
@@ -44,11 +44,15 @@ export default async function ConversacionPage({
   // Marca la conversación como leída al abrirla. Se espera (no fire-and-forget)
   // porque el panel de lista se renderiza justo después con la cuenta ya en 0.
   const sb = createClient();
-  const [, plantillas, vendedores] = await Promise.all([
+  const [, plantillas, vendedores, { data: cuenta }] = await Promise.all([
     sb.from("whatsapp_conversacion").update({ no_leidos: 0 }).eq("id", conversacion.id),
     listarPlantillasAprobadas(empresaId),
     listarVendedores(empresaId),
+    sb.from("whatsapp_account").select("provider").eq("empresa_id", empresaId).maybeSingle(),
   ]);
+  // La ventana de 24h es una regla de la Cloud API de Meta: no aplica a
+  // Baileys (sesión personal), donde siempre se puede escribir texto libre.
+  const dentroVentana = cuenta?.provider === "baileys" || dentroVentana24h(conversacion.ultima_entrada_at);
 
   const clienteRel = rel(conversacion.cliente);
   const nombreContacto = clienteRel
@@ -68,8 +72,9 @@ export default async function ConversacionPage({
               conversacionId={conversacion.id}
               telefono={conversacion.telefono}
               mensajesIniciales={mensajes}
-              dentroVentana={dentroVentana24h(conversacion.ultima_entrada_at)}
+              dentroVentana={dentroVentana}
               plantillas={plantillas}
+              draftInicial={searchParams.draft}
             />
           </div>
           <ClientPanel

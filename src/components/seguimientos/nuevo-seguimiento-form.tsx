@@ -56,7 +56,7 @@ export function NuevoSeguimientoForm() {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className="rounded-xl border border-border/70 bg-card shadow-elevate p-4">
       <form
         action={(fd) => {
           setError(null);

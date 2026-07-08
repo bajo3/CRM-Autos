@@ -1,10 +1,10 @@
 import Link from "next/link";
 import {
-  Phone, MessageCircle, CalendarClock, FileText, CreditCard,
+  Phone, CalendarClock, FileText, CreditCard,
   BookmarkCheck, PackageSearch, CheckCircle2, HeartHandshake, ClipboardCheck, Cake,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { waUrl } from "@/lib/data/whatsapp";
+import { AbrirChatButton } from "@/components/whatsapp/abrir-chat-button";
 import { getAccionesComerciales, type AccionItem, type Urgencia } from "@/lib/data/acciones-comerciales";
 import { cambiarEstadoSeguimiento } from "@/app/(app)/seguimientos/actions";
 import { marcarPostventaRealizada } from "@/app/(app)/postventa/actions";
@@ -31,7 +31,7 @@ export async function CentroAccionComercial() {
 
   if (items.length === 0) {
     return (
-      <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
+      <div className="rounded-xl border border-border/70 bg-card shadow-elevate p-6 text-center text-sm text-muted-foreground">
         No hay nada urgente por ahora. 🎉 Los seguimientos vencidos, presupuestos por vencer,
         créditos por terminar, reservas, encargos urgentes y recontactos de postventa van a aparecer acá.
       </div>
@@ -39,7 +39,7 @@ export async function CentroAccionComercial() {
   }
 
   return (
-    <div className="divide-y rounded-lg border bg-card">
+    <div className="divide-y rounded-xl border border-border/70 bg-card shadow-elevate">
       {items.map((item) => {
         const Icono = ICONO_TIPO[item.tipo];
         const badge = URGENCIA_BADGE[item.urgencia];
@@ -65,15 +65,8 @@ export async function CentroAccionComercial() {
                   <Phone className="h-4 w-4" />
                 </a>
               )}
-              {item.telefono && item.whatsappMsg && (
-                <a
-                  href={waUrl(item.whatsappMsg, item.telefono)}
-                  target="_blank"
-                  title="WhatsApp"
-                  className="rounded-md border p-1.5 text-ok hover:bg-muted"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </a>
+              {item.clienteId && item.whatsappMsg && (
+                <AbrirChatButton clienteId={item.clienteId} mensaje={item.whatsappMsg} />
               )}
               {item.tipo === "seguimiento" && (
                 <form action={cambiarEstadoSeguimiento.bind(null, item.refId, "realizado")}>

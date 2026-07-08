@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, MessageCircle } from "lucide-react";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { PageHeader } from "@/components/ui/page-header";
@@ -9,8 +9,9 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatARS, humanize } from "@/lib/format";
 import { rel, type Rel } from "@/lib/rel";
-import { waUrl, mensajeVehiculo } from "@/lib/data/whatsapp";
+import { mensajeVehiculo } from "@/lib/data/whatsapp";
 import { matchStockParaEncargos } from "@/lib/data/matching";
+import { AbrirChatButton } from "@/components/whatsapp/abrir-chat-button";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ type Row = {
   anio_min: number | null; anio_max: number | null; km_max: number | null;
   presupuesto_max: number | null;
   urgencia: string; estado: string;
-  cliente: Rel<{ nombre: string; apellido: string; telefono: string | null }>;
+  cliente: Rel<{ id: string; nombre: string; apellido: string; telefono: string | null }>;
 };
 
 export default async function EncargosPage() {
@@ -30,7 +31,7 @@ export default async function EncargosPage() {
     getSessionContext(),
     sb
       .from("encargo")
-      .select("id,marca_buscada,modelo_buscado,anio_min,anio_max,km_max,presupuesto_max,urgencia,estado,cliente:cliente_id(nombre,apellido,telefono)")
+      .select("id,marca_buscada,modelo_buscado,anio_min,anio_max,km_max,presupuesto_max,urgencia,estado,cliente:cliente_id(id,nombre,apellido,telefono)")
       .order("created_at", { ascending: false })
       .returns<Row[]>(),
   ]);
@@ -49,7 +50,7 @@ export default async function EncargosPage() {
       {!data || data.length === 0 ? (
         <EmptyState title="No hay encargos activos" description="Registrá lo que busca un cliente para detectar coincidencias automáticamente." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Cliente</TH><TH>Busca</TH><TH>Años</TH><TH>Presupuesto</TH><TH>Urgencia</TH><TH>Estado</TH><TH>Coincidencias</TH></TR></THead>
             <TBody>
@@ -75,14 +76,11 @@ export default async function EncargosPage() {
                                 ¡Hay 1! {v.marca} {v.modelo}{v.anio ? ` ${v.anio}` : ""}
                               </Link>
                               {c?.telefono && (
-                                <a
-                                  href={waUrl(mensajeVehiculo(empresaNombre, { marca: v.marca, modelo: v.modelo, anio: v.anio, precio: v.precio_venta }), c.telefono)}
-                                  target="_blank"
-                                  title="Avisar por WhatsApp"
-                                  className="text-ok"
-                                >
-                                  <MessageCircle className="h-3.5 w-3.5" />
-                                </a>
+                                <AbrirChatButton
+                                  clienteId={c.id}
+                                  mensaje={mensajeVehiculo(empresaNombre, { marca: v.marca, modelo: v.modelo, anio: v.anio, precio: v.precio_venta })}
+                                  className="border-0 p-0 text-ok hover:bg-transparent"
+                                />
                               )}
                             </div>
                           ))}

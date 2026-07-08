@@ -41,7 +41,7 @@ export default async function ConsignadosPage() {
       {!data || data.length === 0 ? (
         <EmptyState title="No hay consignaciones registradas" description="Registrá un auto de un tercero que la agencia vende por comisión." />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
             <THead><TR><TH>Vehículo</TH><TH>Dueño</TH><TH>Comisión</TH><TH>Pretendido</TH><TH>Mínimo</TH><TH>Autorización</TH><TH>Vence</TH><TH>Estado</TH><TH>Liquidación</TH><TH>Acciones</TH></TR></THead>
             <TBody>
