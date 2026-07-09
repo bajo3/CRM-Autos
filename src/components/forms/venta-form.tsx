@@ -18,27 +18,34 @@ function Submit() {
 const hoy = new Date().toISOString().slice(0, 10);
 
 export function VentaForm({
-  action, clientes, vehiculos,
+  action, clientes, vehiculos, clienteId, vehiculoId, sena, precioSugerido, reservaId,
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   clientes: Option[]; vehiculos: Option[];
+  clienteId?: string; vehiculoId?: string; sena?: number; precioSugerido?: number; reservaId?: string;
 }) {
   const [state, formAction] = useFormState<FormState, FormData>(action, {});
 
   return (
     <form action={formAction}>
+      {reservaId && <input type="hidden" name="reserva_id" value={reservaId} />}
       <Card>
         <CardContent className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+          {reservaId && (
+            <p className="sm:col-span-2 rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              Confirmando venta a partir de una reserva: cliente, vehículo y seña ya vienen precargados.
+            </p>
+          )}
           <div>
             <Label htmlFor="cliente_id">Cliente comprador</Label>
-            <Select id="cliente_id" name="cliente_id" defaultValue="">
+            <Select id="cliente_id" name="cliente_id" defaultValue={clienteId ?? ""}>
               <option value="">— Elegir —</option>
               {clientes.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
             </Select>
           </div>
           <div>
             <Label htmlFor="vehiculo_id">Vehículo vendido</Label>
-            <Select id="vehiculo_id" name="vehiculo_id" defaultValue="">
+            <Select id="vehiculo_id" name="vehiculo_id" defaultValue={vehiculoId ?? ""}>
               <option value="">— Elegir —</option>
               {vehiculos.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
             </Select>
@@ -54,8 +61,8 @@ export function VentaForm({
               <option value="permuta">Permuta</option>
             </Select>
           </div>
-          <div><Label htmlFor="precio_final">Precio final (ARS)</Label><MoneyInput id="precio_final" name="precio_final" required /></div>
-          <div><Label htmlFor="sena">Seña (ARS)</Label><MoneyInput id="sena" name="sena" defaultValue={0} /></div>
+          <div><Label htmlFor="precio_final">Precio final (ARS)</Label><MoneyInput id="precio_final" name="precio_final" required defaultValue={precioSugerido} /></div>
+          <div><Label htmlFor="sena">Seña (ARS)</Label><MoneyInput id="sena" name="sena" defaultValue={sena ?? 0} /></div>
           <div>
             <Label htmlFor="estado_entrega">Estado de entrega</Label>
             <Select id="estado_entrega" name="estado_entrega" defaultValue="pendiente">

@@ -7,7 +7,11 @@ import { crearVenta } from "../actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function NuevaVentaPage() {
+export default async function NuevaVentaPage({
+  searchParams,
+}: {
+  searchParams: { cliente?: string; vehiculo?: string; reserva?: string; sena?: string; precio?: string };
+}) {
   const { clientes, vehiculos } = await getFormOptions();
   return (
     <div className="mx-auto max-w-3xl">
@@ -15,7 +19,16 @@ export default async function NuevaVentaPage() {
         <ArrowLeft className="h-4 w-4" /> Volver a ventas
       </Link>
       <PageHeader title="Nueva venta" description="Registrá una operación de venta." />
-      <VentaForm action={crearVenta} clientes={clientes} vehiculos={vehiculos} />
+      <VentaForm
+        action={crearVenta}
+        clientes={clientes}
+        vehiculos={vehiculos}
+        clienteId={searchParams.cliente}
+        vehiculoId={searchParams.vehiculo}
+        reservaId={searchParams.reserva}
+        sena={searchParams.sena ? Number(searchParams.sena) : undefined}
+        precioSugerido={searchParams.precio ? Number(searchParams.precio) : undefined}
+      />
     </div>
   );
 }

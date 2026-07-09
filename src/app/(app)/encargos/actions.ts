@@ -43,3 +43,13 @@ export async function crearEncargo(_prev: FormState, formData: FormData): Promis
   revalidatePath("/encargos");
   redirect("/encargos");
 }
+
+export type EstadoEncargo = "buscando" | "unidad_encontrada" | "ofrecido" | "cerrado" | "perdido";
+
+/** Cierra el círculo del encargo: hoy la única forma de avanzarlo era editando la base a mano. */
+export async function cambiarEstadoEncargo(id: string, estado: EstadoEncargo): Promise<void> {
+  const sb = createClient();
+  const { error } = await sb.from("encargo").update({ estado }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/encargos");
+}

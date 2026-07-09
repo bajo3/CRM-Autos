@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageCircle, Pencil, FileText, ExternalLink, Receipt } from "lucide-react";
+import { ArrowLeft, Pencil, FileText, ExternalLink, Receipt, BookmarkPlus, ClipboardCheck, Gauge, Repeat2, PackageSearch } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -14,6 +14,7 @@ import { rel, type Rel } from "@/lib/rel";
 import { agendarSeguimiento, registrarConsulta, registrarContacto } from "../actions";
 import { generarDocumentoCliente } from "@/app/(app)/documentos/actions";
 import { ESTADO_LABEL, ESTADO_TONE, type EstadoPresupuesto } from "@/app/(app)/presupuestos/lib";
+import { AbrirChatButton } from "@/components/whatsapp/abrir-chat-button";
 
 type DocRow = { id: string; tipo: string; numero: string | null; fecha_emision: string };
 type PresupuestoRow = { id: string; precio: number | null; estado: EstadoPresupuesto; validez: string | null; created_at: string };
@@ -78,17 +79,28 @@ export default async function FichaCliente({ params }: { params: { id: string } 
         <Link href="/clientes" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
           <ArrowLeft className="h-4 w-4" /> Volver a clientes
         </Link>
-        <div className="flex gap-2">
-          {wa && (
-            <a href={`https://wa.me/${wa}`} target="_blank">
-              <Button variant="outline" size="sm"><MessageCircle className="h-4 w-4 text-ok" /> WhatsApp</Button>
-            </a>
-          )}
+        <div className="flex flex-wrap justify-end gap-2">
+          {wa && <AbrirChatButton clienteId={c.id} compact={false} label="WhatsApp" />}
           {puedeGenerar && (
             <Link href={presupuestoHref}>
               <Button variant="outline" size="sm"><Receipt className="h-4 w-4" /> Presupuesto</Button>
             </Link>
           )}
+          <Link href={`/reservas/nuevo?cliente=${c.id}${interes ? `&vehiculo=${interes.id}` : ""}`}>
+            <Button variant="outline" size="sm"><BookmarkPlus className="h-4 w-4" /> Reservar</Button>
+          </Link>
+          <Link href={`/test-drive/nuevo?cliente=${c.id}${interes ? `&vehiculo=${interes.id}` : ""}`}>
+            <Button variant="outline" size="sm"><ClipboardCheck className="h-4 w-4" /> Test Drive</Button>
+          </Link>
+          <Link href={`/tasaciones/nuevo?cliente=${c.id}`}>
+            <Button variant="outline" size="sm"><Gauge className="h-4 w-4" /> Tasación</Button>
+          </Link>
+          <Link href={`/permutas/nuevo?cliente=${c.id}`}>
+            <Button variant="outline" size="sm"><Repeat2 className="h-4 w-4" /> Permuta</Button>
+          </Link>
+          <Link href={`/encargos/nuevo?cliente=${c.id}`}>
+            <Button variant="outline" size="sm"><PackageSearch className="h-4 w-4" /> Encargo</Button>
+          </Link>
           <Link href={`/clientes/${c.id}/editar`}>
             <Button variant="outline" size="sm"><Pencil className="h-4 w-4" /> Editar</Button>
           </Link>

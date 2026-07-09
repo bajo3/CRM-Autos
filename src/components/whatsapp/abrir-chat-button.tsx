@@ -16,11 +16,13 @@ export function AbrirChatButton({
   mensaje,
   className,
   compact = true,
+  label,
 }: {
   clienteId: string;
   mensaje?: string;
   className?: string;
   compact?: boolean;
+  label?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -46,11 +48,13 @@ export function AbrirChatButton({
         disabled={pending}
         title="Escribir por WhatsApp"
         className={cn(
+          "inline-flex items-center gap-1.5",
           compact ? "rounded-md border p-1.5 text-ok hover:bg-muted disabled:opacity-50" : "rounded-md border px-2.5 py-1.5 text-sm text-ok hover:bg-muted disabled:opacity-50",
           className,
         )}
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+        {label && <span>{label}</span>}
       </button>
       {error && <span className="text-xs text-danger">{error}</span>}
     </span>

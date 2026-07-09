@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
-import { Badge, toneForEstado } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatARS, humanize } from "@/lib/format";
@@ -12,6 +12,8 @@ import { rel, type Rel } from "@/lib/rel";
 import { mensajeVehiculo } from "@/lib/data/whatsapp";
 import { matchStockParaEncargos } from "@/lib/data/matching";
 import { AbrirChatButton } from "@/components/whatsapp/abrir-chat-button";
+import { EstadoEncargoSelect } from "@/components/encargos/estado-encargo-select";
+import type { EstadoEncargo } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +23,7 @@ type Row = {
   id: string; marca_buscada: string | null; modelo_buscado: string | null;
   anio_min: number | null; anio_max: number | null; km_max: number | null;
   presupuesto_max: number | null;
-  urgencia: string; estado: string;
+  urgencia: string; estado: EstadoEncargo;
   cliente: Rel<{ id: string; nombre: string; apellido: string; telefono: string | null }>;
 };
 
@@ -64,7 +66,7 @@ export default async function EncargosPage() {
                     <TD>{e.anio_min ?? "—"}–{e.anio_max ?? "—"}</TD>
                     <TD>{formatARS(e.presupuesto_max)}</TD>
                     <TD><Badge tone={e.urgencia === "alta" ? "danger" : e.urgencia === "media" ? "warn" : "neutral"}>{humanize(e.urgencia)}</Badge></TD>
-                    <TD><Badge tone={toneForEstado(e.estado)}>{humanize(e.estado)}</Badge></TD>
+                    <TD><EstadoEncargoSelect encargoId={e.id} value={e.estado} /></TD>
                     <TD>
                       {matches.length === 0 ? (
                         <span className="text-xs text-muted-foreground">—</span>

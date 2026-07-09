@@ -11,9 +11,9 @@ export async function getFormOptions() {
       .order("created_at", { ascending: false })
       .limit(300)
       .returns<{ id: string; marca: string; modelo: string; anio: number | null; patente: string | null }[]>(),
-    sb.from("cliente").select("id,nombre,apellido").order("nombre")
+    sb.from("cliente").select("id,nombre,apellido,telefono,whatsapp,dni_cuit").order("nombre")
       .limit(500)
-      .returns<{ id: string; nombre: string; apellido: string | null }[]>(),
+      .returns<{ id: string; nombre: string; apellido: string | null; telefono: string | null; whatsapp: string | null; dni_cuit: string | null }[]>(),
   ]);
 
   return {
@@ -22,6 +22,13 @@ export async function getFormOptions() {
       id: v.id,
       label: `${v.marca} ${v.modelo}${v.anio ? ` ${v.anio}` : ""}${v.patente ? ` · ${v.patente}` : ""}`,
     })),
-    clientes: (clientes ?? []).map((c) => ({ id: c.id, label: `${c.nombre} ${c.apellido ?? ""}`.trim() })),
+    // telefono/dni quedan disponibles para autocompletar formularios (ej. conductor de test drive)
+    // sin tipear de nuevo datos que el cliente ya tiene cargados.
+    clientes: (clientes ?? []).map((c) => ({
+      id: c.id,
+      label: `${c.nombre} ${c.apellido ?? ""}`.trim(),
+      telefono: c.whatsapp || c.telefono || "",
+      dni: c.dni_cuit || "",
+    })),
   };
 }

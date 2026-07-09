@@ -16,6 +16,7 @@ const uuid = z.union([z.string().uuid(), z.literal("")]).transform((v) => (v ===
 const schema = z.object({
   cliente_id: uuid,
   vehiculo_id: uuid,
+  reserva_id: uuid,
   fecha_venta: z.string().min(1, "Fecha obligatoria"),
   precio_final: num,
   sena: num.optional().or(z.literal("").transform(() => 0)),
@@ -64,6 +65,11 @@ export async function crearVenta(_prev: FormState, formData: FormData): Promise<
     .select("id")
     .single<{ id: string }>();
   if (error) return { error: `No se pudo guardar: ${error.message}` };
+
+  // Venta confirmada desde una reserva -> cierra el círculo, ya no queda "activa".
+  if (d.reserva_id) {
+    await sb.from("reserva").update({ estado: "convertida" }).eq("id", d.reserva_id);
+  }
 
   // Crédito -> generar registro de cuotas
   if (d.tiene_credito && d.cantidad_cuotas) {

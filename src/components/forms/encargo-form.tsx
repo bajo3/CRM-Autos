@@ -16,9 +16,11 @@ function Submit() {
 export function EncargoForm({
   action,
   clientes,
+  clienteId,
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   clientes: { id: string; label: string }[];
+  clienteId?: string;
 }) {
   const [state, formAction] = useFormState<FormState, FormData>(action, {});
 
@@ -28,7 +30,7 @@ export function EncargoForm({
         <CardContent className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <Label htmlFor="cliente_id">Cliente</Label>
-            <Select id="cliente_id" name="cliente_id" defaultValue="">
+            <Select id="cliente_id" name="cliente_id" defaultValue={clienteId ?? ""}>
               <option value="">— Sin cliente —</option>
               {clientes.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
             </Select>

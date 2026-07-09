@@ -6,7 +6,7 @@ import { Badge, toneForEstado } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import Link from "next/link";
-import { Plus, FileText, X } from "lucide-react";
+import { Plus, FileText, X, HandCoins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatARS, formatDate, humanize } from "@/lib/format";
 import { rel, type Rel } from "@/lib/rel";
@@ -18,8 +18,8 @@ export const dynamic = "force-dynamic";
 type Row = {
   id: string; monto_sena: number | null; fecha_reserva: string; vencimiento: string | null;
   medio_pago: string | null; estado: string;
-  cliente: Rel<{ nombre: string; apellido: string }>;
-  vehiculo: Rel<{ marca: string; modelo: string }>;
+  cliente: Rel<{ id: string; nombre: string; apellido: string }>;
+  vehiculo: Rel<{ id: string; marca: string; modelo: string; precio_venta: number | null }>;
 };
 
 export default async function ReservasPage() {
@@ -28,11 +28,12 @@ export default async function ReservasPage() {
     getSessionContext(),
     sb
       .from("reserva")
-      .select("id,monto_sena,fecha_reserva,vencimiento,medio_pago,estado,cliente:cliente_id(nombre,apellido),vehiculo:vehiculo_id(marca,modelo)")
+      .select("id,monto_sena,fecha_reserva,vencimiento,medio_pago,estado,cliente:cliente_id(id,nombre,apellido),vehiculo:vehiculo_id(id,marca,modelo,precio_venta)")
       .order("vencimiento", { ascending: true })
       .returns<Row[]>(),
   ]);
   const puedeGenerar = can(ctx?.profile?.rol, "documentos.generar");
+  const puedeVender = can(ctx?.profile?.rol, "ventas.crear");
 
   return (
     <div>
@@ -62,17 +63,20 @@ export default async function ReservasPage() {
                     <TD>
                       {r.estado === "activa" && (
                         <div className="flex items-center gap-1.5">
+                          {puedeVender && (
+                            <Link
+                              href={`/ventas/nuevo?reserva=${r.id}&cliente=${c?.id ?? ""}&vehiculo=${veh?.id ?? ""}&sena=${r.monto_sena ?? 0}&precio=${veh?.precio_venta ?? ""}`}
+                            >
+                              <Button type="button" variant="outline" size="sm"><HandCoins className="h-3.5 w-3.5" /> Confirmar venta</Button>
+                            </Link>
+                          )}
                           {puedeGenerar && (
                             <form action={generarReciboReserva.bind(null, r.id)}>
-                              <button type="submit" className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs text-brand-800 hover:bg-muted">
-                                <FileText className="h-3.5 w-3.5" /> Recibo
-                              </button>
+                              <Button type="submit" variant="outline" size="sm"><FileText className="h-3.5 w-3.5" /> Recibo</Button>
                             </form>
                           )}
                           <form action={cancelarReserva.bind(null, r.id)}>
-                            <button type="submit" className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted" title="El vehículo vuelve a quedar disponible">
-                              <X className="h-3.5 w-3.5" /> Cancelar
-                            </button>
+                            <Button type="submit" variant="outline" size="sm" title="El vehículo vuelve a quedar disponible"><X className="h-3.5 w-3.5" /> Cancelar</Button>
                           </form>
                         </div>
                       )}

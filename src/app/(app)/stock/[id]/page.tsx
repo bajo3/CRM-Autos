@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageCircle, Pencil, FileText, ExternalLink, Receipt, BookmarkPlus, ClipboardCheck, Wrench } from "lucide-react";
+import { ArrowLeft, MessageCircle, Pencil, FileText, ExternalLink, Receipt, BookmarkPlus, ClipboardCheck, Wrench, HandCoins } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -161,6 +161,11 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
           <Link href={`/reservas/nuevo?vehiculo=${v.id}`}>
             <Button variant="outline" size="sm"><BookmarkPlus className="h-4 w-4" /> Reservar</Button>
           </Link>
+          {can(rol, "ventas.crear") && (
+            <Link href={`/ventas/nuevo?vehiculo=${v.id}&precio=${v.precio_venta ?? ""}`}>
+              <Button variant="outline" size="sm"><HandCoins className="h-4 w-4" /> Vender</Button>
+            </Link>
+          )}
           <Link href={`/test-drive/nuevo?vehiculo=${v.id}`}>
             <Button variant="outline" size="sm"><ClipboardCheck className="h-4 w-4" /> Test Drive</Button>
           </Link>
