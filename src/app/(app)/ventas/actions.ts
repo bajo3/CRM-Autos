@@ -81,8 +81,8 @@ export async function crearVenta(_prev: FormState, formData: FormData): Promise<
     }
   }
 
-  // Venta en efectivo -> alerta de postventa a 6 meses
-  if (d.forma_pago === "efectivo" && d.cliente_id) {
+  // Toda venta -> alerta de postventa a 6 meses (recontacto + oferta de cambio/venta automática)
+  if (d.cliente_id) {
     await sb.from("postventa").insert({
       empresa_id,
       venta_id: venta.id,

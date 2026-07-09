@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTextMessage, sendTemplateMessage } from "@/lib/whatsapp/service";
 import { registrarEventoWa } from "@/lib/whatsapp/log";
 import { enviarRecordatoriosDiarios } from "@/lib/whatsapp/recordatorios";
+import { enviarRecordatoriosCuotas, enviarMensajesRenovacion } from "@/lib/whatsapp/recordatorios-comerciales";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,8 @@ async function ejecutar(request: NextRequest): Promise<NextResponse> {
   }
 
   const recordatorios = await enviarRecordatoriosDiarios(admin);
+  const cuotas = await enviarRecordatoriosCuotas(admin);
+  const renovacion = await enviarMensajesRenovacion(admin);
 
   return NextResponse.json({
     ok: true,
@@ -122,6 +125,8 @@ async function ejecutar(request: NextRequest): Promise<NextResponse> {
     reintentados,
     fallados,
     recordatorios,
+    cuotas,
+    renovacion,
   });
 }
 

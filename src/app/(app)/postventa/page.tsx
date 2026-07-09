@@ -34,10 +34,10 @@ export default async function PostventaPage() {
     <div>
       <PageHeader
         title="Postventa"
-        description="Recontacto a 6 meses de ventas en efectivo: experiencia, referidos y nueva operación."
+        description="Recontacto automático a 6 meses de cada venta: experiencia, cambio/renovación y nueva operación."
       />
       {!data || data.length === 0 ? (
-        <EmptyState title="No hay alertas de postventa" description="Las ventas en efectivo generan una alerta automática a los 6 meses." />
+        <EmptyState title="No hay alertas de postventa" description="Cada venta genera una alerta automática a los 6 meses, con mensaje por WhatsApp incluido." />
       ) : (
         <div className="rounded-xl border border-border/70 bg-card shadow-elevate">
           <Table>
