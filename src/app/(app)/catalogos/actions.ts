@@ -11,7 +11,7 @@ import { generarCatalogoPdf, type VehiculoCat, type EmpresaCat } from "@/lib/pdf
 type VehRow = {
   id: string; marca: string; modelo: string; version: string | null; anio: number | null;
   kilometros: number | null; combustible: string | null; transmision: string | null;
-  color: string | null; precio_venta: number | null;
+  color: string | null; motor: string | null; precio_venta: number | null; destacado: boolean;
 };
 
 async function fetchBytes(url: string | null | undefined): Promise<Uint8Array | null> {
@@ -38,7 +38,7 @@ export async function generarCatalogo(formData: FormData): Promise<void> {
 
   const { data: vehiculos } = await sb
     .from("vehiculo")
-    .select("id,marca,modelo,version,anio,kilometros,combustible,transmision,color,precio_venta")
+    .select("id,marca,modelo,version,anio,kilometros,combustible,transmision,color,motor,precio_venta,destacado")
     .in("id", ids)
     .order("created_at", { ascending: false })
     .returns<VehRow[]>();
@@ -58,7 +58,7 @@ export async function generarCatalogo(formData: FormData): Promise<void> {
     vehiculos.map(async (v) => ({
       marca: v.marca, modelo: v.modelo, version: v.version, anio: v.anio,
       kilometros: v.kilometros, combustible: v.combustible, transmision: v.transmision,
-      color: v.color, precio_venta: v.precio_venta,
+      color: v.color, motor: v.motor, precio_venta: v.precio_venta, destacado: v.destacado,
       fotoBytes: await fetchBytes(fotoPorVeh.get(v.id)),
     })),
   );

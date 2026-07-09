@@ -2660,6 +2660,7 @@ export type Database = {
       crm_run_daily_jobs: { Args: never; Returns: undefined }
       ml_registrar_notificacion: { Args: { p: Json }; Returns: string }
       stock_publico: { Args: { p_slug: string }; Returns: Json }
+      vehiculo_publico: { Args: { p_slug: string; p_id: string }; Returns: Json }
     }
     Enums: {
       canal_publicacion: "web" | "mercadolibre" | "redes"

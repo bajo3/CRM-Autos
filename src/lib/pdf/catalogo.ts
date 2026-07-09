@@ -5,6 +5,7 @@
  * 2 por página. Pensado para compartir por WhatsApp (bucket público).
  */
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
+import QRCode from "qrcode";
 
 export type EmpresaCat = {
   nombre: string;
@@ -22,8 +23,9 @@ export type EmpresaCat = {
 export type VehiculoCat = {
   marca: string; modelo: string; version?: string | null; anio?: number | null;
   kilometros?: number | null; combustible?: string | null; transmision?: string | null;
-  color?: string | null; precio_venta?: number | null;
+  color?: string | null; motor?: string | null; precio_venta?: number | null;
   fotoBytes?: Uint8Array | null;
+  destacado?: boolean;
 };
 
 const A4 = { w: 595.28, h: 841.89 };
@@ -32,6 +34,8 @@ const INK = rgb(0.1, 0.1, 0.12);
 const GREY = rgb(0.42, 0.45, 0.5);
 const RULE = rgb(0.82, 0.84, 0.87);
 const BRAND_DEFAULT = rgb(0.118, 0.227, 0.541); // brand-800 aprox.
+const AMBAR = rgb(0.96, 0.75, 0.2);
+const AMBAR_INK = rgb(0.36, 0.24, 0.02);
 
 function brandColor(hex: string | null | undefined) {
   const m = /^#?([0-9a-fA-F]{6})$/.exec(hex ?? "");
@@ -75,9 +79,21 @@ async function embedFoto(pdf: PDFDocument, bytes: Uint8Array | null | undefined)
   return null;
 }
 
+/** Genera el QR de la vitrina pública (si hay link) y lo embebe como PNG. */
+async function embedQr(pdf: PDFDocument, link: string | null | undefined): Promise<PDFImage | null> {
+  if (!link) return null;
+  try {
+    const png = await QRCode.toBuffer(link, { width: 300, margin: 1 });
+    return await pdf.embedPng(png);
+  } catch {
+    return null;
+  }
+}
+
 function drawPortada(
   pdf: PDFDocument, empresa: EmpresaCat, opts: { titulo: string; fecha: string },
   cantidad: number, font: PDFFont, bold: PDFFont, BRAND: ReturnType<typeof rgb>, logo: PDFImage | null,
+  qr: PDFImage | null,
 ) {
   const page = pdf.addPage([A4.w, A4.h]);
   const blockH = A4.h * 0.52;
@@ -112,6 +128,18 @@ function drawPortada(
   page.drawText(countTxt, {
     x: (A4.w - bold.widthOfTextAtSize(countTxt, 17)) / 2, y: by, size: 17, font: bold, color: INK,
   });
+  by -= 30;
+
+  if (qr) {
+    const qrSize = 110;
+    page.drawImage(qr, { x: (A4.w - qrSize) / 2, y: by - qrSize, width: qrSize, height: qrSize });
+    by -= qrSize + 14;
+    const caption = "Escaneá para ver el stock actualizado";
+    page.drawText(caption, {
+      x: (A4.w - font.widthOfTextAtSize(caption, 9)) / 2, y: by, size: 9, font, color: GREY,
+    });
+    by -= 20;
+  }
 
   const contacto = [empresa.telefono ? `Tel ${empresa.telefono}` : null, empresa.email,
     [empresa.direccion, empresa.localidad].filter(Boolean).join(", ") || null]
@@ -134,8 +162,9 @@ export async function generarCatalogoPdf(
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const BRAND = brandColor(empresa.color_primario);
   const logo = await embedFoto(pdf, empresa.logoBytes);
+  const qr = await embedQr(pdf, empresa.linkVitrina);
 
-  drawPortada(pdf, empresa, opts, vehiculos.length, font, bold, BRAND, logo);
+  drawPortada(pdf, empresa, opts, vehiculos.length, font, bold, BRAND, logo, qr);
 
   const totalPages = 2 + Math.max(1, Math.ceil(vehiculos.length / PER_PAGE));
   let pageNum = 1;
@@ -179,7 +208,7 @@ export async function generarCatalogoPdf(
     }
   }
 
-  drawCierre(pdf, empresa, font, bold, BRAND, logo);
+  drawCierre(pdf, empresa, font, bold, BRAND, logo, qr);
 
   return pdf.save();
 }
@@ -187,6 +216,7 @@ export async function generarCatalogoPdf(
 /** Página final: contacto + link a la vitrina pública, para que el catálogo nunca sea un callejón sin salida. */
 function drawCierre(
   pdf: PDFDocument, empresa: EmpresaCat, font: PDFFont, bold: PDFFont, BRAND: ReturnType<typeof rgb>, logo: PDFImage | null,
+  qr: PDFImage | null,
 ) {
   const page = pdf.addPage([A4.w, A4.h]);
   const blockH = A4.h * 0.4;
@@ -214,6 +244,11 @@ function drawCierre(
 
   let by = A4.h - blockH - 60;
   if (empresa.linkVitrina) {
+    if (qr) {
+      const qrSize = 150;
+      page.drawImage(qr, { x: (A4.w - qrSize) / 2, y: by - qrSize, width: qrSize, height: qrSize });
+      by -= qrSize + 20;
+    }
     const link = safe(empresa.linkVitrina);
     page.drawText(link, {
       x: (A4.w - bold.widthOfTextAtSize(link, 15)) / 2, y: by, size: 15, font: bold, color: BRAND,
@@ -257,6 +292,20 @@ async function drawCard(
 
   page.drawRectangle({ x, y: yBottom, width: w, height: cardH, borderColor: RULE, borderWidth: 1, color: rgb(1, 1, 1) });
 
+  // ---- Barra de acento (borde izquierdo) ----
+  page.drawRectangle({ x, y: yBottom, width: 4, height: cardH, color: BRAND });
+
+  // ---- Badge "DESTACADO" ----
+  if (v.destacado === true) {
+    const label = "DESTACADO";
+    const bw = bold.widthOfTextAtSize(label, 7) + 16;
+    const bh = 16;
+    const bx = x + w - 14 - bw;
+    const by = top - 14 - bh;
+    page.drawRectangle({ x: bx, y: by, width: bw, height: bh, color: AMBAR });
+    page.drawText(label, { x: bx + 8, y: by + 5, size: 7, font: bold, color: AMBAR_INK });
+  }
+
   // ---- Foto (izquierda, agrandada) ----
   const boxX = x + 14, boxY = yBottom + 14, boxW = 270, boxH = cardH - 28;
   const img = await embedFoto(pdf, v.fotoBytes);
@@ -269,8 +318,13 @@ async function drawCard(
     page.drawText("Sin foto", { x: boxX + boxW / 2 - 20, y: boxY + boxH / 2 - 5, size: 10, font, color: GREY });
   }
 
+  // ---- Divisoria sutil entre foto y datos ----
+  const dividerX = boxX + boxW + 16;
+  page.drawLine({ start: { x: dividerX, y: yBottom + 14 }, end: { x: dividerX, y: top - 14 }, thickness: 1, color: RULE });
+
   // ---- Datos (derecha) ----
   const tx = x + boxW + 32;
+  const rightEdge = x + w - 14;
   let ty = top - 34;
   const titulo = `${v.marca} ${v.modelo}${v.anio ? ` ${v.anio}` : ""}`;
   page.drawText(safe(titulo), { x: tx, y: ty, size: 17, font: bold, color: INK });
@@ -278,17 +332,35 @@ async function drawCard(
   if (v.version) { page.drawText(safe(v.version), { x: tx, y: ty, size: 10, font, color: GREY }); ty -= 22; }
   else ty -= 8;
 
-  const specs = [
-    v.kilometros != null ? `${num(v.kilometros)} km` : null,
-    v.combustible ? safe(v.combustible) : null,
-    v.transmision ? safe(v.transmision) : null,
-    v.color ? safe(v.color) : null,
-  ].filter(Boolean);
-  for (const s of specs) {
-    page.drawText(`•  ${s}`, { x: tx, y: ty, size: 11, font, color: INK });
-    ty -= 18;
+  // ---- Specs en grilla de 2 columnas ("etiqueta" arriba / "valor" abajo) ----
+  const specs: { label: string; value: string }[] = [
+    v.anio != null ? { label: "AÑO", value: String(v.anio) } : null,
+    v.kilometros != null ? { label: "KM", value: `${num(v.kilometros)} km` } : null,
+    v.combustible ? { label: "COMBUSTIBLE", value: safe(v.combustible) } : null,
+    v.transmision ? { label: "CAJA", value: safe(v.transmision) } : null,
+    v.color ? { label: "COLOR", value: safe(v.color) } : null,
+    v.motor ? { label: "MOTOR", value: safe(v.motor) } : null,
+  ].filter((s): s is { label: string; value: string } => s !== null);
+
+  const dataWidth = rightEdge - tx;
+  const colGap = 14;
+  const colW = (dataWidth - colGap) / 2;
+  const rowH = 32;
+  for (let i = 0; i < specs.length; i++) {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const sx = tx + col * (colW + colGap);
+    const sy = ty - row * rowH;
+    page.drawText(specs[i].label, { x: sx, y: sy, size: 7, font: bold, color: GREY });
+    page.drawText(specs[i].value, { x: sx, y: sy - 14, size: 11, font: bold, color: INK });
   }
 
-  // Precio
-  page.drawText(ars(v.precio_venta), { x: tx, y: yBottom + 22, size: 22, font: bold, color: BRAND });
+  // ---- Precio: chip relleno del color de marca ----
+  const priceTxt = safe(ars(v.precio_venta));
+  const chipH = 30;
+  const chipW = bold.widthOfTextAtSize(priceTxt, 16) + 20;
+  const chipX = rightEdge - chipW;
+  const chipY = yBottom + 14;
+  page.drawRectangle({ x: chipX, y: chipY, width: chipW, height: chipH, color: BRAND });
+  page.drawText(priceTxt, { x: chipX + 10, y: chipY + 9, size: 16, font: bold, color: rgb(1, 1, 1) });
 }

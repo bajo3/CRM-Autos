@@ -107,7 +107,7 @@ export default async function StockPublicoPage({ params }: { params: { slug: str
             Por el momento no hay unidades publicadas. Volvé pronto.
           </div>
         ) : (
-          <VitrinaFiltros vehiculos={vehiculos} empresaNombre={empresa.nombre} telefono={empresa.telefono} color={color} />
+          <VitrinaFiltros vehiculos={vehiculos} empresaNombre={empresa.nombre} telefono={empresa.telefono} color={color} slug={empresa.slug} />
         )}
       </section>
 

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { MessageCircle, Gauge, Calendar, Fuel } from "lucide-react";
 import { waUrl, mensajeVehiculo } from "@/lib/data/whatsapp";
 import { humanize } from "@/lib/format";
@@ -39,9 +40,9 @@ const ORDENES = [
 ] as const;
 
 export function VitrinaFiltros({
-  vehiculos, empresaNombre, telefono, color,
+  vehiculos, empresaNombre, telefono, color, slug,
 }: {
-  vehiculos: VehPublico[]; empresaNombre: string; telefono: string | null; color: string;
+  vehiculos: VehPublico[]; empresaNombre: string; telefono: string | null; color: string; slug: string;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [orden, setOrden] = useState<(typeof ORDENES)[number]["value"]>("recientes");
@@ -89,62 +90,68 @@ export function VitrinaFiltros({
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtrados.map((v) => (
-            <article key={v.id} className="flex flex-col overflow-hidden rounded-lg border bg-white shadow-sm transition hover:shadow-md">
-              <div className="relative aspect-[4/3] bg-gray-100">
-                {v.foto ? (
-                  <Image
-                    src={v.foto}
-                    alt={`${v.marca} ${v.modelo}`}
-                    fill
-                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-gray-300">Sin foto</div>
-                )}
-                {v.destacado && (
-                  <span className="absolute left-2 top-2 rounded bg-amber-400 px-2 py-0.5 text-xs font-semibold text-amber-950">
-                    Destacado
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-1 flex-col p-4">
-                <h3 className="font-semibold text-gray-900">
-                  {v.marca} {v.modelo}
-                </h3>
-                {v.version && <p className="text-sm text-gray-500">{v.version}</p>}
-                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600">
-                  {v.anio && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" /> {v.anio}
+            <article key={v.id} className="group flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+              <Link href={`/p/${slug}/${v.id}`} className="flex flex-1 flex-col">
+                <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                  {v.foto ? (
+                    <Image
+                      src={v.foto}
+                      alt={`${v.marca} ${v.modelo}`}
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-cover transition duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-gray-300">Sin foto</div>
+                  )}
+                  {v.destacado && (
+                    <span className="absolute left-2 top-2 rounded-full bg-amber-400 px-2.5 py-0.5 text-xs font-semibold text-amber-950 shadow-sm">
+                      Destacado
                     </span>
                   )}
-                  <span className="flex items-center gap-1">
-                    <Gauge className="h-3 w-3" /> {km(v.kilometros)}
-                  </span>
-                  {v.combustible && (
-                    <span className="flex items-center gap-1">
-                      <Fuel className="h-3 w-3" /> {humanize(v.combustible)}
-                    </span>
-                  )}
-                  {v.transmision && <span>{humanize(v.transmision)}</span>}
                 </div>
-                <p className="mt-3 text-lg font-bold" style={{ color }}>
-                  {precioARS(v.precio)}
-                </p>
-                {v.mostrar_whatsapp && telefono && (
+                <div className="flex flex-1 flex-col p-4">
+                  <h3 className="font-semibold text-gray-900 transition group-hover:text-gray-700">
+                    {v.marca} {v.modelo}
+                  </h3>
+                  {v.version && <p className="text-sm text-gray-500">{v.version}</p>}
+                  <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-gray-600">
+                    {v.anio && (
+                      <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
+                        <Calendar className="h-3 w-3" /> {v.anio}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
+                      <Gauge className="h-3 w-3" /> {km(v.kilometros)}
+                    </span>
+                    {v.combustible && (
+                      <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
+                        <Fuel className="h-3 w-3" /> {humanize(v.combustible)}
+                      </span>
+                    )}
+                    {v.transmision && (
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5">{humanize(v.transmision)}</span>
+                    )}
+                  </div>
+                  <p className="mt-3 text-xl font-extrabold" style={{ color }}>
+                    {precioARS(v.precio)}
+                  </p>
+                </div>
+              </Link>
+              {v.mostrar_whatsapp && telefono && (
+                <div className="px-4 pb-4">
                   <a
                     href={waUrl(
                       mensajeVehiculo(empresaNombre, { marca: v.marca, modelo: v.modelo, anio: v.anio, precio: v.precio }),
                       telefono,
                     )}
                     target="_blank"
-                    className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-green-700"
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-green-700"
                   >
                     <MessageCircle className="h-4 w-4" /> Consultar por WhatsApp
                   </a>
-                )}
-              </div>
+                </div>
+              )}
             </article>
           ))}
         </div>
