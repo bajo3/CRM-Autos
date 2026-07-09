@@ -217,6 +217,7 @@ export type Database = {
       consignacion: {
         Row: {
           autorizacion_venta: boolean
+          cliente_id: string | null
           comision_acordada: number | null
           created_at: string
           doc_recibida: string | null
@@ -237,6 +238,7 @@ export type Database = {
         }
         Insert: {
           autorizacion_venta?: boolean
+          cliente_id?: string | null
           comision_acordada?: number | null
           created_at?: string
           doc_recibida?: string | null
@@ -257,6 +259,7 @@ export type Database = {
         }
         Update: {
           autorizacion_venta?: boolean
+          cliente_id?: string | null
           comision_acordada?: number | null
           created_at?: string
           doc_recibida?: string | null

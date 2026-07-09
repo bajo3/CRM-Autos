@@ -12,6 +12,7 @@ const num = z.union([z.coerce.number(), z.literal("")]).transform((v) => (v === 
 
 const schema = z.object({
   vehiculo_id: z.string().uuid("Elegí el vehículo consignado"),
+  cliente_id: uuid,
   dueno_nombre: z.string().min(1, "El nombre del dueño es obligatorio"),
   dueno_contacto: text,
   comision_acordada: num,
@@ -36,6 +37,7 @@ export async function crearConsignacion(_prev: FormState, formData: FormData): P
   const { error } = await sb.from("consignacion").insert({
     empresa_id: ctx.profile.empresa_id,
     vehiculo_id: d.vehiculo_id,
+    cliente_id: d.cliente_id,
     dueno_nombre: d.dueno_nombre,
     dueno_contacto: d.dueno_contacto,
     comision_acordada: d.comision_acordada,
@@ -70,22 +72,26 @@ export async function liquidarConsignacion(id: string): Promise<void> {
   const sb = createClient();
   const { data: c } = await sb
     .from("consignacion")
-    .select("estado, liquidado, comision_acordada, vehiculo_id")
+    .select("estado, liquidado, comision_acordada, vehiculo_id, created_at")
     .eq("id", id)
-    .maybeSingle<{ estado: string; liquidado: boolean; comision_acordada: number | null; vehiculo_id: string | null }>();
+    .maybeSingle<{ estado: string; liquidado: boolean; comision_acordada: number | null; vehiculo_id: string | null; created_at: string }>();
   if (!c) throw new Error("Consignación no encontrada.");
   if (c.estado !== "vendida") throw new Error("Solo se puede liquidar una consignación en estado vendida.");
   if (c.liquidado) throw new Error("Esta consignación ya fue liquidada.");
   if (!c.vehiculo_id) throw new Error("La consignación no tiene un vehículo asociado.");
 
+  // Solo ventas posteriores al alta de esta consignación: si el mismo vehículo
+  // se vendió antes (otra consignación previa) o se revendiera después, no hay
+  // que confundirlas con la venta que corresponde a este acuerdo.
   const { data: venta } = await sb
     .from("venta")
     .select("precio_final")
     .eq("vehiculo_id", c.vehiculo_id)
+    .gte("created_at", c.created_at)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle<{ precio_final: number }>();
-  if (!venta) throw new Error("No se encontró una venta registrada para este vehículo. Registrala en el módulo Ventas antes de liquidar.");
+  if (!venta) throw new Error("No se encontró una venta registrada para este vehículo desde que se dio de alta la consignación. Registrala en el módulo Ventas antes de liquidar.");
 
   const comision = c.comision_acordada ?? 0;
   const montoLiquidado = Math.round(venta.precio_final * (1 - comision / 100));

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import type { FormState } from "@/app/(app)/consignados/actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Input, Select, Textarea, Label } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
 
 type Option = { id: string; label: string };
+type ClienteOption = Option & { telefono?: string };
 
 function Submit() {
   const { pending } = useFormStatus();
@@ -16,15 +18,27 @@ function Submit() {
 }
 
 export function ConsignacionForm({
-  action, vehiculos, vehiculoId,
+  action, vehiculos, clientes, vehiculoId,
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
-  vehiculos: Option[]; vehiculoId?: string;
+  vehiculos: Option[]; clientes: ClienteOption[]; vehiculoId?: string;
 }) {
   const [state, formAction] = useFormState<FormState, FormData>(action, {});
+  const [clienteId, setClienteId] = useState("");
+  const [duenoNombre, setDuenoNombre] = useState("");
+  const [duenoContacto, setDuenoContacto] = useState("");
+
+  function alElegirCliente(id: string) {
+    setClienteId(id);
+    const c = clientes.find((x) => x.id === id);
+    if (!c) return;
+    setDuenoNombre(c.label);
+    setDuenoContacto(c.telefono ?? "");
+  }
 
   return (
     <form action={formAction}>
+      <input type="hidden" name="cliente_id" value={clienteId} />
       <Card>
         <CardContent className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -34,8 +48,21 @@ export function ConsignacionForm({
               {vehiculos.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
             </Select>
           </div>
-          <div><Label htmlFor="dueno_nombre">Dueño *</Label><Input id="dueno_nombre" name="dueno_nombre" required placeholder="Nombre y apellido" /></div>
-          <div><Label htmlFor="dueno_contacto">Contacto del dueño</Label><Input id="dueno_contacto" name="dueno_contacto" placeholder="Teléfono o email" /></div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="dueno_cliente">Dueño (si ya es cliente del CRM)</Label>
+            <Select id="dueno_cliente" value={clienteId} onChange={(e) => alElegirCliente(e.target.value)}>
+              <option value="">— Es un dueño nuevo, no está cargado —</option>
+              {clientes.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="dueno_nombre">Dueño *</Label>
+            <Input id="dueno_nombre" name="dueno_nombre" required placeholder="Nombre y apellido" value={duenoNombre} onChange={(e) => setDuenoNombre(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="dueno_contacto">Contacto del dueño</Label>
+            <Input id="dueno_contacto" name="dueno_contacto" placeholder="Teléfono o email" value={duenoContacto} onChange={(e) => setDuenoContacto(e.target.value)} />
+          </div>
           <div><Label htmlFor="comision_acordada">Comisión acordada (%)</Label><Input id="comision_acordada" name="comision_acordada" type="number" step="0.1" placeholder="10" /></div>
           <div><Label htmlFor="vencimiento">Vencimiento del acuerdo</Label><Input id="vencimiento" name="vencimiento" type="date" /></div>
           <div><Label htmlFor="precio_pretendido">Precio pretendido</Label><MoneyInput id="precio_pretendido" name="precio_pretendido" /></div>

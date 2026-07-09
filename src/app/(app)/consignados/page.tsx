@@ -13,7 +13,7 @@ import { cambiarEstadoConsignacion, liquidarConsignacion } from "./actions";
 export const dynamic = "force-dynamic";
 
 type Row = {
-  id: string; dueno_nombre: string | null; dueno_contacto: string | null;
+  id: string; cliente_id: string | null; dueno_nombre: string | null; dueno_contacto: string | null;
   comision_acordada: number | null; precio_pretendido: number | null; precio_minimo: number | null;
   autorizacion_venta: boolean; vencimiento: string | null; estado: string;
   liquidado: boolean; monto_liquidado: number | null; fecha_liquidacion: string | null;
@@ -25,7 +25,7 @@ export default async function ConsignadosPage() {
   const { data } = await sb
     .from("consignacion")
     .select(
-      "id,dueno_nombre,dueno_contacto,comision_acordada,precio_pretendido,precio_minimo,autorizacion_venta,vencimiento,estado," +
+      "id,cliente_id,dueno_nombre,dueno_contacto,comision_acordada,precio_pretendido,precio_minimo,autorizacion_venta,vencimiento,estado," +
         "liquidado,monto_liquidado,fecha_liquidacion,vehiculo:vehiculo_id(marca,modelo,patente)",
     )
     .order("created_at", { ascending: false })
@@ -53,7 +53,12 @@ export default async function ConsignadosPage() {
                       {veh ? `${veh.marca} ${veh.modelo}` : "—"}
                       {veh?.patente && <span className="block font-mono text-xs text-muted-foreground">{veh.patente}</span>}
                     </TD>
-                    <TD>{c.dueno_nombre}{c.dueno_contacto && <span className="block text-xs text-muted-foreground">{c.dueno_contacto}</span>}</TD>
+                    <TD>
+                      {c.cliente_id ? (
+                        <Link href={`/clientes/${c.cliente_id}`} className="text-brand-700 hover:underline">{c.dueno_nombre}</Link>
+                      ) : c.dueno_nombre}
+                      {c.dueno_contacto && <span className="block text-xs text-muted-foreground">{c.dueno_contacto}</span>}
+                    </TD>
                     <TD>{c.comision_acordada != null ? `${c.comision_acordada}%` : "—"}</TD>
                     <TD>{formatARS(c.precio_pretendido)}</TD>
                     <TD>{formatARS(c.precio_minimo)}</TD>
@@ -70,7 +75,7 @@ export default async function ConsignadosPage() {
                         </div>
                       ) : (
                         <form action={liquidarConsignacion.bind(null, c.id)}>
-                          <button type="submit" className="rounded border px-2 py-0.5 text-xs text-ok hover:bg-muted">Liquidar</button>
+                          <Button type="submit" variant="outline" size="sm">Liquidar</Button>
                         </form>
                       )}
                     </TD>
@@ -78,10 +83,10 @@ export default async function ConsignadosPage() {
                       {c.estado === "activa" && (
                         <div className="flex items-center gap-1">
                           <form action={cambiarEstadoConsignacion.bind(null, c.id, "vendida")}>
-                            <button type="submit" className="rounded border px-2 py-0.5 text-xs text-ok hover:bg-muted">Vendida</button>
+                            <Button type="submit" variant="outline" size="sm">Vendida</Button>
                           </form>
                           <form action={cambiarEstadoConsignacion.bind(null, c.id, "retirada")}>
-                            <button type="submit" className="rounded border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted">Retirada</button>
+                            <Button type="submit" variant="outline" size="sm">Retirada</Button>
                           </form>
                         </div>
                       )}

@@ -12,7 +12,7 @@ export default async function NuevaConsignacionPage({
 }: {
   searchParams: { vehiculo?: string };
 }) {
-  const { vehiculos } = await getFormOptions();
+  const { vehiculos, clientes } = await getFormOptions();
   return (
     <div className="mx-auto max-w-3xl">
       <Link href="/consignados" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
@@ -25,7 +25,7 @@ export default async function NuevaConsignacionPage({
           <Link href="/stock/nuevo" className="text-brand-800 hover:underline">Stock</Link>, y después registrá acá la consignación.
         </p>
       ) : (
-        <ConsignacionForm action={crearConsignacion} vehiculos={vehiculos} vehiculoId={searchParams.vehiculo} />
+        <ConsignacionForm action={crearConsignacion} vehiculos={vehiculos} clientes={clientes} vehiculoId={searchParams.vehiculo} />
       )}
     </div>
   );
