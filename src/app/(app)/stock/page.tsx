@@ -5,6 +5,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/input";
 import { Badge, toneForEstado } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -108,18 +109,18 @@ export default async function StockPage({
 
       {/* Filtros rápidos */}
       <form className="mb-4 flex flex-wrap items-center gap-2" action="/stock" method="get">
-        <input
+        <Input
           name="q"
           defaultValue={searchParams.q ?? ""}
           placeholder="Buscar marca, modelo o patente…"
-          className="h-9 w-full max-w-xs rounded-md border border-input bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="w-full max-w-xs"
         />
-        <select name="estado" defaultValue={searchParams.estado ?? ""} className="h-9 rounded-md border border-input bg-white px-3 text-sm shadow-sm">
+        <Select name="estado" defaultValue={searchParams.estado ?? ""} className="w-auto">
           <option value="">Todos los estados</option>
           {ESTADOS.map((e) => (
             <option key={e} value={e}>{humanize(e)}</option>
           ))}
-        </select>
+        </Select>
         <Button type="submit" variant="outline" size="sm">Filtrar</Button>
         {(searchParams.estado || searchParams.q) && (
           <Link href="/stock" className="text-sm text-muted-foreground underline">Limpiar</Link>

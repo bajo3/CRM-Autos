@@ -6,6 +6,7 @@ import { can } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input, Select, Label } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatARS, formatDate, humanize } from "@/lib/format";
 import { waUrl, mensajeCatalogo } from "@/lib/data/whatsapp";
@@ -100,17 +101,17 @@ export default async function CatalogosPage({
           <CardContent>
             {/* Filtro (GET) */}
             <form method="get" action="/catalogos" className="mb-3 flex flex-wrap items-center gap-2">
-              <input
+              <Input
                 name="q" defaultValue={searchParams.q ?? ""} placeholder="Buscar marca o modelo…"
-                className="h-9 w-full max-w-xs rounded-lg border border-input bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full max-w-xs"
               />
-              <select name="estado" defaultValue={estado} className="h-9 rounded-lg border border-input bg-white px-3 text-sm shadow-sm">
+              <Select name="estado" defaultValue={estado} className="w-auto">
                 <option value="">Todos (menos vendidos)</option>
                 {ESTADOS.map((e) => <option key={e} value={e}>{humanize(e)}</option>)}
-              </select>
-              <select name="orden" defaultValue={orden} className="h-9 rounded-lg border border-input bg-white px-3 text-sm shadow-sm">
+              </Select>
+              <Select name="orden" defaultValue={orden} className="w-auto">
                 {Object.entries(ORDENES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
+              </Select>
               <Button type="submit" variant="outline" size="sm">Filtrar</Button>
             </form>
 
@@ -121,10 +122,9 @@ export default async function CatalogosPage({
               <form action={generarCatalogo} className="space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                   <div className="flex-1">
-                    <label htmlFor="nombre" className="mb-1 block text-sm font-medium">Nombre del catálogo</label>
-                    <input
+                    <Label htmlFor="nombre">Nombre del catálogo</Label>
+                    <Input
                       id="nombre" name="nombre" defaultValue={`Catálogo ${formatDate(new Date())}`}
-                      className="h-9 w-full rounded-lg border border-input bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     />
                   </div>
                   <Button type="submit"><FileText className="h-4 w-4" /> Generar catálogo PDF</Button>

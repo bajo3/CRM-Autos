@@ -6,6 +6,7 @@ import { rel, type Rel } from "@/lib/rel";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatARS, formatDate, formatNumber } from "@/lib/format";
@@ -221,17 +222,17 @@ export default async function ComisionesPage() {
                             </div>
                           ) : puedeEditar ? (
                             <form action={crearComision.bind(null, v.id)} className="flex flex-wrap items-center gap-1.5">
-                              <select name="tipo" defaultValue="porcentaje" className="h-8 rounded border border-input bg-white px-2 text-xs">
+                              <Select name="tipo" defaultValue="porcentaje" className="h-8 w-auto text-xs">
                                 <option value="porcentaje">%</option>
                                 <option value="fija">$ fijo</option>
-                              </select>
-                              <input
+                              </Select>
+                              <Input
                                 name="valor"
                                 type="number"
                                 step="0.01"
                                 min="0"
                                 defaultValue="3"
-                                className="h-8 w-20 rounded border border-input bg-white px-2 text-xs"
+                                className="h-8 w-20 text-xs"
                               />
                               <Button type="submit" variant="outline" size="sm">
                                 Calcular

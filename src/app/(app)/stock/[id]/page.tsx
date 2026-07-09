@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageCircle, Pencil, FileText, ExternalLink, Receipt, BookmarkPlus, ClipboardCheck, Wrench, HandCoins } from "lucide-react";
+import { ArrowLeft, MessageCircle, Pencil, FileText, ExternalLink, Receipt, BookmarkPlus, ClipboardCheck, Wrench, HandCoins, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -351,7 +351,7 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
                       <span className="text-danger">{formatARS(g.monto)}</span>
                       {can(rol, "stock.editar") && (
                         <form action={eliminarGasto.bind(null, v.id, g.id)}>
-                          <button type="submit" className="text-muted-foreground hover:text-danger" title="Eliminar">×</button>
+                          <button type="submit" className="text-muted-foreground hover:text-danger" title="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
                         </form>
                       )}
                     </span>

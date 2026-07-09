@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { MessageCircle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/input";
 import { Badge, toneForEstado } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatARS, formatDate, humanize } from "@/lib/format";
 import { rel, type Rel } from "@/lib/rel";
+import { AbrirChatButton } from "@/components/whatsapp/abrir-chat-button";
 
 export const dynamic = "force-dynamic";
 
@@ -74,13 +76,12 @@ export default async function ClientesPage({
       />
 
       <form className="mb-4 flex flex-wrap items-center gap-2" action="/clientes" method="get">
-        <input name="q" defaultValue={searchParams.q ?? ""} placeholder="Buscar nombre o teléfono…"
-          className="h-9 w-full max-w-xs rounded-md border border-input bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-        <select name="estado" defaultValue={searchParams.estado ?? ""} className="h-9 rounded-md border border-input bg-white px-3 text-sm shadow-sm">
+        <Input name="q" defaultValue={searchParams.q ?? ""} placeholder="Buscar nombre o teléfono…" className="w-full max-w-xs" />
+        <Select name="estado" defaultValue={searchParams.estado ?? ""} className="w-auto">
           <option value="">Todos los estados</option>
           {ESTADOS.map((e) => <option key={e} value={e}>{humanize(e)}</option>)}
-        </select>
-        <button type="submit" className="h-9 rounded-md border px-3 text-sm hover:bg-muted">Filtrar</button>
+        </Select>
+        <Button type="submit" variant="outline" size="sm">Filtrar</Button>
         {(searchParams.estado || searchParams.q) && <Link href="/clientes" className="text-sm text-muted-foreground underline">Limpiar</Link>}
       </form>
 
@@ -112,13 +113,7 @@ export default async function ClientesPage({
                     <TD>{formatARS(c.presupuesto_aprox)}</TD>
                     <TD className="text-sm">{vend ? `${vend.nombre} ${vend.apellido}` : "—"}</TD>
                     <TD>{formatDate(c.proximo_seguimiento)}</TD>
-                    <TD>
-                      {wa ? (
-                        <a href={`https://wa.me/${wa}`} target="_blank" className="text-ok hover:opacity-80" title="WhatsApp">
-                          <MessageCircle className="h-4 w-4" />
-                        </a>
-                      ) : "—"}
-                    </TD>
+                    <TD>{wa ? <AbrirChatButton clienteId={c.id} className="border-0 p-0" /> : "—"}</TD>
                   </TR>
                 );
               })}
