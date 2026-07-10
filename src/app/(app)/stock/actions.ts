@@ -8,6 +8,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { registrarCambio } from "@/lib/data/historial";
 import { calcularVtv, type VtvCalendario } from "@/lib/data/vtv";
+import { ESTADOS_OPERATIVOS } from "@/lib/data/vehiculo-estado";
 
 const optionalNumber = z
   .union([z.coerce.number(), z.literal("")])
@@ -26,10 +27,7 @@ const schema = z.object({
   transmision: z.enum(["manual", "automatica"]).optional().or(z.literal("").transform(() => undefined)),
   precio_venta: optionalNumber,
   precio_costo: optionalNumber,
-  estado: z.enum([
-    "disponible", "en_preparacion", "publicado", "no_publicado",
-    "pausado", "reservado", "en_negociacion", "vendido", "consignado",
-  ]),
+  estado: z.enum(ESTADOS_OPERATIVOS),
   titularidad: z.enum(["propio", "consignado", "tercero"]),
   ubicacion: z.string().optional(),
   observaciones: z.string().optional(),

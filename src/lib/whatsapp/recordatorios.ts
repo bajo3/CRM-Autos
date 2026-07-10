@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database.types";
 import { normalizarTelefonoAr } from "./telefono";
 import { getAccountForEmpresa, sendTextMessage } from "./service";
+import { businessDateISO } from "@/lib/date";
 
 type Db = SupabaseClient<Database>;
 
@@ -35,7 +36,7 @@ type ItemVendedor = { empresaId: string; texto: string };
  * este uso interno.
  */
 export async function enviarRecordatoriosDiarios(admin: Db): Promise<{ enviados: number; vendedores: number }> {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = businessDateISO();
   const porVendedor = new Map<string, ItemVendedor[]>();
 
   function agregar(vendedorId: string | null, empresaId: string, texto: string) {

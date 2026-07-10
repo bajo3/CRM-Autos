@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { businessDateISO } from "@/lib/date";
 
 async function ctxEdicion() {
   const ctx = await getSessionContext();
@@ -54,7 +55,7 @@ async function setEstado(comisionId: string, estado: "pendiente" | "pagada" | "c
   const sb = createClient();
   const patch: { estado: typeof estado; fecha_pago: string | null } = {
     estado,
-    fecha_pago: estado === "pagada" ? new Date().toISOString().slice(0, 10) : null,
+    fecha_pago: estado === "pagada" ? businessDateISO() : null,
   };
   const { error } = await sb.from("comision").update(patch).eq("id", comisionId);
   if (error) throw new Error(error.message);

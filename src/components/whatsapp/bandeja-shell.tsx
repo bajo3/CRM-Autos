@@ -6,6 +6,7 @@ import { LiveRefresh } from "@/components/whatsapp/live-refresh";
 import { ConversationRow } from "@/components/whatsapp/conversation-row";
 import { listarConversaciones, type FiltrosBandeja } from "@/app/(app)/whatsapp/data";
 import { PAGE_SIZE } from "@/app/(app)/whatsapp/lib";
+import { getWhatsappAccountStatus } from "@/lib/whatsapp/account-status";
 
 /**
  * Shell de 2 paneles (lista + detalle) compartido por /whatsapp y /whatsapp/[id].
@@ -33,10 +34,10 @@ export async function BandejaShell({
     );
   }
 
-  const { conversaciones, total, page } = await listarConversaciones(
-    ctx.profile.empresa_id,
-    searchParams,
-  );
+  const [{ conversaciones, total, page }, account] = await Promise.all([
+    listarConversaciones(ctx.profile.empresa_id, searchParams),
+    getWhatsappAccountStatus(ctx.profile.empresa_id),
+  ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const qs = (extra: Record<string, string>) => {
@@ -50,7 +51,14 @@ export async function BandejaShell({
   };
 
   return (
-    <div className="flex h-[calc(100vh-6.5rem)] min-w-0 gap-4 overflow-x-auto overflow-y-hidden">
+    <div className="space-y-3">
+      {!account.connected && (
+        <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <strong>WhatsApp está desconectado.</strong> Podés consultar el historial, pero ningún mensaje saldrá hasta que lo conectes en{" "}
+          <Link href="/whatsapp/configuracion" className="underline">Configuración</Link>.
+        </div>
+      )}
+      <div className="flex h-[calc(100vh-9.5rem)] min-w-0 gap-4 overflow-x-auto overflow-y-hidden">
       <LiveRefresh />
       <aside className="flex w-64 shrink-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-card shadow-elevate">
         <div className="border-b p-3">
@@ -97,7 +105,8 @@ export async function BandejaShell({
         )}
       </aside>
 
-      <div className="min-w-[420px] flex-1 overflow-hidden rounded-xl border border-border/70 bg-card shadow-elevate">{children}</div>
+        <div className="min-w-[420px] flex-1 overflow-hidden rounded-xl border border-border/70 bg-card shadow-elevate">{children}</div>
+      </div>
     </div>
   );
 }

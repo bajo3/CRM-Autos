@@ -9,6 +9,7 @@ import { can } from "@/lib/auth/permissions";
 import { CHECKLIST_ENTREGA, type ChecklistEntrega } from "@/lib/data/checklist";
 import { registrarCambio } from "@/lib/data/historial";
 import { programarMensajesVenta, programarRecordatorioCuota } from "@/lib/whatsapp/eventos";
+import { addMonthsISO } from "@/lib/date";
 
 const num = z.coerce.number().min(0);
 const uuid = z.union([z.string().uuid(), z.literal("")]).transform((v) => (v === "" ? undefined : v)).optional();
@@ -31,9 +32,7 @@ const schema = z.object({
 export type FormState = { error?: string };
 
 function addMonths(isoDate: string, months: number): string {
-  const d = new Date(isoDate + "T00:00:00");
-  d.setMonth(d.getMonth() + months);
-  return d.toISOString().slice(0, 10);
+  return addMonthsISO(isoDate, months);
 }
 
 export async function crearVenta(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -46,6 +45,20 @@ export async function crearVenta(_prev: FormState, formData: FormData): Promise<
   const empresa_id = ctx.profile.empresa_id;
 
   const sb = createClient();
+  if (d.vehiculo_id) {
+    const { data: vehiculo } = await sb
+      .from("vehiculo")
+      .select("titularidad, precio_costo, estado")
+      .eq("id", d.vehiculo_id)
+      .eq("empresa_id", empresa_id)
+      .maybeSingle<{ titularidad: string; precio_costo: number | null; estado: string }>();
+    if (!vehiculo) return { error: "El vehículo no existe o no pertenece a esta empresa." };
+    if (vehiculo.estado === "vendido") return { error: "Esta unidad ya figura como vendida." };
+    if (vehiculo.titularidad === "propio" && vehiculo.precio_costo == null) {
+      return { error: "Cargá el costo / valor de toma del vehículo antes de registrar la venta." };
+    }
+  }
+
   const { data: venta, error } = await sb
     .from("venta")
     .insert({

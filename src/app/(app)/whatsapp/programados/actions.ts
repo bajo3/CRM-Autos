@@ -7,6 +7,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { normalizarTelefonoAr } from "@/lib/whatsapp/telefono";
 import type { Database } from "@/lib/types/database.types";
+import { getWhatsappAccountStatus } from "@/lib/whatsapp/account-status";
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string> };
 
@@ -34,6 +35,10 @@ async function ctxConPermiso() {
 
 export async function crearProgramadoManual(_prev: FormState, formData: FormData): Promise<FormState> {
   const { empresaId, userId } = await ctxConPermiso();
+  const account = await getWhatsappAccountStatus(empresaId);
+  if (!account.connected) {
+    return { error: "Conectá WhatsApp antes de programar mensajes. No se guardó ningún envío." };
+  }
 
   const parsed = baseSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
@@ -56,6 +61,7 @@ export async function crearProgramadoManual(_prev: FormState, formData: FormData
 
   const sendAt = new Date(`${d.fecha}T${d.hora}:00`);
   if (Number.isNaN(sendAt.getTime())) return { error: "Fecha u hora inválida." };
+  if (sendAt.getTime() <= Date.now()) return { error: "La fecha y hora deben estar en el futuro." };
 
   const insert: ProgramadoInsert = {
     empresa_id: empresaId,
@@ -101,6 +107,26 @@ export async function cancelarProgramado(id: string): Promise<void> {
     .eq("id", id)
     .eq("empresa_id", empresaId)
     .eq("estado", "pendiente");
+  if (error) throw new Error(error.message);
+  revalidatePath("/whatsapp/programados");
+}
+
+export async function reintentarProgramado(id: string): Promise<void> {
+  const { empresaId } = await ctxConPermiso();
+  const account = await getWhatsappAccountStatus(empresaId);
+  if (!account.connected) throw new Error("Conectá WhatsApp antes de reintentar el envío.");
+
+  const sb = createClient();
+  const { error } = await sb.from("whatsapp_programado")
+    .update({
+      estado: "pendiente",
+      intentos_restantes: 3,
+      error_mensaje: null,
+      send_at: new Date(Date.now() + 60_000).toISOString(),
+    })
+    .eq("id", id)
+    .eq("empresa_id", empresaId)
+    .eq("estado", "fallado");
   if (error) throw new Error(error.message);
   revalidatePath("/whatsapp/programados");
 }

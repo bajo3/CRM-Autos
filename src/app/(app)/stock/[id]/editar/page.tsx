@@ -7,6 +7,7 @@ import { can } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/ui/page-header";
 import { VehiculoForm } from "@/components/forms/vehiculo-form";
 import { actualizarAuto } from "../../actions";
+import { estadoOperativo } from "@/lib/data/vehiculo-estado";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function EditarAutoPage({ params }: { params: { id: string 
           patente: v.patente ?? undefined, color: v.color ?? undefined,
           combustible: v.combustible ?? undefined, transmision: v.transmision ?? undefined,
           precio_venta: v.precio_venta ?? undefined, precio_costo: v.precio_costo ?? undefined,
-          estado: v.estado, titularidad: v.titularidad,
+          estado: estadoOperativo(v.estado), titularidad: v.titularidad,
           ubicacion: v.ubicacion ?? undefined, observaciones: v.observaciones ?? undefined,
         }}
       />

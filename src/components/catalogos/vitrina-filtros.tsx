@@ -40,9 +40,9 @@ const ORDENES = [
 ] as const;
 
 export function VitrinaFiltros({
-  vehiculos, empresaNombre, telefono, color, slug,
+  vehiculos, empresaNombre, telefono, color, slug, publicBaseUrl,
 }: {
-  vehiculos: VehPublico[]; empresaNombre: string; telefono: string | null; color: string; slug: string;
+  vehiculos: VehPublico[]; empresaNombre: string; telefono: string | null; color: string; slug: string; publicBaseUrl: string;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [orden, setOrden] = useState<(typeof ORDENES)[number]["value"]>("recientes");
@@ -142,7 +142,11 @@ export function VitrinaFiltros({
                 <div className="px-4 pb-4">
                   <a
                     href={waUrl(
-                      mensajeVehiculo(empresaNombre, { marca: v.marca, modelo: v.modelo, anio: v.anio, precio: v.precio }),
+                      mensajeVehiculo(
+                        empresaNombre,
+                        { marca: v.marca, modelo: v.modelo, anio: v.anio, precio: v.precio },
+                        `${publicBaseUrl}/p/${slug}/${v.id}?utm_source=whatsapp&utm_medium=referral&utm_campaign=stock_publico`,
+                      ),
                       telefono,
                     )}
                     target="_blank"

@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EmpresaForm } from "@/components/forms/empresa-form";
+import { problemasContactoPublico } from "@/lib/data/contacto-publico";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export default async function ConfiguracionPage() {
   }
 
   const puedeEditar = can(ctx?.profile?.rol, "empresa.configurar");
+  const problemasPublicos = problemasContactoPublico(empresa);
 
   const vtv =
     empresa.vtv_calendario && typeof empresa.vtv_calendario === "object" && !Array.isArray(empresa.vtv_calendario)
@@ -33,6 +35,15 @@ export default async function ConfiguracionPage() {
         title="Configuración de empresa"
         description="Datos de la agencia, marca y calendario VTV. Estos valores alimentan documentos, catálogos y alertas."
       />
+
+      {problemasPublicos.length > 0 && (
+        <div className="mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p className="font-semibold">La vitrina pública está bloqueada para evitar perder consultas.</p>
+          <ul className="mt-1 list-disc pl-5">
+            {problemasPublicos.map((problema) => <li key={problema}>{problema}</li>)}
+          </ul>
+        </div>
+      )}
 
       {!puedeEditar ? (
         <Card>

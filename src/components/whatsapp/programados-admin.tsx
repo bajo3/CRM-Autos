@@ -10,8 +10,10 @@ import { Input, Select, Textarea, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { humanize } from "@/lib/format";
-import { crearProgramadoManual, cancelarProgramado, type FormState } from "@/app/(app)/whatsapp/programados/actions";
+import { crearProgramadoManual, cancelarProgramado, reintentarProgramado, type FormState } from "@/app/(app)/whatsapp/programados/actions";
 import { nombreCliente, type ProgramadoRow, type FiltrosProgramados } from "@/app/(app)/whatsapp/programados/types";
+import { businessDateISO } from "@/lib/date";
+import type { WhatsappAccountStatus } from "@/lib/whatsapp/account-status";
 
 type Cliente = { id: string; nombre: string; apellido: string | null; telefono: string | null; whatsapp: string | null };
 type Plantilla = { id: string; nombre: string; idioma: string; cuerpo: string; variables_schema: unknown };
@@ -45,12 +47,14 @@ export function ProgramadosAdmin({
   clientes,
   plantillas,
   puedeAdministrar,
+  account,
   filtros,
 }: {
   programados: ProgramadoRow[];
   clientes: Cliente[];
   plantillas: Plantilla[];
   puedeAdministrar: boolean;
+  account: WhatsappAccountStatus;
   filtros: FiltrosProgramados;
 }) {
   const [state, formAction] = useFormState<FormState, FormData>(crearProgramadoManual, {});
@@ -64,7 +68,22 @@ export function ProgramadosAdmin({
 
   return (
     <div className="space-y-4">
-      {puedeAdministrar && (
+      {!account.connected ? (
+        <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p className="font-semibold">WhatsApp está desconectado. Los mensajes no se pueden programar ni enviar.</p>
+          <p className="mt-1">Conectalo desde <Link href="/whatsapp/configuracion" className="underline">Configuración de WhatsApp</Link>.</p>
+          {account.lastError && <p className="mt-1 text-xs">Último error: {account.lastError}</p>}
+        </div>
+      ) : (
+        <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <p className="font-semibold">WhatsApp conectado{account.telefono ? ` · ${account.telefono}` : ""}</p>
+          <p className="text-xs">
+            El worker revisa envíos cada 5 minutos. Última ejecución: {account.ultimoCronAt ? formatFecha(account.ultimoCronAt) : "todavía no registrada"}.
+          </p>
+        </div>
+      )}
+
+      {puedeAdministrar && account.connected && (
         <Card>
           <CardHeader><CardTitle className="text-base">Nuevo mensaje programado</CardTitle></CardHeader>
           <CardContent className="p-6">
@@ -91,7 +110,7 @@ export function ProgramadosAdmin({
               </div>
               <div>
                 <Label htmlFor="fecha">Fecha *</Label>
-                <Input id="fecha" name="fecha" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
+                <Input id="fecha" name="fecha" type="date" required defaultValue={businessDateISO()} />
                 {fe.fecha && <p className="mt-1 text-xs text-danger">{fe.fecha}</p>}
               </div>
               <div>
@@ -194,6 +213,17 @@ export function ProgramadosAdmin({
                       onClick={() => start(() => cancelarProgramado(p.id))}
                     >
                       <X className="h-4 w-4" /> Cancelar
+                    </Button>
+                  )}
+                  {puedeAdministrar && account.connected && p.estado === "fallado" && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() => start(() => reintentarProgramado(p.id))}
+                    >
+                      Reintentar
                     </Button>
                   )}
                 </li>

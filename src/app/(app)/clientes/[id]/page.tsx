@@ -15,6 +15,7 @@ import { agendarSeguimiento, registrarConsulta, registrarContacto } from "../act
 import { generarDocumentoCliente } from "@/app/(app)/documentos/actions";
 import { ESTADO_LABEL, ESTADO_TONE, type EstadoPresupuesto } from "@/app/(app)/presupuestos/lib";
 import { AbrirChatButton } from "@/components/whatsapp/abrir-chat-button";
+import { businessDateISO } from "@/lib/date";
 
 type DocRow = { id: string; tipo: string; numero: string | null; fecha_emision: string };
 type PresupuestoRow = { id: string; precio: number | null; estado: EstadoPresupuesto; validez: string | null; created_at: string };
@@ -286,7 +287,7 @@ async function ActividadCliente({
         <CardHeader><CardTitle className="text-base">Historial de contacto</CardTitle></CardHeader>
         <CardContent>
           <form action={registrarContacto.bind(null, clienteId)} className="mb-4 grid gap-2 rounded-md border bg-muted/40 p-3 sm:grid-cols-[10rem_1fr_auto]">
-            <Input name="fecha" type="date" className="h-8 text-xs" defaultValue={new Date().toISOString().slice(0, 10)} />
+            <Input name="fecha" type="date" className="h-8 text-xs" defaultValue={businessDateISO()} />
             <Input name="motivo" placeholder="Motivo (llamada, WhatsApp, visita…)" className="h-8 text-xs" />
             <Button type="submit" size="sm" className="sm:row-span-2">Registrar contacto</Button>
             <Textarea name="notas" placeholder="Notas del contacto (opcional)" className="min-h-[36px] text-xs sm:col-span-2" />

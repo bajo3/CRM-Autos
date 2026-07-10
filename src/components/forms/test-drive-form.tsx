@@ -7,6 +7,7 @@ import type { FormState } from "@/app/(app)/test-drive/actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea, Label } from "@/components/ui/input";
+import { businessDateISO } from "@/lib/date";
 
 type Option = { id: string; label: string };
 type ClienteOption = Option & { telefono?: string; dni?: string };
@@ -16,7 +17,7 @@ function Submit() {
   return <Button type="submit" disabled={pending}>{pending ? "Guardando…" : "Agendar test drive"}</Button>;
 }
 
-const hoy = new Date().toISOString().slice(0, 10);
+const hoy = businessDateISO();
 
 export function TestDriveForm({
   action, clientes, vehiculos, clienteId, vehiculoId,

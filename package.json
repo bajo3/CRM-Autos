@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "demo:prod": "powershell -ExecutionPolicy Bypass -File scripts/demo-prod.ps1",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

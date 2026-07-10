@@ -7,10 +7,10 @@ export async function getFormOptions() {
     sb.from("profile").select("id,nombre,apellido").eq("activo", true)
       .limit(200)
       .returns<{ id: string; nombre: string; apellido: string }[]>(),
-    sb.from("vehiculo").select("id,marca,modelo,anio,patente").neq("estado", "vendido")
+    sb.from("vehiculo").select("id,marca,modelo,anio,patente,precio_venta").neq("estado", "vendido")
       .order("created_at", { ascending: false })
       .limit(300)
-      .returns<{ id: string; marca: string; modelo: string; anio: number | null; patente: string | null }[]>(),
+      .returns<{ id: string; marca: string; modelo: string; anio: number | null; patente: string | null; precio_venta: number | null }[]>(),
     sb.from("cliente").select("id,nombre,apellido,telefono,whatsapp,dni_cuit").order("nombre")
       .limit(500)
       .returns<{ id: string; nombre: string; apellido: string | null; telefono: string | null; whatsapp: string | null; dni_cuit: string | null }[]>(),
@@ -21,6 +21,7 @@ export async function getFormOptions() {
     vehiculos: (vehiculos ?? []).map((v) => ({
       id: v.id,
       label: `${v.marca} ${v.modelo}${v.anio ? ` ${v.anio}` : ""}${v.patente ? ` · ${v.patente}` : ""}`,
+      precio: v.precio_venta,
     })),
     // telefono/dni quedan disponibles para autocompletar formularios (ej. conductor de test drive)
     // sin tipear de nuevo datos que el cliente ya tiene cargados.

@@ -3,6 +3,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { rel, type Rel } from "@/lib/rel";
+import { businessDateISO } from "@/lib/date";
 
 /** Escapa un valor para CSV (comillas + comas + saltos de línea). */
 function celda(v: unknown): string {
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
   const sb = createClient();
   const { searchParams } = request.nextUrl;
   const tipo = searchParams.get("tipo") ?? "ventas";
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = businessDateISO();
 
   if (tipo === "ventas") {
     const desde = searchParams.get("desde") ?? "1900-01-01";

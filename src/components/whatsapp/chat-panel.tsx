@@ -28,6 +28,7 @@ export function ChatPanel({
   telefono,
   mensajesIniciales,
   dentroVentana,
+  conectado,
   plantillas,
   draftInicial,
 }: {
@@ -35,6 +36,7 @@ export function ChatPanel({
   telefono: string;
   mensajesIniciales: MensajeRow[];
   dentroVentana: boolean;
+  conectado: boolean;
   plantillas: Plantilla[];
   draftInicial?: string;
 }) {
@@ -116,7 +118,11 @@ export function ChatPanel({
       <div className="border-t p-3">
         {error && <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
 
-        {dentroVentana ? (
+        {!conectado ? (
+          <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-800">
+            Conectá WhatsApp en Configuración antes de responder. El historial sigue disponible en modo lectura.
+          </p>
+        ) : dentroVentana ? (
           <div className="flex items-end gap-2">
             <Textarea
               value={texto}

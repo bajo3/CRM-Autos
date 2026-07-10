@@ -107,11 +107,6 @@ export default async function DashboardPage() {
         </CardContent>
       </Card>
 
-      <p className="mt-6 text-center text-xs text-muted-foreground">
-        ¿Falta un módulo? Mirá la{" "}
-        <Link href="/stock" className="underline">sección de stock</Link> o el roadmap en{" "}
-        <code className="rounded bg-muted px-1">/docs/ROADMAP.md</code>.
-      </p>
     </div>
   );
 }

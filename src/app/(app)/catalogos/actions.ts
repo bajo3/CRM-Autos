@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { generarCatalogoPdf, type VehiculoCat, type EmpresaCat } from "@/lib/pdf/catalogo";
+import { businessDateISO } from "@/lib/date";
 
 type VehRow = {
   id: string; marca: string; modelo: string; version: string | null; anio: number | null;
@@ -95,7 +96,7 @@ export async function generarCatalogo(formData: FormData): Promise<void> {
 
   const bytes = await generarCatalogoPdf(empresa, items, {
     titulo: `${nombre} · ${items.length} unidad(es)`,
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: businessDateISO(),
   });
 
   const path = `${ctx.profile.empresa_id}/${cat.id}.pdf`;

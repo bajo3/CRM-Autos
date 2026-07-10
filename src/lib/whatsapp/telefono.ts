@@ -10,6 +10,11 @@ export function soloDigitos(valor: string): string {
   return valor.replace(/\D/g, "");
 }
 
+export function telefonoClienteValido(valor: string): boolean {
+  const digits = soloDigitos(valor);
+  return digits.length >= 8 && digits.length <= 15 && !/^(\d)\1+$/.test(digits);
+}
+
 /** Mejor esfuerzo para llevar un teléfono AR a E.164 sin "+" (como lo usa Meta). */
 export function normalizarTelefonoAr(valor: string): string {
   let d = soloDigitos(valor);

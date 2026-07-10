@@ -11,21 +11,19 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatARS, formatNumber, humanize, daysUntil } from "@/lib/format";
 import { vtvSeveridad, vtvSeveridadLabel, vtvSeveridadTone } from "@/lib/data/vtv";
+import { ESTADOS_DISPONIBLES_DB, ESTADOS_OPERATIVOS, estadoOperativo } from "@/lib/data/vehiculo-estado";
 
 export const dynamic = "force-dynamic";
 
 type VehiculoRow = {
   id: string; marca: string; modelo: string; version: string | null;
   anio: number | null; kilometros: number | null; patente: string | null;
-  precio_venta: number | null; margen_estimado: number | null;
+  precio_venta: number | null; precio_costo: number | null; margen_estimado: number | null;
   estado: string; estado_documental: string;
   publicado_web: boolean; publicado_ml: boolean;
 };
 
-const ESTADOS = [
-  "disponible", "en_preparacion", "publicado", "no_publicado",
-  "pausado", "reservado", "en_negociacion", "vendido", "consignado",
-];
+const ESTADOS = [...ESTADOS_OPERATIVOS];
 
 const PAGE_SIZE = 30;
 
@@ -42,12 +40,14 @@ export default async function StockPage({
 
   let query = sb
     .from("vehiculo")
-    .select("id, marca, modelo, version, anio, kilometros, patente, precio_venta, margen_estimado, estado, estado_documental, publicado_web, publicado_ml", { count: "exact" })
+    .select("id, marca, modelo, version, anio, kilometros, patente, precio_venta, precio_costo, margen_estimado, estado, estado_documental, publicado_web, publicado_ml", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, to);
 
-  if (searchParams.estado && ESTADOS.includes(searchParams.estado)) {
-    query = query.eq("estado", searchParams.estado as never);
+  if (searchParams.estado && ESTADOS.includes(searchParams.estado as (typeof ESTADOS)[number])) {
+    query = searchParams.estado === "disponible"
+      ? query.in("estado", [...ESTADOS_DISPONIBLES_DB] as never[])
+      : query.eq("estado", searchParams.estado as never);
   }
   if (searchParams.q) {
     query = query.or(
@@ -183,8 +183,12 @@ export default async function StockPage({
                   <TD>{a.kilometros != null ? formatNumber(a.kilometros) : "—"}</TD>
                   <TD className="font-mono text-xs">{a.patente ?? "—"}</TD>
                   <TD className="font-medium">{formatARS(a.precio_venta)}</TD>
-                  {verMargen && <TD className="text-ok">{formatARS(a.margen_estimado)}</TD>}
-                  <TD><Badge tone={toneForEstado(a.estado)}>{humanize(a.estado)}</Badge></TD>
+                  {verMargen && (
+                    <TD className={a.precio_costo == null ? "text-xs text-muted-foreground" : "text-ok"}>
+                      {a.precio_costo == null ? "No calculable · falta costo" : formatARS(a.margen_estimado)}
+                    </TD>
+                  )}
+                  <TD><Badge tone={toneForEstado(estadoOperativo(a.estado))}>{humanize(estadoOperativo(a.estado))}</Badge></TD>
                   <TD><Badge tone={toneForEstado(a.estado_documental)}>{humanize(a.estado_documental)}</Badge></TD>
                   <TD>
                     {(() => {

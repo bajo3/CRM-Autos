@@ -62,10 +62,10 @@ export function ClienteForm({
             <Input id="apellido" name="apellido" defaultValue={c.apellido} placeholder="Martínez" />
           </Field>
           <Field name="telefono" label="Teléfono" error={fe.telefono}>
-            <Input id="telefono" name="telefono" defaultValue={c.telefono} placeholder="2494111111" />
+            <Input id="telefono" name="telefono" inputMode="tel" defaultValue={c.telefono} placeholder="2494111111" />
           </Field>
           <Field name="whatsapp" label="WhatsApp" error={fe.whatsapp}>
-            <Input id="whatsapp" name="whatsapp" defaultValue={c.whatsapp} placeholder="2494111111" />
+            <Input id="whatsapp" name="whatsapp" inputMode="tel" defaultValue={c.whatsapp} placeholder="2494111111" />
           </Field>
           <Field name="email" label="Email" error={fe.email}>
             <Input id="email" name="email" type="email" defaultValue={c.email} placeholder="diego@mail.com" />
@@ -76,8 +76,11 @@ export function ClienteForm({
           <Field name="localidad" label="Localidad" error={fe.localidad}>
             <Input id="localidad" name="localidad" defaultValue={c.localidad} placeholder="Tandil" />
           </Field>
+          <p className="text-xs text-muted-foreground sm:col-span-2">
+            Para guardar el lead necesitás al menos un canal de contacto: teléfono, WhatsApp o email.
+          </p>
           <Field name="origen" label="Origen del lead" error={fe.origen}>
-            <Select id="origen" name="origen" defaultValue={c.origen ?? "otro"}>
+            <Select id="origen" name="origen" defaultValue={c.origen ?? "whatsapp"}>
               <option value="whatsapp">WhatsApp</option>
               <option value="instagram">Instagram</option>
               <option value="facebook">Facebook</option>

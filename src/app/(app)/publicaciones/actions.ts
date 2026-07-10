@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/types/database.types";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { businessDateISO } from "@/lib/date";
+import { estadoOperativo } from "@/lib/data/vehiculo-estado";
 import { urlAutorizacion } from "@/lib/mercadolibre/oauth";
 import { tokenValido, obtenerCuenta } from "@/lib/mercadolibre/cuenta";
 import { mlGet, mlSend } from "@/lib/mercadolibre/client";
@@ -58,13 +60,14 @@ export async function togglePublicarWeb(vehiculoId: string, publicar: boolean): 
   const patch: Database["public"]["Tables"]["vehiculo"]["Update"] = {
     publicado_web: publicar,
   };
-  if (publicar) {
-    const { data: v } = await sb
-      .from("vehiculo")
-      .select("marca,modelo,anio,slug_publico")
-      .eq("id", vehiculoId)
-      .maybeSingle<{ marca: string; modelo: string; anio: number | null; slug_publico: string | null }>();
-    if (v && !v.slug_publico) {
+  const { data: v } = await sb
+    .from("vehiculo")
+    .select("marca,modelo,anio,slug_publico,estado")
+    .eq("id", vehiculoId)
+    .maybeSingle<{ marca: string; modelo: string; anio: number | null; slug_publico: string | null; estado: string }>();
+  if (v) {
+    patch.estado = estadoOperativo(v.estado) as Database["public"]["Enums"]["estado_vehiculo"];
+    if (publicar && !v.slug_publico) {
       patch.slug_publico = `${slugify(`${v.marca}-${v.modelo}-${v.anio ?? ""}`)}-${vehiculoId.slice(0, 6)}`;
     }
   }
@@ -112,7 +115,7 @@ async function guardarPubML(
       titulo: campos.titulo ?? null,
       precio: campos.precio ?? null,
       mensaje: campos.mensaje ?? null,
-      fecha_update: new Date().toISOString().slice(0, 10),
+      fecha_update: businessDateISO(),
     },
     { onConflict: "vehiculo_id,canal" },
   );

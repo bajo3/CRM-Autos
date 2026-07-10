@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { businessDateISO } from "@/lib/date";
 
 export type FormState = { error?: string; ok?: boolean };
 
@@ -62,7 +63,7 @@ export async function registrarPago(creditoId: string, _prev: FormState, formDat
   }
 
   const cuotaPagada = credito.cuota_actual + 1;
-  const fechaPago = (parsed.data.fecha || "").trim() || new Date().toISOString().slice(0, 10);
+  const fechaPago = (parsed.data.fecha || "").trim() || businessDateISO();
 
   // 1) Insertar el pago. El índice único evita duplicar la misma cuota.
   const { error: insErr } = await sb.from("pago_cuota").insert({

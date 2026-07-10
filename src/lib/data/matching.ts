@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { rel, type Rel } from "@/lib/rel";
+import { ESTADOS_DISPONIBLES_DB } from "@/lib/data/vehiculo-estado";
 
 type Vehiculo = {
   marca: string; modelo: string; anio: number | null;
@@ -60,7 +61,7 @@ export async function matchStockParaEncargos(
   const { data: stock } = await sb
     .from("vehiculo")
     .select("id,marca,modelo,anio,kilometros,precio_venta,patente")
-    .eq("estado", "disponible")
+    .in("estado", [...ESTADOS_DISPONIBLES_DB] as never[])
     .returns<VehiculoStockRow[]>();
 
   const resultado = new Map<string, VehiculoStockRow[]>();

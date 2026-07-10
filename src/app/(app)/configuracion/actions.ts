@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
+import { telefonoPublicoValido } from "@/lib/data/contacto-publico";
 
 export type FormState = { error?: string; ok?: boolean; fieldErrors?: Record<string, string> };
 
@@ -17,8 +18,9 @@ const DIGITOS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
 const schema = z.object({
   nombre: z.string().min(1, "El nombre de la agencia es obligatorio"),
   cuit: z.string().optional(),
-  telefono: z.string().optional(),
-  email: emptyToUndef(z.string().email("Email inválido")).optional(),
+  telefono: z.string().min(1, "El teléfono público es obligatorio")
+    .refine(telefonoPublicoValido, "Ingresá un teléfono real con código de área"),
+  email: z.string().email("Ingresá un email comercial válido"),
   direccion: z.string().optional(),
   localidad: z.string().optional(),
   provincia: z.string().optional(),

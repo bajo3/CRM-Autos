@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database.types";
 import { normalizarTelefonoAr } from "./telefono";
 import { registrarEventoWa } from "./log";
+import { addDaysISO, businessDateISO } from "@/lib/date";
 
 type Db = SupabaseClient<Database>;
 type MotivoProgramado = Database["public"]["Enums"]["motivo_wa_programado"];
@@ -25,10 +26,11 @@ async function buscarPlantillaAprobada(sb: Db, empresaId: string, nombre: string
 }
 
 function sumarDias(base: Date, dias: number): Date {
-  const d = new Date(base);
-  d.setDate(d.getDate() + dias);
-  return d;
+  const date = new Date(base);
+  date.setDate(date.getDate() + dias);
+  return date;
 }
+
 function sumarMeses(base: Date, meses: number): Date {
   const d = new Date(base);
   d.setMonth(d.getMonth() + meses);
@@ -150,7 +152,7 @@ export async function programarSeguimientosLeadWhatsapp(
   sb: Db,
   params: { empresaId: string; clienteId: string },
 ): Promise<void> {
-  const hoy = new Date();
+  const hoy = businessDateISO();
   const filas = [
     { dias: 1, motivo: "Lead nuevo por WhatsApp sin respuesta (+1 día)" },
     { dias: 3, motivo: "Lead nuevo por WhatsApp sin respuesta (+3 días)" },
@@ -159,7 +161,7 @@ export async function programarSeguimientosLeadWhatsapp(
     await sb.from("seguimiento").insert({
       empresa_id: params.empresaId,
       cliente_id: params.clienteId,
-      fecha: sumarDias(hoy, f.dias).toISOString().slice(0, 10),
+      fecha: addDaysISO(hoy, f.dias),
       motivo: f.motivo,
       estado: "pendiente",
     });
@@ -176,7 +178,7 @@ export async function cerrarSeguimientosPorRespuesta(
   sb: Db,
   params: { empresaId: string; clienteId: string },
 ): Promise<void> {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = businessDateISO();
   const { data } = await sb
     .from("seguimiento")
     .update({ estado: "realizado" })

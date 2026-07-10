@@ -3,9 +3,10 @@ import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { listarProgramados, listarClientesConTelefono, type FiltrosProgramados } from "./data";
+import { listarProgramados, listarClientesConTelefono, marcarProgramadosVencidosSinConexion, type FiltrosProgramados } from "./data";
 import { listarPlantillasAprobadas } from "../data";
 import { ProgramadosAdmin } from "@/components/whatsapp/programados-admin";
+import { getWhatsappAccountStatus } from "@/lib/whatsapp/account-status";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export default async function ProgramadosPage({
 
   const empresaId = ctx.profile.empresa_id;
   const puedeAdministrar = can(ctx.profile.rol, "whatsapp.programados");
+  const account = await getWhatsappAccountStatus(empresaId);
+  if (!account.connected) await marcarProgramadosVencidosSinConexion(empresaId);
 
   const [{ programados, total, page }, clientes, plantillas] = await Promise.all([
     listarProgramados(empresaId, searchParams),
@@ -54,6 +57,7 @@ export default async function ProgramadosPage({
         clientes={clientes}
         plantillas={plantillas}
         puedeAdministrar={puedeAdministrar}
+        account={account}
         filtros={searchParams}
       />
       {totalPages > 1 && (

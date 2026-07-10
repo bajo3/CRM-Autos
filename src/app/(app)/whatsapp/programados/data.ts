@@ -7,6 +7,20 @@ export { PAGE_SIZE, nombreCliente } from "./types";
 const ESTADOS = ["pendiente", "enviado", "fallado", "cancelado"];
 const MOTIVOS = ["seguimiento", "cuota", "postventa", "vtv", "service", "renovacion", "promo", "otro"];
 
+export async function marcarProgramadosVencidosSinConexion(empresaId: string): Promise<void> {
+  const sb = createClient();
+  const limite = new Date(Date.now() - 5 * 60_000).toISOString();
+  await sb.from("whatsapp_programado")
+    .update({
+      estado: "fallado",
+      intentos_restantes: 0,
+      error_mensaje: "No se envió porque la cuenta de WhatsApp estaba desconectada.",
+    })
+    .eq("empresa_id", empresaId)
+    .eq("estado", "pendiente")
+    .lt("send_at", limite);
+}
+
 export async function listarProgramados(empresaId: string, filtros: FiltrosProgramados) {
   const sb = createClient();
   const page = Math.max(1, Number(filtros.page) || 1);

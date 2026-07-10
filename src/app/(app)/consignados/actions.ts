@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
+import { businessDateISO } from "@/lib/date";
 
 const uuid = z.union([z.string().uuid(), z.literal("")]).transform((v) => (v === "" ? undefined : v)).optional();
 const text = z.union([z.string(), z.literal("")]).transform((v) => (v === "" ? undefined : v)).optional();
@@ -98,7 +99,7 @@ export async function liquidarConsignacion(id: string): Promise<void> {
 
   const { error } = await sb
     .from("consignacion")
-    .update({ liquidado: true, monto_liquidado: montoLiquidado, fecha_liquidacion: new Date().toISOString().slice(0, 10) })
+    .update({ liquidado: true, monto_liquidado: montoLiquidado, fecha_liquidacion: businessDateISO() })
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/consignados");

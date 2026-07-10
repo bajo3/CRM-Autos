@@ -118,8 +118,7 @@ async function ejecutar(request: NextRequest): Promise<NextResponse> {
   const cuotas = await enviarRecordatoriosCuotas(admin);
   const renovacion = await enviarMensajesRenovacion(admin);
 
-  return NextResponse.json({
-    ok: true,
+  const metricas = {
     revisados: pendientes?.length ?? 0,
     enviados,
     reintentados,
@@ -127,6 +126,26 @@ async function ejecutar(request: NextRequest): Promise<NextResponse> {
     recordatorios,
     cuotas,
     renovacion,
+  };
+  const { data: cuentasConectadas } = await admin
+    .from("whatsapp_account")
+    .select("empresa_id")
+    .eq("estado", "conectado")
+    .returns<{ empresa_id: string }[]>();
+  if (cuentasConectadas && cuentasConectadas.length > 0) {
+    await admin.from("whatsapp_evento_log").insert(
+      cuentasConectadas.map((cuenta) => ({
+        empresa_id: cuenta.empresa_id,
+        tipo: "otro" as const,
+        detalle: "cron_ejecutado",
+        datos: metricas,
+      })),
+    );
+  }
+
+  return NextResponse.json({
+    ok: true,
+    ...metricas,
   });
 }
 

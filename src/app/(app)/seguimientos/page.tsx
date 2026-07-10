@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { NuevoSeguimientoForm } from "@/components/seguimientos/nuevo-seguimiento-form";
 import { FilaAcciones } from "@/components/seguimientos/fila-acciones";
 import { cambiarEstadoSeguimiento } from "./actions";
+import { businessDateISO } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export default async function SeguimientosPage({
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
   const filtro: Filtro = (TABS.some((t) => t.key === searchParams.filtro) ? searchParams.filtro : "pendientes") as Filtro;
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = businessDateISO();
 
   let query = sb
     .from("seguimiento")

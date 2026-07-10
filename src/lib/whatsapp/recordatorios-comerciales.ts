@@ -4,21 +4,11 @@ import { rel, type Rel } from "@/lib/rel";
 import { normalizarTelefonoAr } from "./telefono";
 import { getAccountForEmpresa, sendTextMessage } from "./service";
 import { mensajeRecordatorioCuota, mensajeRenovacionCredito, mensajeRenovacionPostventa } from "@/lib/data/whatsapp";
+import { addMonthsISO, businessDateISO, diffDaysISO } from "@/lib/date";
 
 type Db = SupabaseClient<Database>;
 type ClienteContacto = { nombre: string; apellido: string | null; telefono: string | null; whatsapp: string | null };
 
-function sumarMeses(base: Date, meses: number): Date {
-  const d = new Date(base);
-  d.setMonth(d.getMonth() + meses);
-  return d;
-}
-function isoFecha(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-function mesISO(d: Date): string {
-  return d.toISOString().slice(0, 7);
-}
 function telefonoCliente(c: ClienteContacto | null): string | null {
   return c?.whatsapp || c?.telefono || null;
 }
@@ -63,7 +53,7 @@ type CreditoConVenta = {
  * de Meta haría fallar este mensaje sin plantilla aprobada.
  */
 export async function enviarRecordatoriosCuotas(admin: Db): Promise<{ enviados: number }> {
-  const hoy = new Date();
+  const hoy = businessDateISO();
   const { data: creditos } = await admin
     .from("credito")
     .select(
@@ -79,11 +69,11 @@ export async function enviarRecordatoriosCuotas(admin: Db): Promise<{ enviados: 
   for (const cr of creditos ?? []) {
     if (cr.cuota_actual >= cr.cantidad_cuotas) continue;
     const proximaCuota = cr.cuota_actual + 1;
-    const vencimiento = sumarMeses(new Date(`${cr.fecha_inicio}T10:00:00`), proximaCuota);
-    const mesObjetivo = mesISO(vencimiento);
+    const vencimiento = addMonthsISO(cr.fecha_inicio, proximaCuota);
+    const mesObjetivo = vencimiento.slice(0, 7);
     if (cr.recordatorio_cuota_mes === mesObjetivo) continue;
 
-    const diffDias = Math.round((vencimiento.getTime() - hoy.getTime()) / 86_400_000);
+    const diffDias = diffDaysISO(hoy, vencimiento);
     if (diffDias < 0 || diffDias > 3) continue;
 
     if (!(await cache.cuentaBaileysConectada(cr.empresa_id))) continue;
@@ -94,7 +84,7 @@ export async function enviarRecordatoriosCuotas(admin: Db): Promise<{ enviados: 
     if (!telOriginal) continue;
 
     const importe = venta?.saldo ? venta.saldo / cr.cantidad_cuotas : null;
-    const cuerpo = mensajeRecordatorioCuota(cliente?.nombre, proximaCuota, isoFecha(vencimiento), importe);
+    const cuerpo = mensajeRecordatorioCuota(cliente?.nombre, proximaCuota, vencimiento, importe);
 
     const resultado = await sendTextMessage(admin, {
       empresaId: cr.empresa_id,
@@ -159,7 +149,7 @@ export async function enviarMensajesRenovacion(admin: Db): Promise<{ creditos: n
     }
   }
 
-  const hoyISO = isoFecha(new Date());
+  const hoyISO = businessDateISO();
   const { data: postventas } = await admin
     .from("postventa")
     .select("id,empresa_id,fecha_alerta,cliente:cliente_id(nombre,apellido,telefono,whatsapp)")

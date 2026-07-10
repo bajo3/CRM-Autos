@@ -17,6 +17,7 @@ function SubmitButton() {
 
 export default function LoginPage() {
   const [state, formAction] = useFormState(login, {});
+  const showDemoCredentials = process.env.NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS === "1";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-900 p-4">
@@ -33,12 +34,12 @@ export default function LoginPage() {
           <div>
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" required autoComplete="email"
-              placeholder="vos@agencia.com" defaultValue="dueno@jesusdiaz.com" />
+              placeholder="vos@agencia.com" defaultValue={showDemoCredentials ? "dueno@jesusdiaz.com" : undefined} />
           </div>
           <div>
             <Label htmlFor="password">Contraseña</Label>
             <Input id="password" name="password" type="password" required
-              autoComplete="current-password" defaultValue="demo1234" />
+              autoComplete="current-password" defaultValue={showDemoCredentials ? "demo1234" : undefined} />
           </div>
 
           {state?.error && (
@@ -48,9 +49,11 @@ export default function LoginPage() {
           <SubmitButton />
         </form>
 
-        <p className="mt-6 rounded-md bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
-          Demo: <strong>dueno@jesusdiaz.com</strong> · <strong>demo1234</strong>
-        </p>
+        {showDemoCredentials && (
+          <p className="mt-6 rounded-md bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
+            Demo: <strong>dueno@jesusdiaz.com</strong> · <strong>demo1234</strong>
+          </p>
+        )}
       </div>
     </div>
   );

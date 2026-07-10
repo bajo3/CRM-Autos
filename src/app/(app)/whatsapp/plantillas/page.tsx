@@ -31,7 +31,7 @@ export default async function PlantillasPage() {
     <div>
       <PageHeader
         title="Plantillas de WhatsApp"
-        description="Mensajes aprobados para usar fuera de la ventana de 24 horas. La sincronización con Meta queda pendiente para producción — hoy se administran solo acá."
+        description="Mensajes aprobados para contactar clientes fuera de la ventana de 24 horas."
       />
       <PlantillasAdmin plantillas={data ?? []} puedeAdministrar={puedeAdministrar} />
     </div>

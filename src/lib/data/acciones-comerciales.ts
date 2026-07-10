@@ -3,6 +3,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { rel, type Rel } from "@/lib/rel";
 import { formatARS, formatDate } from "@/lib/format";
 import { mensajePostventa, mensajeCumpleanos } from "@/lib/data/whatsapp";
+import { addDaysISO, businessDateISO } from "@/lib/date";
 
 export type Urgencia = "vencido" | "hoy" | "oportunidad";
 export type TipoAccion = "seguimiento" | "presupuesto" | "credito" | "reserva" | "encargo" | "postventa" | "test_drive" | "cumpleanos";
@@ -23,8 +24,8 @@ export type AccionItem = {
 
 const ORDEN_URGENCIA: Record<Urgencia, number> = { vencido: 0, hoy: 1, oportunidad: 2 };
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const inDaysISO = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+const todayISO = () => businessDateISO();
+const inDaysISO = (n: number) => addDaysISO(businessDateISO(), n);
 
 type SeguimientoRow = {
   id: string; fecha: string; motivo: string | null; estado: string;

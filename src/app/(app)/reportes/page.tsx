@@ -122,7 +122,7 @@ export default async function ReportesPage({
       </Card>
 
       {/* KPIs */}
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi
           icon={ShoppingCart}
           label="Ventas del período"
@@ -134,18 +134,30 @@ export default async function ReportesPage({
           <Kpi
             icon={TrendingUp}
             label="Margen neto"
-            value={formatARS(r.rentabilidad.margenNeto)}
-            hint={`Bruto ${formatARS(r.rentabilidad.margenBruto)} − gastos ${formatARS(r.rentabilidad.gastos)}`}
+            value={r.rentabilidad.margenNeto == null ? "No calculable" : formatARS(r.rentabilidad.margenNeto)}
+            hint={r.rentabilidad.ventasSinCosto > 0
+              ? `${formatNumber(r.rentabilidad.ventasSinCosto)} venta(s) sin costo cargado`
+              : `Bruto ${formatARS(r.rentabilidad.margenBruto)} − gastos ${formatARS(r.rentabilidad.gastos)}`}
           />
         ) : (
           <Kpi icon={Car} label="Stock disponible" value={formatNumber(r.stock.disponibles)} />
         )}
         <Kpi
           icon={Car}
-          label="Valor de inventario"
+          label="Stock a precio de venta"
           value={formatARS(r.stock.valorInventario)}
-          hint={`${formatNumber(r.stock.disponibles)} disponibles`}
+          hint={`${formatNumber(r.stock.disponibles)} vendibles · no representa ganancia`}
         />
+        {verMargenes && (
+          <Kpi
+            icon={Wallet}
+            label="Capital invertido conocido"
+            value={formatARS(r.stock.capitalInvertidoConocido)}
+            hint={r.stock.unidadesSinCosto > 0
+              ? `${formatNumber(r.stock.unidadesSinCosto)} unidad(es) sin costo`
+              : "Costos completos del stock vendible"}
+          />
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -179,7 +191,9 @@ export default async function ReportesPage({
                       <td className="py-2 pr-2 text-right">{formatNumber(v.cantidad)}</td>
                       <td className="py-2 pr-2 text-right">{formatARS(v.monto)}</td>
                       {verMargenes && (
-                        <td className="py-2 text-right text-muted-foreground">{formatARS(v.margen)}</td>
+                        <td className="py-2 text-right text-muted-foreground">
+                          {v.margen == null ? `No calculable (${v.ventasSinCosto} sin costo)` : formatARS(v.margen)}
+                        </td>
                       )}
                     </tr>
                   ))}

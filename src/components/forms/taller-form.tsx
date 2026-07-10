@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
+import { businessDateISO } from "@/lib/date";
 
 type Option = { id: string; label: string };
 
@@ -15,7 +16,7 @@ function Submit() {
   return <Button type="submit" disabled={pending}>{pending ? "Guardando…" : "Cargar trabajo"}</Button>;
 }
 
-const hoy = new Date().toISOString().slice(0, 10);
+const hoy = businessDateISO();
 
 export function TallerForm({
   action, vehiculos, vehiculoId,

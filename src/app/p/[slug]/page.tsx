@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import Image from "next/image";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { waUrl } from "@/lib/data/whatsapp";
 import { VitrinaFiltros } from "@/components/catalogos/vitrina-filtros";
+import { contactoPublicoListo } from "@/lib/data/contacto-publico";
 
 export const dynamic = "force-dynamic";
 
@@ -41,9 +43,12 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const sb = createClient();
   const { data } = await sb.rpc("stock_publico", { p_slug: params.slug });
   const d = data as StockPublico | null;
+  if (!d?.empresa || !contactoPublicoListo(d.empresa)) {
+    return { title: "Vitrina no disponible", robots: { index: false, follow: false } };
+  }
   return {
-    title: d?.empresa?.nombre ? `${d.empresa.nombre} — Stock` : "Stock",
-    description: d?.empresa?.nombre ? `Unidades disponibles en ${d.empresa.nombre}.` : undefined,
+    title: `${d.empresa.nombre} — Stock`,
+    description: `Unidades disponibles en ${d.empresa.nombre}.`,
   };
 }
 
@@ -51,11 +56,15 @@ export default async function StockPublicoPage({ params }: { params: { slug: str
   const sb = createClient();
   const { data } = await sb.rpc("stock_publico", { p_slug: params.slug });
   const stock = data as StockPublico | null;
-  if (!stock || !stock.empresa) notFound();
+  if (!stock || !stock.empresa || !contactoPublicoListo(stock.empresa)) notFound();
 
   const { empresa, vehiculos } = stock;
   const color = empresa.color_primario || "#1e3a8a";
   const ubicacion = [empresa.localidad, empresa.provincia].filter(Boolean).join(", ");
+  const requestHeaders = headers();
+  const host = requestHeaders.get("host");
+  const proto = requestHeaders.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  const publicBaseUrl = host ? `${proto}://${host}` : "";
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -107,7 +116,7 @@ export default async function StockPublicoPage({ params }: { params: { slug: str
             Por el momento no hay unidades publicadas. Volvé pronto.
           </div>
         ) : (
-          <VitrinaFiltros vehiculos={vehiculos} empresaNombre={empresa.nombre} telefono={empresa.telefono} color={color} slug={empresa.slug} />
+          <VitrinaFiltros vehiculos={vehiculos} empresaNombre={empresa.nombre} telefono={empresa.telefono} color={color} slug={empresa.slug} publicBaseUrl={publicBaseUrl} />
         )}
       </section>
 

@@ -95,7 +95,7 @@ Existe un mensaje de Felipe programado para **08/07/2026 22:51** que, el 09/07, 
 - monitorear el cron/worker con “última ejecución”, “próxima ejecución” y cantidad de fallos;
 - para un MVP comercial, conectar la API oficial o esconder todo el módulo detrás de una beta claramente separada. No vender Baileys como canal productivo.
 
-### P0.3 — Fechas incorrectas por usar UTC como fecha local
+### P0.3 ✅ HECHO — Fechas incorrectas por usar UTC como fecha local
 
 **Evidencia observada:** el dashboard indicaba 09/07/2026, pero “Nueva venta” proponía **10/07/2026**. La prueba se hizo por la noche en Argentina, cuando UTC ya había cambiado de día.
 
@@ -112,7 +112,7 @@ Existe un mensaje de Felipe programado para **08/07/2026 22:51** que, el 09/07, 
 
 **Mejora obligatoria:** crear un único helper de fecha de negocio en `America/Argentina/Buenos_Aires` y reemplazar todos los `toISOString().slice(0, 10)` usados como fecha local. Agregar tests alrededor de las 20:59/21:00/23:59 de Argentina.
 
-### P0.4 — Márgenes falsos cuando falta costo
+### P0.4 ✅ HECHO — Márgenes falsos cuando falta costo
 
 **Evidencia observada:** Toyota SW4, BYD Atto 2, Jeep Renegade, Mercedes-Benz CLA 200 y Nissan Frontier no tienen costo/toma. En Stock y en la ficha, el CRM muestra el precio completo como margen. La SW4 muestra:
 
@@ -125,7 +125,7 @@ Existe un mensaje de Felipe programado para **08/07/2026 22:51** que, el 09/07, 
 
 **Mejora obligatoria:** si no hay costo, mostrar **“Margen no calculable — falta costo”**, nunca asumir costo cero. Para unidades propias, exigir costo/toma antes de habilitar reportes de rentabilidad o venta final. Distinguir inventario a precio de venta de capital inmovilizado a costo.
 
-### P0.5 — Estado comercial y publicación están mezclados
+### P0.5 ✅ HECHO — Estado comercial y publicación están mezclados
 
 **Evidencia observada:** hay 9 autos vendibles en la vitrina, pero el dashboard informa 5 “Disponibles”. El reporte dice “9 disponibles” y luego separa 5 “Disponible” + 4 “Publicado”. El nuevo catálogo PDF filtra por defecto “Disponible” y selecciona solo 5, dejando afuera las 4 unidades con estado “Publicado”.
 
@@ -138,7 +138,7 @@ Existe un mensaje de Felipe programado para **08/07/2026 22:51** que, el 09/07, 
 
 “Publicado” no debe ser un estado del vehículo. Todos los conteos deben usar una función única de “vendible”.
 
-### P0.6 — El proceso de build/arranque rompió Stock
+### P0.6 ✅ HECHO — El proceso de build/arranque rompió Stock
 
 **Evidencia observada:** al abrir `/stock` apareció “Algo salió mal” y consola con `ChunkLoadError` para `page-bd07a33b0b3ede6b.js`. El archivo disponible en `.next` tenía otro hash. El botón “Reintentar” volvió a fallar. Solo reiniciar `next start` recuperó la pantalla.
 
@@ -150,13 +150,13 @@ Existe un mensaje de Felipe programado para **08/07/2026 22:51** que, el 09/07, 
 
 ## Fallas importantes — P1
 
-### P1.1 — Se puede crear un lead imposible de contactar
+### P1.1 ✅ HECHO — Se puede crear un lead imposible de contactar
 
 El alta solo exige nombre. Teléfono, WhatsApp y email son opcionales. La base ya muestra clientes “Felipe” sin apellido y con presupuesto $0.
 
 **Mejora:** exigir al menos un canal válido (`teléfono || WhatsApp || email`), validar teléfono argentino y detectar duplicados antes de guardar.
 
-### P1.2 — “Presupuestar” desde un auto no trae el precio
+### P1.2 ✅ HECHO — “Presupuestar” desde un auto no trae el precio
 
 La ruta llega con el vehículo seleccionado, pero Precio queda vacío. El vendedor debe volver a recordar o copiar $29.000.000 desde otra pantalla.
 
@@ -177,7 +177,7 @@ Ejemplos observados:
 
 **Mejora:** crear un reset/seed reproducible de demo con fechas relativas a “hoy”, relaciones consistentes y un guion que cierre todos los pendientes. Nunca mantener la demo a mano.
 
-### P1.4 — Textos internos y funciones incompletas visibles al cliente
+### P1.4 ✅ HECHO — Textos internos y funciones incompletas visibles al cliente
 
 Se encontraron textos impropios de producción:
 
@@ -188,7 +188,7 @@ Se encontraron textos impropios de producción:
 
 **Mejora:** eliminar referencias a código/roadmap. Si una función no está terminada, ocultarla o reemplazarla por una explicación útil que no prometa algo inexistente.
 
-### P1.5 — WhatsApp de la vitrina no incluye el link de la unidad
+### P1.5 ✅ HECHO — WhatsApp de la vitrina no incluye el link de la unidad
 
 El mensaje contiene marca, año y precio, pero no la URL pública ni una foto. El asesor recibe contexto, pero el comprador no puede reenviar o volver fácilmente a la publicación.
 
@@ -237,19 +237,19 @@ La velocidad ya no es el problema principal. Stock puede mejorar, pero la priori
 ### Gate 1 — Integridad y conversión (bloqueante)
 
 - [ ] Teléfono/email reales en vitrina y PDF.
-- [ ] Fechas locales corregidas y testeadas.
-- [ ] Margen desconocido cuando falta costo; completar costos del stock demo.
-- [ ] Estado operativo separado de publicación; dashboard, reportes y catálogos dan el mismo total vendible.
+- [x] Fechas locales corregidas y testeadas.
+- [x] Margen desconocido cuando falta costo; la venta se bloquea hasta cargarlo.
+- [x] Estado operativo separado de publicación; dashboard, reportes y catálogos dan el mismo total vendible.
 - [ ] WhatsApp oficial conectado y cron monitoreado, o módulo oculto del producto comercial.
-- [ ] Build/deploy atómico con smoke test de Dashboard, Clientes, Stock y Vitrina.
+- [x] Arranque local atómico con typecheck, lint, build, reinicio y smoke test; deploy inmutable en Vercel.
 
 ### Gate 2 — Embudo comercial usable
 
-- [ ] Lead exige un canal de contacto y evita duplicados.
-- [ ] Presupuesto desde stock trae precio y permite alta rápida del cliente.
+- [x] Lead exige un canal de contacto y evita duplicados.
+- [x] Presupuesto desde stock trae precio, validez y permite alta rápida del cliente.
 - [ ] Datos demo reseteables, recientes y consistentes.
-- [ ] Textos internos/incompletos eliminados.
-- [ ] CTA de WhatsApp incluye link público y tracking.
+- [x] Textos internos/incompletos eliminados.
+- [x] CTA de WhatsApp incluye link público y parámetros UTM.
 
 ### Gate 3 — Piloto real
 

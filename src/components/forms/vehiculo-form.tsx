@@ -103,9 +103,6 @@ export function VehiculoForm({
             <Select id="estado" name="estado" defaultValue={v.estado ?? "disponible"}>
               <option value="disponible">Disponible</option>
               <option value="en_preparacion">En preparación</option>
-              <option value="publicado">Publicado</option>
-              <option value="no_publicado">No publicado</option>
-              <option value="pausado">Pausado</option>
               <option value="reservado">Reservado</option>
               <option value="en_negociacion">En negociación</option>
               <option value="vendido">Vendido</option>
@@ -138,7 +135,7 @@ export function VehiculoForm({
                 </Field>
               ) : (
                 <div className="flex items-end pb-2 text-xs text-muted-foreground">
-                  Queda pendiente de control en el módulo VTV.
+                  Se registrará para control en el módulo VTV.
                 </div>
               )}
             </>

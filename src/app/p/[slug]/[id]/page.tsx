@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import Image from "next/image";
 import { ArrowLeft, MapPin, Phone, Mail, MessageCircle, Calendar, Gauge, Fuel, Cog, Palette, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { waUrl, mensajeVehiculo } from "@/lib/data/whatsapp";
 import { humanize } from "@/lib/format";
 import { GaleriaFotos } from "@/components/catalogos/galeria-fotos";
+import { contactoPublicoListo } from "@/lib/data/contacto-publico";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +66,9 @@ async function getDetalle(slug: string, id: string): Promise<VehiculoPublico | n
 
 export async function generateMetadata({ params }: { params: { slug: string; id: string } }) {
   const data = await getDetalle(params.slug, params.id);
-  if (!data?.vehiculo) return { title: "Unidad no encontrada" };
+  if (!data?.vehiculo || !data.empresa || !contactoPublicoListo(data.empresa)) {
+    return { title: "Unidad no encontrada", robots: { index: false, follow: false } };
+  }
   const { vehiculo, empresa } = data;
   const titulo = `${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.anio ?? ""}`.trim();
   return {
@@ -75,12 +79,18 @@ export async function generateMetadata({ params }: { params: { slug: string; id:
 
 export default async function VehiculoPublicoPage({ params }: { params: { slug: string; id: string } }) {
   const data = await getDetalle(params.slug, params.id);
-  if (!data || !data.empresa || !data.vehiculo) notFound();
+  if (!data || !data.empresa || !data.vehiculo || !contactoPublicoListo(data.empresa)) notFound();
 
   const { empresa, vehiculo } = data;
   const color = empresa.color_primario || "#1e3a8a";
   const ubicacion = [empresa.localidad, empresa.provincia].filter(Boolean).join(", ");
   const titulo = `${vehiculo.marca} ${vehiculo.modelo}${vehiculo.anio ? ` ${vehiculo.anio}` : ""}`;
+  const requestHeaders = headers();
+  const host = requestHeaders.get("host");
+  const proto = requestHeaders.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  const publicLink = host
+    ? `${proto}://${host}/p/${empresa.slug}/${vehiculo.id}?utm_source=whatsapp&utm_medium=referral&utm_campaign=stock_publico`
+    : undefined;
 
   const specs: { icon: typeof Calendar; label: string; value: string }[] = [];
   if (vehiculo.anio) specs.push({ icon: Calendar, label: "Año", value: String(vehiculo.anio) });
@@ -166,7 +176,7 @@ export default async function VehiculoPublicoPage({ params }: { params: { slug: 
                       modelo: vehiculo.modelo,
                       anio: vehiculo.anio,
                       precio: vehiculo.precio,
-                    }),
+                    }, publicLink),
                     empresa.telefono,
                   )}
                   target="_blank"

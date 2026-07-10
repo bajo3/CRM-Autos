@@ -51,11 +51,12 @@ export function EmpresaForm({ initial = {} }: { initial?: EmpresaInitial }) {
           <Field name="cuit" label="CUIT" error={fe.cuit}>
             <Input id="cuit" name="cuit" defaultValue={e.cuit} placeholder="30-12345678-9" />
           </Field>
-          <Field name="telefono" label="Teléfono" error={fe.telefono}>
-            <Input id="telefono" name="telefono" defaultValue={e.telefono} placeholder="2494111111" />
+          <Field name="telefono" label="Teléfono / WhatsApp público *" error={fe.telefono}
+            hint="Se usa en la vitrina y en todos los botones de consulta.">
+            <Input id="telefono" name="telefono" required defaultValue={e.telefono} placeholder="2494111111" />
           </Field>
-          <Field name="email" label="Email" error={fe.email}>
-            <Input id="email" name="email" type="email" defaultValue={e.email} placeholder="contacto@agencia.com" />
+          <Field name="email" label="Email comercial público *" error={fe.email}>
+            <Input id="email" name="email" type="email" required defaultValue={e.email} placeholder="ventas@tuagencia.com.ar" />
           </Field>
           <Field name="direccion" label="Dirección" error={fe.direccion}>
             <Input id="direccion" name="direccion" defaultValue={e.direccion} placeholder="Av. Siempreviva 742" />
@@ -76,7 +77,7 @@ export function EmpresaForm({ initial = {} }: { initial?: EmpresaInitial }) {
             <p className="text-xs text-muted-foreground">Se usan en catálogos y documentos PDF.</p>
           </div>
           <Field name="logo_url" label="Logo (URL)" error={fe.logo_url}
-            hint="Pegá la URL pública del logo. La subida de archivo queda pendiente.">
+            hint="Pegá la URL pública HTTPS del logo que querés usar en la vitrina y los PDFs.">
             <Input id="logo_url" name="logo_url" defaultValue={e.logo_url} placeholder="https://…/logo.png" />
           </Field>
           <Field name="color_primario" label="Color primario (hex)" error={fe.color_primario}>

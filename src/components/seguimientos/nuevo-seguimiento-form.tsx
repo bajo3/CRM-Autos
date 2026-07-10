@@ -9,6 +9,7 @@ import {
   crearSeguimiento,
   type ClienteOpcion,
 } from "@/app/(app)/seguimientos/actions";
+import { businessDateISO } from "@/lib/date";
 
 /** Alta rápida de seguimiento sin salir de la pantalla: busca cliente, elige fecha y motivo. */
 export function NuevoSeguimientoForm() {
@@ -129,7 +130,7 @@ export function NuevoSeguimientoForm() {
 
         <div>
           <Label htmlFor="seg-fecha">Fecha *</Label>
-          <Input id="seg-fecha" name="fecha" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
+          <Input id="seg-fecha" name="fecha" type="date" required defaultValue={businessDateISO()} />
         </div>
         <div>
           <Label htmlFor="seg-hora">Hora</Label>

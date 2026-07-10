@@ -48,7 +48,7 @@ export default async function ConversacionPage({
     sb.from("whatsapp_conversacion").update({ no_leidos: 0 }).eq("id", conversacion.id),
     listarPlantillasAprobadas(empresaId),
     listarVendedores(empresaId),
-    sb.from("whatsapp_account").select("provider").eq("empresa_id", empresaId).maybeSingle(),
+    sb.from("whatsapp_account").select("provider,estado").eq("empresa_id", empresaId).maybeSingle(),
   ]);
   // La ventana de 24h es una regla de la Cloud API de Meta: no aplica a
   // Baileys (sesión personal), donde siempre se puede escribir texto libre.
@@ -73,6 +73,7 @@ export default async function ConversacionPage({
               telefono={conversacion.telefono}
               mensajesIniciales={mensajes}
               dentroVentana={dentroVentana}
+              conectado={cuenta?.estado === "conectado"}
               plantillas={plantillas}
               draftInicial={searchParams.draft}
             />

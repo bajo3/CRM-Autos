@@ -7,6 +7,7 @@ import { registrarPago, type FormState } from "@/app/(app)/creditos/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
+import { businessDateISO } from "@/lib/date";
 
 function Submit() {
   const { pending } = useFormStatus();
@@ -29,7 +30,7 @@ export function RegistrarPagoButton({
     if (state.ok) setOpen(false);
   }, [state.ok]);
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = businessDateISO();
 
   return (
     <>

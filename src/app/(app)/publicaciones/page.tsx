@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatARS, humanize } from "@/lib/format";
+import { estadoOperativo } from "@/lib/data/vehiculo-estado";
 import {
   conectarMercadoLibre,
   desconectarMercadoLibre,
@@ -243,7 +244,7 @@ export default async function PublicacionesPage({
                             {v.anio ?? ""} {v.version ? `· ${v.version}` : ""} · {formatARS(v.precio_venta)}
                           </div>
                           <div className="mt-1">
-                            <Badge tone="neutral">{humanize(v.estado)}</Badge>
+                            <Badge tone="neutral">{humanize(estadoOperativo(v.estado))}</Badge>
                           </div>
                         </td>
 

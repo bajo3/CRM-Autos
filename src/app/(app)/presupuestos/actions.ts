@@ -9,6 +9,7 @@ import { can } from "@/lib/auth/permissions";
 import { generarPdf, type DatosDocumento, type EmpresaDoc } from "@/lib/pdf/documento";
 import { rel, type Rel } from "@/lib/rel";
 import { calcularSaldo, ESTADO_VALUES, type FormaPago, type EstadoPresupuesto } from "./lib";
+import { businessDateISO } from "@/lib/date";
 
 export type FormState = { error?: string };
 
@@ -24,7 +25,7 @@ const text = z
   .optional();
 
 const schema = z.object({
-  cliente_id: z.string().uuid().or(z.literal("")).transform((v) => v || null),
+  cliente_id: z.string().uuid("Elegí un cliente para poder dar seguimiento al presupuesto"),
   vehiculo_id: z.string().uuid().or(z.literal("")).transform((v) => v || null),
   precio: z.coerce.number().min(0, "El precio no puede ser negativo"),
   anticipo: num,
@@ -115,7 +116,7 @@ export async function generarPdfPresupuesto(id: string): Promise<void> {
   const veh = rel(p.vehiculo);
   const datos: DatosDocumento = {
     numero: id.slice(0, 8).toUpperCase(),
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: businessDateISO(),
     cliente: cli ? { nombre: `${cli.nombre} ${cli.apellido ?? ""}`.trim(), dni_cuit: cli.dni_cuit, localidad: cli.localidad, telefono: cli.telefono } : null,
     vehiculo: veh ?? null,
     precio_total: p.precio,

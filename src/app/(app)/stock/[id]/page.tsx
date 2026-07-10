@@ -6,6 +6,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
 import { waUrl, mensajeVehiculo } from "@/lib/data/whatsapp";
+import { estadoOperativo } from "@/lib/data/vehiculo-estado";
 import { DeleteAutoButton } from "@/components/stock/delete-auto-button";
 import { FotosManager } from "@/components/stock/fotos-manager";
 import { EstadoDocumentalSelect } from "@/components/stock/estado-documental-select";
@@ -108,7 +109,9 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
   ]);
 
   const totalGastos = (gastos ?? []).reduce((s, g) => s + Number(g.monto ?? 0), 0);
-  const margenNeto = Number(v.margen_estimado ?? 0) - totalGastos;
+  const margenCalculable = v.precio_costo != null && v.precio_venta != null;
+  const margenBruto = margenCalculable ? Number(v.precio_venta) - Number(v.precio_costo) : null;
+  const margenNeto = margenBruto == null ? null : margenBruto - totalGastos;
   const verMargen = can(rol, "margenes.ver");
   const verCostos = can(rol, "costos.ver");
   const interesadosPendientes = (consultas ?? []).filter((c) => c.pendiente);
@@ -145,7 +148,7 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
           <p className="text-sm text-muted-foreground">{v.version}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge tone={toneForEstado(v.estado)}>{humanize(v.estado)}</Badge>
+          <Badge tone={toneForEstado(estadoOperativo(v.estado))}>{humanize(estadoOperativo(v.estado))}</Badge>
           <Badge tone={toneForEstado(v.estado_documental)}>Doc: {humanize(v.estado_documental)}</Badge>
           <Badge tone="info">{humanize(v.titularidad)}</Badge>
         </div>
@@ -254,9 +257,16 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Precio venta</span><span className="font-semibold">{formatARS(v.precio_venta)}</span></div>
             {verCostos && <div className="flex justify-between"><span className="text-muted-foreground">Costo / toma</span><span>{formatARS(v.precio_costo)}</span></div>}
-            {verMargen && <div className="flex justify-between"><span className="text-muted-foreground">Margen bruto</span><span className="text-ok">{formatARS(v.margen_estimado)}</span></div>}
-            {verCostos && <div className="flex justify-between"><span className="text-muted-foreground">Gastos</span><span className="text-danger">{formatARS(totalGastos)}</span></div>}
             {verMargen && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Margen bruto</span>
+                <span className={margenBruto == null ? "text-right text-xs text-muted-foreground" : "text-ok"}>
+                  {margenBruto == null ? "No calculable · falta costo" : formatARS(margenBruto)}
+                </span>
+              </div>
+            )}
+            {verCostos && <div className="flex justify-between"><span className="text-muted-foreground">Gastos</span><span className="text-danger">{formatARS(totalGastos)}</span></div>}
+            {verMargen && margenNeto != null && (
               <div className="flex justify-between border-t pt-2 font-semibold">
                 <span>Margen neto</span>
                 <span className={margenNeto >= 0 ? "text-ok" : "text-danger"}>{formatARS(margenNeto)}</span>
@@ -298,9 +308,6 @@ export default async function FichaVehiculo({ params }: { params: { id: string }
             ) : (
               <Badge tone={toneForEstado(v.estado_documental)}>{humanize(v.estado_documental)}</Badge>
             )}
-            <p className="pt-2 text-xs text-muted-foreground">
-              El control documental por ítem (cédula, título, seguro, etc.) se modela en <code className="rounded bg-muted px-1">documento_vehiculo</code>; la carga detallada queda para una próxima iteración.
-            </p>
           </CardContent>
         </Card>
       </div>

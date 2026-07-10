@@ -12,10 +12,12 @@ import { formatARS, formatDate, humanize } from "@/lib/format";
 import { waUrl, mensajeCatalogo } from "@/lib/data/whatsapp";
 import { CatalogoPublico } from "@/components/catalogos/catalogo-publico";
 import { generarCatalogo, eliminarCatalogo } from "./actions";
+import { ESTADOS_DISPONIBLES_DB } from "@/lib/data/vehiculo-estado";
+import { contactoPublicoListo } from "@/lib/data/contacto-publico";
 
 export const dynamic = "force-dynamic";
 
-const ESTADOS = ["disponible", "en_preparacion", "publicado", "reservado", "en_negociacion"];
+const ESTADOS = ["disponible", "en_preparacion", "reservado", "en_negociacion"];
 
 const ORDENES: Record<string, { col: string; asc: boolean; label: string }> = {
   recientes: { col: "created_at", asc: false, label: "Más recientes" },
@@ -50,7 +52,9 @@ export default async function CatalogosPage({
   const h = headers();
   const host = h.get("host");
   const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
-  const publicUrl = slug && host ? `${proto}://${host}/p/${slug}` : null;
+  const publicUrl = slug && host && ctx?.empresa && contactoPublicoListo(ctx.empresa)
+    ? `${proto}://${host}/p/${slug}`
+    : null;
 
   const ord = ORDENES[orden];
   let query = sb
@@ -58,7 +62,11 @@ export default async function CatalogosPage({
     .select("id,marca,modelo,version,anio,kilometros,precio_venta,estado")
     .neq("estado", "vendido")
     .order(ord.col, { ascending: ord.asc, nullsFirst: false });
-  if (estado && ESTADOS.includes(estado)) query = query.eq("estado", estado as never);
+  if (estado && ESTADOS.includes(estado)) {
+    query = estado === "disponible"
+      ? query.in("estado", [...ESTADOS_DISPONIBLES_DB] as never[])
+      : query.eq("estado", estado as never);
+  }
   if (searchParams.q) {
     query = query.or(`marca.ilike.%${searchParams.q}%,modelo.ilike.%${searchParams.q}%`);
   }
@@ -87,9 +95,9 @@ export default async function CatalogosPage({
             <CatalogoPublico url={publicUrl} empresaNombre={empresaNombre} />
           ) : (
             <p className="text-sm text-muted-foreground">
-              Configurá el identificador público (slug) de tu agencia en{" "}
+              Completá el teléfono, email y datos públicos de tu agencia en{" "}
               <a href="/configuracion" className="text-brand-800 hover:underline">Configuración</a>{" "}
-              para activar tu vitrina online.
+              para activar la vitrina sin perder consultas.
             </p>
           )}
         </CardContent>

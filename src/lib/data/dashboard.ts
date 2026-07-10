@@ -1,18 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Rel } from "@/lib/rel";
 import { estadoPorVencimiento } from "@/lib/data/vtv";
+import { businessDateISO } from "@/lib/date";
+import { ESTADOS_DISPONIBLES_DB } from "@/lib/data/vehiculo-estado";
 
 type VtvRow = {
   id: string; patente: string | null; estado: string; fecha_vencimiento: string | null;
   vehiculo: Rel<{ marca: string; modelo: string }>;
 };
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
-
 /** Métricas y alertas del dashboard. Todo pasa por RLS → solo la empresa actual. */
 export async function getDashboardData() {
   const sb = createClient();
-  const today = todayISO();
+  const today = businessDateISO();
 
   const [
     leadsNuevos, seguimientosHoy, seguimientosVencidos,
@@ -31,7 +31,7 @@ export async function getDashboardData() {
     sb.from("credito").select("*", { count: "exact", head: true }).eq("estado", "por_terminar"),
     sb.from("postventa").select("*", { count: "exact", head: true }).eq("realizada", false).lte("fecha_alerta", today),
     sb.from("encargo").select("*", { count: "exact", head: true }).in("estado", ["buscando", "unidad_encontrada", "ofrecido"]),
-    sb.from("vehiculo").select("*", { count: "exact", head: true }).eq("estado", "disponible"),
+    sb.from("vehiculo").select("*", { count: "exact", head: true }).in("estado", [...ESTADOS_DISPONIBLES_DB] as never[]),
     sb.from("vehiculo").select("*", { count: "exact", head: true }).eq("estado", "reservado"),
     sb.from("vehiculo").select("*", { count: "exact", head: true }).eq("estado", "vendido"),
     sb.from("vehiculo").select("*", { count: "exact", head: true }).in("estado_documental", ["pendiente", "incompleto", "observado"]),

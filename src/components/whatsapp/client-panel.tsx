@@ -17,6 +17,7 @@ import {
 } from "@/app/(app)/whatsapp/actions";
 import type { ConversacionDetalle } from "@/app/(app)/whatsapp/data";
 import { rel } from "@/lib/rel";
+import { businessDateISO } from "@/lib/date";
 
 type Vendedor = { id: string; nombre: string; apellido: string };
 
@@ -138,7 +139,7 @@ function SeguimientoForm({ conversacionId }: { conversacionId: string }) {
       <p className="flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
         <CalendarPlus className="h-3.5 w-3.5" /> Crear seguimiento
       </p>
-      <Input type="date" name="fecha" required defaultValue={new Date().toISOString().slice(0, 10)} />
+      <Input type="date" name="fecha" required defaultValue={businessDateISO()} />
       <Input type="text" name="motivo" placeholder="Motivo (opcional)" />
       <Button type="submit" size="sm" className="w-full">Programar</Button>
     </form>
