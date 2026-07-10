@@ -1,4 +1,4 @@
-import { TrendingUp, ShoppingCart, Wallet, Car, Download, Trophy } from "lucide-react";
+import { TrendingUp, ShoppingCart, Wallet, Car, Download, Trophy, Filter, AlertTriangle } from "lucide-react";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { getReporte, rangoMesActual } from "@/lib/data/reportes";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { formatARS, formatNumber, humanize } from "@/lib/format";
+import { addDaysISO, businessDateISO } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,8 @@ export default async function ReportesPage({
   const ticketProm = r.ventas.cantidad > 0 ? r.ventas.monto / r.ventas.cantidad : 0;
 
   const qs = new URLSearchParams({ desde, hasta }).toString();
+  const hoy = businessDateISO();
+  const semanaQs = new URLSearchParams({ desde: addDaysISO(hoy, -6), hasta: hoy }).toString();
 
   return (
     <div>
@@ -100,6 +103,7 @@ export default async function ReportesPage({
             <Button type="submit" variant="outline" size="sm">
               Aplicar
             </Button>
+            <a href={`/reportes?${semanaQs}`} className="text-sm font-medium text-brand-800 hover:underline">Últimos 7 días</a>
             <div className="ml-auto flex flex-wrap gap-2">
               <a href={`/reportes/export?tipo=ventas&${qs}`}>
                 <Button type="button" variant="outline" size="sm">
@@ -159,6 +163,110 @@ export default async function ReportesPage({
           />
         )}
       </div>
+
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Filter className="h-4 w-4 text-brand-700" /> Embudo comercial del período
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Actividad generada entre las fechas elegidas. La tasa de contacto usa los leads ingresados en este período.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-2 sm:grid-cols-4 lg:grid-cols-7">
+            {[
+              ["Leads", r.embudo.leads],
+              ["Contactados", r.embudo.contactados],
+              ["Seguimientos", r.embudo.seguimientosRealizados],
+              ["Test drives", r.embudo.testDrives],
+              ["Presupuestos", r.embudo.presupuestos],
+              ["Reservas", r.embudo.reservas],
+              ["Ventas", r.embudo.ventas],
+            ].map(([label, value]) => (
+              <div key={String(label)} className="rounded-lg border bg-slate-50 px-3 py-2">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="text-xl font-bold">{formatNumber(Number(value))}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <span className="rounded-full bg-brand-50 px-3 py-1 text-brand-800">
+              Tasa de contacto: <strong>{r.embudo.leads > 0 ? Math.round((r.embudo.contactados / r.embudo.leads) * 100) : 0}%</strong>
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1">
+              Conversión a venta: <strong>{r.embudo.leads > 0 ? Math.round((r.embudo.ventas / r.embudo.leads) * 100) : 0}%</strong>
+            </span>
+            <span className="rounded-full bg-red-50 px-3 py-1 text-red-800">
+              Leads perdidos: <strong>{formatNumber(r.embudo.perdidos)}</strong>
+            </span>
+          </div>
+          {r.embudo.motivosPerdida.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Motivos de pérdida</p>
+              <div className="flex flex-wrap gap-2">
+                {r.embudo.motivosPerdida.map((motivo) => (
+                  <span key={motivo.motivo} className="rounded-full border bg-white px-3 py-1 text-sm">
+                    {motivo.motivo}: <strong>{motivo.cantidad}</strong>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {r.embudo.porVendedor.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Todavía no hay actividad atribuida a vendedores en el período.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                    <th className="py-2 pr-3 font-medium">Vendedor</th>
+                    <th className="py-2 px-2 text-right font-medium">Leads</th>
+                    <th className="py-2 px-2 text-right font-medium">Contacto</th>
+                    <th className="py-2 px-2 text-right font-medium">Presup. E/A</th>
+                    <th className="py-2 px-2 text-right font-medium">Seguim.</th>
+                    <th className="py-2 px-2 text-right font-medium">Ventas</th>
+                    <th className="py-2 px-2 text-right font-medium">Vencidos</th>
+                    <th className="py-2 pl-2 text-right font-medium">Sin actividad</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {r.embudo.porVendedor.map((vendedor) => (
+                    <tr key={vendedor.vendedorId}>
+                      <td className="py-2 pr-3 font-medium">{vendedor.nombre}</td>
+                      <td className="py-2 px-2 text-right">{formatNumber(vendedor.leads)}</td>
+                      <td className="py-2 px-2 text-right">
+                        {vendedor.leads > 0 ? `${Math.round((vendedor.contactados / vendedor.leads) * 100)}%` : "—"}
+                      </td>
+                      <td className="py-2 px-2 text-right" title={`${vendedor.presupuestos} creados en total`}>
+                        {vendedor.presupuestosEnviados} / {vendedor.presupuestosAceptados}
+                      </td>
+                      <td className="py-2 px-2 text-right">{formatNumber(vendedor.seguimientosRealizados)}</td>
+                      <td className="py-2 px-2 text-right font-semibold">{formatNumber(vendedor.ventas)}</td>
+                      <td className="py-2 px-2 text-right">
+                        {vendedor.pendientesVencidos > 0 ? (
+                          <span className="inline-flex items-center gap-1 font-semibold text-red-700">
+                            <AlertTriangle className="h-3.5 w-3.5" /> {vendedor.pendientesVencidos}
+                          </span>
+                        ) : "0"}
+                      </td>
+                      <td className="py-2 pl-2 text-right text-muted-foreground">
+                        {vendedor.diasSinActividad == null
+                          ? "Sin actividad"
+                          : vendedor.diasSinActividad === 0
+                            ? "Hoy"
+                            : `${vendedor.diasSinActividad} día(s)`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">Presup. E/A = enviados / aceptados. Los vencidos son próximos pasos que requieren acción.</p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Ranking de vendedores */}

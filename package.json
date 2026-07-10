@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "demo:prod": "powershell -ExecutionPolicy Bypass -File scripts/demo-prod.ps1",
+    "demo:reset": "node scripts/reset-demo.mjs --confirmar-jesus-diaz",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

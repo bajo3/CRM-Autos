@@ -20,6 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatARS, humanize } from "@/lib/format";
 import { estadoOperativo } from "@/lib/data/vehiculo-estado";
+import { contactoPublicoListo } from "@/lib/data/contacto-publico";
+import { evaluarPublicacion, type DatosPublicacion } from "@/lib/data/publicacion-completa";
 import {
   conectarMercadoLibre,
   desconectarMercadoLibre,
@@ -45,7 +47,7 @@ type VehRow = {
   publicado_web: boolean;
   publicado_redes: boolean;
   slug_publico: string | null;
-};
+} & DatosPublicacion;
 type PubRow = {
   vehiculo_id: string;
   estado: string;
@@ -78,11 +80,11 @@ export default async function PublicacionesPage({
   const slugEmpresa = ctx?.empresa?.slug ?? null;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
 
-  const [{ data: autos }, { data: pubs }, { data: cuenta }] = await Promise.all([
+  const [{ data: autos }, { data: pubs }, { data: cuenta }, { data: fotos }] = await Promise.all([
     sb
       .from("vehiculo")
       .select(
-        "id,marca,modelo,version,anio,precio_venta,estado,publicado_web,publicado_redes,slug_publico",
+        "id,marca,modelo,version,anio,kilometros,precio_venta,precio_costo,patente,chasis,motor,estado_documental,estado,publicado_web,publicado_redes,slug_publico",
       )
       .neq("estado", "vendido")
       .order("created_at", { ascending: false })
@@ -97,12 +99,16 @@ export default async function PublicacionesPage({
       .select("ml_user_id,nickname,email,token_expira")
       .eq("empresa_id", ctx?.profile?.empresa_id ?? "")
       .maybeSingle<CuentaRow>(),
+    sb.from("foto_vehiculo").select("vehiculo_id").returns<{ vehiculo_id: string }[]>(),
   ]);
 
   const pubPorVeh = new Map<string, PubRow>();
   for (const p of pubs ?? []) pubPorVeh.set(p.vehiculo_id, p);
 
   const conectado = Boolean(cuenta?.ml_user_id);
+  const contactoListo = Boolean(ctx?.empresa && contactoPublicoListo(ctx.empresa));
+  const fotosPorVehiculo = new Map<string, number>();
+  for (const foto of fotos ?? []) fotosPorVehiculo.set(foto.vehiculo_id, (fotosPorVehiculo.get(foto.vehiculo_id) ?? 0) + 1);
 
   return (
     <div>
@@ -234,6 +240,7 @@ export default async function PublicacionesPage({
                   {autos.map((v) => {
                     const pub = pubPorVeh.get(v.id);
                     const estadoML = pub?.estado ?? "borrador";
+                    const evaluacion = evaluarPublicacion({ ...v, fotos: fotosPorVehiculo.get(v.id) ?? 0 });
                     return (
                       <tr key={v.id} className="align-top">
                         <td className="py-3 pr-3">
@@ -245,7 +252,11 @@ export default async function PublicacionesPage({
                           </div>
                           <div className="mt-1">
                             <Badge tone="neutral">{humanize(estadoOperativo(v.estado))}</Badge>
+                            <span className={`ml-2 text-xs ${evaluacion.listo ? "text-green-700" : "text-amber-700"}`}>
+                              Ficha {evaluacion.porcentaje}%
+                            </span>
                           </div>
+                          {!evaluacion.listo && <p className="mt-1 max-w-sm text-[11px] text-amber-700">Falta: {evaluacion.faltantes.join(", ")}</p>}
                         </td>
 
                         {/* Web */}
@@ -254,7 +265,7 @@ export default async function PublicacionesPage({
                             <Badge tone={v.publicado_web ? "ok" : "neutral"}>
                               {v.publicado_web ? "Publicado" : "No publicado"}
                             </Badge>
-                            {puede && (
+                            {puede && (v.publicado_web || (contactoListo && evaluacion.listo)) && (
                               <form action={togglePublicarWeb.bind(null, v.id, !v.publicado_web)}>
                                 <button
                                   type="submit"
@@ -263,6 +274,9 @@ export default async function PublicacionesPage({
                                   {v.publicado_web ? "Quitar de web" : "Publicar en web"}
                                 </button>
                               </form>
+                            )}
+                            {puede && !v.publicado_web && (!contactoListo || !evaluacion.listo) && (
+                              <span className="text-[11px] text-muted-foreground">Completá contacto y ficha para publicar</span>
                             )}
                           </div>
                         </td>

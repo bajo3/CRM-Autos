@@ -6,6 +6,7 @@ import { getFormOptions } from "@/lib/data/options";
 import { PageHeader } from "@/components/ui/page-header";
 import { ClienteForm } from "@/components/forms/cliente-form";
 import { actualizarCliente } from "../../actions";
+import { motivoPerdidaDe } from "@/lib/data/motivo-perdida";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,7 @@ export default async function EditarClientePage({ params }: { params: { id: stri
           presupuesto_aprox: c.presupuesto_aprox ?? undefined,
           proximo_seguimiento: c.proximo_seguimiento ?? undefined, fecha_nacimiento: c.fecha_nacimiento ?? undefined,
           observaciones: c.observaciones ?? undefined,
+          motivo_perdida: motivoPerdidaDe(c.observaciones) ?? undefined,
         }}
       />
     </div>

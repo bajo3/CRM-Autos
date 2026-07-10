@@ -8,6 +8,8 @@ import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
 import { businessDateISO } from "@/lib/date";
 import { estadoOperativo } from "@/lib/data/vehiculo-estado";
+import { contactoPublicoListo } from "@/lib/data/contacto-publico";
+import { evaluarPublicacion, type DatosPublicacion } from "@/lib/data/publicacion-completa";
 import { urlAutorizacion } from "@/lib/mercadolibre/oauth";
 import { tokenValido, obtenerCuenta } from "@/lib/mercadolibre/cuenta";
 import { mlGet, mlSend } from "@/lib/mercadolibre/client";
@@ -57,15 +59,26 @@ export async function togglePublicarWeb(vehiculoId: string, publicar: boolean): 
   const ctx = await ctxConPermiso();
   const sb = createClient();
 
+  if (publicar && (!ctx.empresa || !contactoPublicoListo(ctx.empresa))) {
+    throw new Error("Completá un teléfono y email públicos reales en Configuración antes de publicar.");
+  }
+
   const patch: Database["public"]["Tables"]["vehiculo"]["Update"] = {
     publicado_web: publicar,
   };
   const { data: v } = await sb
     .from("vehiculo")
-    .select("marca,modelo,anio,slug_publico,estado")
+    .select("marca,modelo,version,anio,kilometros,precio_venta,precio_costo,patente,chasis,motor,estado_documental,slug_publico,estado")
     .eq("id", vehiculoId)
-    .maybeSingle<{ marca: string; modelo: string; anio: number | null; slug_publico: string | null; estado: string }>();
+    .maybeSingle<DatosPublicacion & { marca: string; modelo: string; anio: number | null; slug_publico: string | null; estado: string }>();
   if (v) {
+    if (publicar) {
+      const { count: fotos } = await sb.from("foto_vehiculo").select("id", { count: "exact", head: true }).eq("vehiculo_id", vehiculoId);
+      const evaluacion = evaluarPublicacion({ ...v, fotos: fotos ?? 0 });
+      if (!evaluacion.listo) {
+        throw new Error(`La ficha está al ${evaluacion.porcentaje}%. Completá: ${evaluacion.faltantes.join(", ")}.`);
+      }
+    }
     patch.estado = estadoOperativo(v.estado) as Database["public"]["Enums"]["estado_vehiculo"];
     if (publicar && !v.slug_publico) {
       patch.slug_publico = `${slugify(`${v.marca}-${v.modelo}-${v.anio ?? ""}`)}-${vehiculoId.slice(0, 6)}`;

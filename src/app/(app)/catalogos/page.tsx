@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { FileText, ExternalLink, MessageCircle, Trash2, Globe } from "lucide-react";
+import { FileText, ExternalLink, MessageCircle, Trash2, Globe, Archive, ArchiveRestore } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -11,9 +11,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { formatARS, formatDate, humanize } from "@/lib/format";
 import { waUrl, mensajeCatalogo } from "@/lib/data/whatsapp";
 import { CatalogoPublico } from "@/components/catalogos/catalogo-publico";
-import { generarCatalogo, eliminarCatalogo } from "./actions";
+import { generarCatalogo, eliminarCatalogo, archivarCatalogo } from "./actions";
 import { ESTADOS_DISPONIBLES_DB } from "@/lib/data/vehiculo-estado";
 import { contactoPublicoListo } from "@/lib/data/contacto-publico";
+import { Badge } from "@/components/ui/badge";
+import { rel, type Rel } from "@/lib/rel";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,7 @@ type VehRow = {
 };
 type CatRow = {
   id: string; nombre: string | null; vehiculo_ids: string[]; pdf_url: string | null; created_at: string;
+  filtros: Record<string, unknown> | null; creador: Rel<{ nombre: string; apellido: string }>;
 };
 
 export default async function CatalogosPage({
@@ -73,8 +76,39 @@ export default async function CatalogosPage({
 
   const [{ data: autos }, { data: catalogos }] = await Promise.all([
     query.returns<VehRow[]>(),
-    sb.from("catalogo_pdf").select("id,nombre,vehiculo_ids,pdf_url,created_at").order("created_at", { ascending: false }).returns<CatRow[]>(),
+    sb.from("catalogo_pdf").select("id,nombre,vehiculo_ids,pdf_url,created_at,filtros,creador:created_by(nombre,apellido)").order("created_at", { ascending: false }).returns<CatRow[]>(),
   ]);
+  const activos = (catalogos ?? []).filter((catalogo) => catalogo.filtros?.archivado !== true);
+  const archivados = (catalogos ?? []).filter((catalogo) => catalogo.filtros?.archivado === true);
+  const renderCatalogo = (c: CatRow, vigente = false) => {
+    const creador = rel(c.creador);
+    return (
+      <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+        <div className="text-sm">
+          <span className="font-medium">{c.nombre ?? "Catálogo"}</span>
+          {vigente && <Badge tone="ok" className="ml-2">Vigente</Badge>}
+          <span className="text-muted-foreground"> · {c.vehiculo_ids?.length ?? 0} unidad(es) · {formatDate(c.created_at)}</span>
+          <span className="block text-xs text-muted-foreground">Creado por {creador ? `${creador.nombre} ${creador.apellido}`.trim() : "usuario no disponible"}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          {c.pdf_url && <>
+            <a href={c.pdf_url} target="_blank" className="inline-flex items-center gap-1 text-sm text-brand-800 hover:underline"><ExternalLink className="h-4 w-4" /> Abrir</a>
+            <a href={waUrl(mensajeCatalogo(empresaNombre, c.pdf_url))} target="_blank" className="inline-flex items-center gap-1 text-sm text-ok hover:underline"><MessageCircle className="h-4 w-4" /> WhatsApp</a>
+          </>}
+          {puedeGenerar && <>
+            <form action={archivarCatalogo.bind(null, c.id, c.filtros?.archivado !== true)}>
+              <button type="submit" className="text-muted-foreground hover:text-foreground" title={c.filtros?.archivado === true ? "Restaurar catálogo" : "Archivar catálogo"}>
+                {c.filtros?.archivado === true ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+              </button>
+            </form>
+            <form action={eliminarCatalogo.bind(null, c.id)}>
+              <button type="submit" className="text-muted-foreground hover:text-danger" title="Eliminar catálogo"><Trash2 className="h-4 w-4" /></button>
+            </form>
+          </>}
+        </div>
+      </li>
+    );
+  };
 
   return (
     <div>
@@ -164,35 +198,15 @@ export default async function CatalogosPage({
           {!catalogos || catalogos.length === 0 ? (
             <EmptyState title="Sin catálogos todavía" description="Generá tu primer catálogo arriba y compartilo por WhatsApp." />
           ) : (
-            <ul className="divide-y">
-              {catalogos.map((c) => (
-                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
-                  <div className="text-sm">
-                    <span className="font-medium">{c.nombre ?? "Catálogo"}</span>
-                    <span className="text-muted-foreground"> · {c.vehiculo_ids?.length ?? 0} unidad(es) · {formatDate(c.created_at)}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {c.pdf_url && (
-                      <>
-                        <a href={c.pdf_url} target="_blank" className="inline-flex items-center gap-1 text-sm text-brand-800 hover:underline">
-                          <ExternalLink className="h-4 w-4" /> Abrir
-                        </a>
-                        <a href={waUrl(mensajeCatalogo(empresaNombre, c.pdf_url))} target="_blank" className="inline-flex items-center gap-1 text-sm text-ok hover:underline">
-                          <MessageCircle className="h-4 w-4" /> WhatsApp
-                        </a>
-                      </>
-                    )}
-                    {puedeGenerar && (
-                      <form action={eliminarCatalogo.bind(null, c.id)}>
-                        <button type="submit" className="text-muted-foreground hover:text-danger" title="Eliminar catálogo">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div>
+              <ul className="divide-y">{activos.map((catalogo, index) => renderCatalogo(catalogo, index === 0))}</ul>
+              {archivados.length > 0 && (
+                <details className="mt-3 border-t pt-3">
+                  <summary className="cursor-pointer text-sm font-medium text-muted-foreground">Archivados ({archivados.length})</summary>
+                  <ul className="mt-2 divide-y">{archivados.map((catalogo) => renderCatalogo(catalogo))}</ul>
+                </details>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

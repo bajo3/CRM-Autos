@@ -16,6 +16,7 @@ import { generarDocumentoCliente } from "@/app/(app)/documentos/actions";
 import { ESTADO_LABEL, ESTADO_TONE, type EstadoPresupuesto } from "@/app/(app)/presupuestos/lib";
 import { AbrirChatButton } from "@/components/whatsapp/abrir-chat-button";
 import { businessDateISO } from "@/lib/date";
+import { observacionesSinMotivo } from "@/lib/data/motivo-perdida";
 
 type DocRow = { id: string; tipo: string; numero: string | null; fecha_emision: string };
 type PresupuestoRow = { id: string; precio: number | null; estado: EstadoPresupuesto; validez: string | null; created_at: string };
@@ -128,7 +129,7 @@ export default async function FichaCliente({ params }: { params: { id: string } 
           <Dato label="Presupuesto aprox." value={formatARS(c.presupuesto_aprox)} />
           <Dato label="Auto de interés" value={interes ? `${interes.marca} ${interes.modelo}` : "—"} />
           <Dato label="Próx. seguimiento" value={formatDate(c.proximo_seguimiento)} />
-          {c.observaciones && <p className="mt-2 rounded-md bg-muted p-2 text-xs sm:col-span-2">{c.observaciones}</p>}
+          {observacionesSinMotivo(c.observaciones) && <p className="mt-2 rounded-md bg-muted p-2 text-xs sm:col-span-2">{observacionesSinMotivo(c.observaciones)}</p>}
         </CardContent>
       </Card>
 

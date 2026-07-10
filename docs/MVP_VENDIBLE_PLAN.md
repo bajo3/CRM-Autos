@@ -212,6 +212,25 @@ transporte no oficial.
 
 ---
 
+## Remediación de auditoría cliente real — 2026-07-10
+
+Fuente detallada: `docs/AUDITORIA_CLIENTE_REAL_2026-07-09.md`.
+
+- [x] Integridad: fecha de negocio Argentina centralizada y testeada; margen no calculable sin costo; venta propia bloqueada sin costo; estado operativo separado de publicación.
+- [x] Operación: arranque productivo local atómico con smoke test y recuperación explícita ante chunks vencidos.
+- [x] Conversión segura: la vitrina queda bloqueada sin teléfono/email reales; una unidad requiere 75% de ficha, precio y fotos para publicarse.
+- [x] WhatsApp desconectado: programación bloqueada, vencidos fallidos con motivo, cron observable y módulo apartado como beta cuando no hay conexión.
+- [x] Embudo: lead contactable y sin duplicados, presupuesto precargado con alta rápida, motivos de pérdida obligatorios, métricas semanales por vendedor y próximos pasos vencidos.
+- [x] Demo reproducible: `npm run demo:reset` reconcilia únicamente `jesus-diaz`, preserva stock/fotos reales y corrige relaciones, fechas, agenda y eventos huérfanos.
+- [x] UX: navegación progresiva por rol, catálogos vigentes/archivados con creador, vitrina con visita/financiación/mapa y cobertura VTV visible.
+- [ ] **Bloqueo externo real:** reemplazar teléfono/email/CUIT/dirección estimados por datos confirmados del dueño. La vitrina permanece 404 hasta entonces.
+- [ ] **Bloqueo externo real:** conectar WhatsApp Cloud API oficial. Mientras siga desconectado, el módulo queda en beta y no permite prometer envíos.
+- [ ] Ejecutar el piloto de cinco días con usuarios separados (dueño, vendedor y solo lectura) y leads reales; este punto no se puede validar con datos demo.
+
+Verificación del bloque: 13 archivos de test / 66 tests en verde, `typecheck`, `lint`, `build`, arranque `next start` y smoke tests en verde; embudo, navegación y captura de motivo de pérdida inspeccionados en navegador de producción local.
+
+---
+
 ## Reglas de ejecución (para las sesiones con Sonnet)
 
 1. Leer este archivo, tomar el **primer ítem `[ ]` de la fase más baja incompleta**. No saltear fases.

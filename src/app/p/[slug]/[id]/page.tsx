@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import Image from "next/image";
-import { ArrowLeft, MapPin, Phone, Mail, MessageCircle, Calendar, Gauge, Fuel, Cog, Palette, Wrench } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Mail, MessageCircle, Calendar, Gauge, Fuel, Cog, Palette, Wrench, CalendarPlus, BadgeDollarSign } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { waUrl, mensajeVehiculo } from "@/lib/data/whatsapp";
 import { humanize } from "@/lib/format";
@@ -91,6 +91,10 @@ export default async function VehiculoPublicoPage({ params }: { params: { slug: 
   const publicLink = host
     ? `${proto}://${host}/p/${empresa.slug}/${vehiculo.id}?utm_source=whatsapp&utm_medium=referral&utm_campaign=stock_publico`
     : undefined;
+  const mapa = empresa.direccion
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([empresa.direccion, ubicacion].filter(Boolean).join(", "))}`
+    : null;
+  const referenciaUnidad = `${titulo}${vehiculo.version ? ` ${vehiculo.version}` : ""}`;
 
   const specs: { icon: typeof Calendar; label: string; value: string }[] = [];
   if (vehiculo.anio) specs.push({ icon: Calendar, label: "Año", value: String(vehiculo.anio) });
@@ -169,21 +173,40 @@ export default async function VehiculoPublicoPage({ params }: { params: { slug: 
               </p>
 
               {vehiculo.mostrar_whatsapp && empresa.telefono && (
-                <a
-                  href={waUrl(
-                    mensajeVehiculo(empresa.nombre, {
-                      marca: vehiculo.marca,
-                      modelo: vehiculo.modelo,
-                      anio: vehiculo.anio,
-                      precio: vehiculo.precio,
-                    }, publicLink),
-                    empresa.telefono,
-                  )}
-                  target="_blank"
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-green-700"
-                >
-                  <MessageCircle className="h-5 w-5" /> Consultar por WhatsApp
-                </a>
+                <div className="mt-5 space-y-2">
+                  <a
+                    href={waUrl(
+                      mensajeVehiculo(empresa.nombre, {
+                        marca: vehiculo.marca,
+                        modelo: vehiculo.modelo,
+                        anio: vehiculo.anio,
+                        precio: vehiculo.precio,
+                      }, publicLink),
+                      empresa.telefono,
+                    )}
+                    target="_blank"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-green-700"
+                  >
+                    <MessageCircle className="h-5 w-5" /> Consultar por WhatsApp
+                  </a>
+                  <div className="grid grid-cols-2 gap-2">
+                    <a
+                      href={waUrl(`Hola, quiero coordinar una visita para ver ${referenciaUnidad}.${publicLink ? `\n${publicLink}` : ""}`, empresa.telefono)}
+                      target="_blank"
+                      className="flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      <CalendarPlus className="h-4 w-4" /> Reservar visita
+                    </a>
+                    <a
+                      href={waUrl(`Hola, quiero conocer las opciones de financiación y garantía para ${referenciaUnidad}.${publicLink ? `\n${publicLink}` : ""}`, empresa.telefono)}
+                      target="_blank"
+                      className="flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      <BadgeDollarSign className="h-4 w-4" /> Financiación
+                    </a>
+                  </div>
+                  <p className="text-center text-[11px] text-gray-400">Financiación y garantía sujetas a evaluación y condiciones de la agencia.</p>
+                </div>
               )}
 
               {specs.length > 0 && (
@@ -205,6 +228,11 @@ export default async function VehiculoPublicoPage({ params }: { params: { slug: 
                 <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-400">Descripción</h3>
                 <p className="whitespace-pre-line text-sm leading-relaxed text-gray-700">{vehiculo.observaciones}</p>
               </div>
+            )}
+            {mapa && (
+              <a href={mapa} target="_blank" className="mt-4 flex items-center gap-2 rounded-xl border bg-white p-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                <MapPin className="h-4 w-4" style={{ color }} /> Cómo llegar a {empresa.direccion}
+              </a>
             )}
           </div>
         </div>

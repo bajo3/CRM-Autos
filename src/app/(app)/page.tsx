@@ -74,9 +74,10 @@ export default async function DashboardPage() {
 
       {/* Alertas / Postventa */}
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Alertas</h2>
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
         <StatCard label="VTV por vencer" value={s.vtvPorVencer} tone="warn" icon={AlertTriangle} href="/vtv" />
         <StatCard label="VTV vencidas" value={s.vtvVencidas} tone="danger" icon={AlertTriangle} href="/vtv" />
+        <StatCard label="VTV sin cargar" value={s.vtvSinCargar} tone="danger" icon={FileWarning} href="/vtv" />
         <StatCard label="Créditos por terminar" value={s.creditosPorTerminar} tone="warn" icon={CreditCard} href="/creditos" />
         <StatCard label="Postventa pendiente" value={s.postventaPendiente} tone="warn" icon={HeartHandshake} href="/postventa" />
       </div>

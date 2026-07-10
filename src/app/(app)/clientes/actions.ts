@@ -9,6 +9,7 @@ import { can } from "@/lib/auth/permissions";
 import { cancelarProgramadosDeCliente } from "@/lib/whatsapp/eventos";
 import { businessDateISO } from "@/lib/date";
 import { telefonoClienteValido } from "@/lib/whatsapp/telefono";
+import { guardarMotivoPerdida, MOTIVOS_PERDIDA } from "@/lib/data/motivo-perdida";
 
 const emptyToUndef = <T extends z.ZodTypeAny>(s: T) =>
   z.union([s, z.literal("")]).transform((v) => (v === "" ? undefined : v));
@@ -29,6 +30,7 @@ const schema = z.object({
   proximo_seguimiento: emptyToUndef(z.string()).optional(),
   fecha_nacimiento: emptyToUndef(z.string()).optional(),
   observaciones: z.string().optional(),
+  motivo_perdida: emptyToUndef(z.enum(MOTIVOS_PERDIDA.map(([codigo]) => codigo) as [string, ...string[]])).optional(),
 }).superRefine((data, ctx) => {
   if (!data.telefono?.trim() && !data.whatsapp?.trim() && !data.email?.trim()) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["telefono"], message: "Cargá teléfono, WhatsApp o email para poder contactar al lead" });
@@ -38,6 +40,9 @@ const schema = z.object({
     if (value && !telefonoClienteValido(value)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: [field], message: "Ingresá un teléfono válido" });
     }
+  }
+  if (data.estado === "perdido" && !data.motivo_perdida) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["motivo_perdida"], message: "Indicá por qué se perdió la oportunidad" });
   }
 });
 
@@ -136,9 +141,11 @@ export async function crearCliente(_prev: FormState, formData: FormData): Promis
   if (duplicado) {
     return { error: `Ya existe un cliente con esos datos: ${duplicado.nombre} ${duplicado.apellido ?? ""}`.trim() };
   }
+  const { motivo_perdida, ...cliente } = parsed.data;
+  cliente.observaciones = guardarMotivoPerdida(cliente.observaciones, motivo_perdida as never);
   const { data, error } = await sb
     .from("cliente")
-    .insert({ ...parsed.data, empresa_id: ctx.profile.empresa_id })
+    .insert({ ...cliente, empresa_id: ctx.profile.empresa_id })
     .select("id")
     .single<{ id: string }>();
   if (error) return { error: `No se pudo guardar: ${error.message}` };
@@ -161,7 +168,9 @@ export async function actualizarCliente(id: string, _prev: FormState, formData: 
   if (duplicado) {
     return { error: `Ya existe otro cliente con esos datos: ${duplicado.nombre} ${duplicado.apellido ?? ""}`.trim() };
   }
-  const { error } = await sb.from("cliente").update(parsed.data).eq("id", id);
+  const { motivo_perdida, ...cliente } = parsed.data;
+  cliente.observaciones = guardarMotivoPerdida(cliente.observaciones, motivo_perdida as never);
+  const { error } = await sb.from("cliente").update(cliente).eq("id", id);
   if (error) return { error: `No se pudo actualizar: ${error.message}` };
 
   if (ESTADOS_FINALES.includes(parsed.data.estado)) {

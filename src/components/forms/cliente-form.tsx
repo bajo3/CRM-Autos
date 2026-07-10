@@ -7,12 +7,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea, Label } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
+import { useEffect, useState } from "react";
+import { MOTIVOS_PERDIDA, motivoPerdidaDe, observacionesSinMotivo } from "@/lib/data/motivo-perdida";
 
 export type ClienteInitial = Partial<{
   nombre: string; apellido: string; telefono: string; whatsapp: string;
   email: string; dni_cuit: string; localidad: string; origen: string;
   estado: string; vendedor_id: string; vehiculo_interes_id: string;
   presupuesto_aprox: number; proximo_seguimiento: string; fecha_nacimiento: string; observaciones: string;
+  motivo_perdida: string;
 }>;
 
 type Option = { id: string; label: string };
@@ -50,6 +53,13 @@ export function ClienteForm({
   const [state, formAction] = useFormState<FormState, FormData>(action, {});
   const fe = state.fieldErrors ?? {};
   const c = initial;
+  const [estado, setEstado] = useState(c.estado ?? "nuevo");
+  const [origen, setOrigen] = useState(c.origen ?? "whatsapp");
+  useEffect(() => {
+    if (c.origen) return;
+    const ultimo = window.localStorage.getItem("crm.ultimo_origen_lead");
+    if (ultimo) setOrigen(ultimo);
+  }, [c.origen]);
 
   return (
     <form action={formAction}>
@@ -80,7 +90,15 @@ export function ClienteForm({
             Para guardar el lead necesitás al menos un canal de contacto: teléfono, WhatsApp o email.
           </p>
           <Field name="origen" label="Origen del lead" error={fe.origen}>
-            <Select id="origen" name="origen" defaultValue={c.origen ?? "whatsapp"}>
+            <Select
+              id="origen"
+              name="origen"
+              value={origen}
+              onChange={(event) => {
+                setOrigen(event.target.value);
+                window.localStorage.setItem("crm.ultimo_origen_lead", event.target.value);
+              }}
+            >
               <option value="whatsapp">WhatsApp</option>
               <option value="instagram">Instagram</option>
               <option value="facebook">Facebook</option>
@@ -92,7 +110,7 @@ export function ClienteForm({
             </Select>
           </Field>
           <Field name="estado" label="Estado comercial" error={fe.estado}>
-            <Select id="estado" name="estado" defaultValue={c.estado ?? "nuevo"}>
+            <Select id="estado" name="estado" value={estado} onChange={(event) => setEstado(event.target.value)}>
               <option value="nuevo">Nuevo</option>
               <option value="contactado">Contactado</option>
               <option value="interesado">Interesado</option>
@@ -104,6 +122,14 @@ export function ClienteForm({
               <option value="perdido">Perdido</option>
             </Select>
           </Field>
+          {estado === "perdido" && (
+            <Field name="motivo_perdida" label="Motivo de pérdida *" error={fe.motivo_perdida}>
+              <Select id="motivo_perdida" name="motivo_perdida" required defaultValue={c.motivo_perdida ?? motivoPerdidaDe(c.observaciones) ?? ""}>
+                <option value="">— Elegir motivo —</option>
+                {MOTIVOS_PERDIDA.map(([codigo, etiqueta]) => <option key={codigo} value={codigo}>{etiqueta}</option>)}
+              </Select>
+            </Field>
+          )}
           <Field name="vendedor_id" label="Vendedor asignado" error={fe.vendedor_id}>
             <Select id="vendedor_id" name="vendedor_id" defaultValue={c.vendedor_id ?? ""}>
               <option value="">— Sin asignar —</option>
@@ -127,7 +153,7 @@ export function ClienteForm({
           </Field>
           <div className="sm:col-span-2">
             <Field name="observaciones" label="Observaciones" error={fe.observaciones}>
-              <Textarea id="observaciones" name="observaciones" defaultValue={c.observaciones} />
+              <Textarea id="observaciones" name="observaciones" defaultValue={observacionesSinMotivo(c.observaciones)} />
             </Field>
           </div>
 

@@ -125,3 +125,16 @@ export async function eliminarCatalogo(id: string): Promise<void> {
   if (error) throw new Error(error.message);
   revalidatePath("/catalogos");
 }
+
+export async function archivarCatalogo(id: string, archivar: boolean): Promise<void> {
+  const ctx = await getSessionContext();
+  if (!ctx?.profile?.empresa_id || !can(ctx.profile.rol, "catalogo.generar")) throw new Error("Sin permiso.");
+  const sb = createClient();
+  const { data } = await sb.from("catalogo_pdf").select("filtros").eq("id", id).eq("empresa_id", ctx.profile.empresa_id)
+    .maybeSingle<{ filtros: Record<string, unknown> | null }>();
+  if (!data) throw new Error("Catálogo no encontrado.");
+  const { error } = await sb.from("catalogo_pdf").update({ filtros: { ...(data.filtros ?? {}), archivado: archivar } })
+    .eq("id", id).eq("empresa_id", ctx.profile.empresa_id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/catalogos");
+}

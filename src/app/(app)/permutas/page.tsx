@@ -25,16 +25,19 @@ type Row = {
 
 export default async function PermutasPage() {
   const sb = createClient();
-  const [ctx, { data }] = await Promise.all([
+  const [ctx, { data }, { data: vehiculosDePermuta }] = await Promise.all([
     getSessionContext(),
     sb
       .from("permuta")
       .select("id,marca,modelo,anio,kilometros,patente,estado_general,valor_pretendido,valor_tasado,diferencia,estado,cliente:cliente_id(nombre,apellido)")
       .order("created_at", { ascending: false })
       .returns<Row[]>(),
+    sb.from("vehiculo").select("id,permuta_origen_id").not("permuta_origen_id", "is", null)
+      .returns<{ id: string; permuta_origen_id: string | null }[]>(),
   ]);
   const puedeEditar = can(ctx?.profile?.rol, "stock.editar");
   const puedeCargarStock = can(ctx?.profile?.rol, "stock.crear");
+  const vehiculoPorPermuta = new Map((vehiculosDePermuta ?? []).map((v) => [v.permuta_origen_id, v.id]));
 
   return (
     <div>
@@ -85,7 +88,12 @@ export default async function PermutasPage() {
                           </form>
                         </div>
                       )}
-                      {puedeCargarStock && p.estado === "aceptado" && (
+                      {p.estado === "aceptado" && vehiculoPorPermuta.has(p.id) && (
+                        <Link href={`/stock/${vehiculoPorPermuta.get(p.id)}`} className="text-xs font-medium text-brand-800 hover:underline">
+                          Ver unidad ingresada
+                        </Link>
+                      )}
+                      {puedeCargarStock && p.estado === "aceptado" && !vehiculoPorPermuta.has(p.id) && (
                         <form action={ingresarPermutaAStock.bind(null, p.id)}>
                           <button type="submit" className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs text-brand-800 hover:bg-muted">
                             <Car className="h-3.5 w-3.5" /> Ingresar a stock

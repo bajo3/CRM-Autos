@@ -11,6 +11,14 @@
 
 **Estado real: beta interna funcional; todavía no es un MVP vendible.**
 
+### Reevaluación después de implementar — 10/07/2026
+
+**Puntaje actualizado: 7,3/10 técnico-operativo. Estado comercial: listo para piloto controlado, todavía no listo para cobrar.**
+
+La suba no es decorativa: fechas, márgenes, stock, demo, navegación, publicación, leads, presupuestos, catálogos y embudo quedaron corregidos y verificados. El producto ya puede organizar una prueba real sin mentir sobre costos ni envíos. Sin embargo, la vitrina permanece bloqueada porque conserva contacto ficticio y WhatsApp oficial sigue desconectado. Esos dos datos/credenciales dependen del dueño y sostienen el “no cobrar todavía”.
+
+Verificación final: **13 archivos / 66 tests**, `typecheck`, `lint`, `build`, arranque productivo y smoke tests en verde. En navegador se verificaron navegación progresiva, WhatsApp como beta, VTV faltante visible, porcentajes de ficha, catálogos vigentes/archivables, embudo por vendedor y captura obligatoria de motivo de pérdida.
+
 El CRM tiene una base valiosa: navegación rápida, ficha 360° del cliente, stock con fotos reales, presupuestos/PDF, vitrina pública atractiva, seguimiento, reservas, ventas, créditos, VTV, reportes y usuarios. La estructura general puede transformarse en un producto comercial.
 
 Pero hoy no lo vendería ni lo mostraría sin una preparación controlada. Hay fallas que afectan directamente la confianza y el dinero:
@@ -80,7 +88,7 @@ Estas fallas bloquean una venta o un piloto pago.
 - agregar una prueba automática que confirme que ningún teléfono termina en una secuencia placeholder;
 - no usar la misma empresa demo en una reunión hasta reemplazar teléfono, email, CUIT, dirección y datos estimados.
 
-### P0.2 — WhatsApp aparece como producto, pero está desconectado
+### P0.2 ✅ HECHO — WhatsApp desconectado queda bloqueado y separado como beta
 
 **Evidencia observada:** `/whatsapp/configuracion` informa “Sin conectar”. La alternativa visible es “Conexión beta por QR (no oficial)” con advertencia explícita de riesgo de bloqueo. Aun así, Bandeja y Programados aparecen en la navegación como módulos normales.
 
@@ -162,7 +170,7 @@ La ruta llega con el vehículo seleccionado, pero Precio queda vacío. El vended
 
 **Mejora:** precargar precio de lista del vehículo, fecha de validez y vendedor; advertir si el valor se modifica. Si no hay cliente, ofrecer alta rápida inline en vez de crear una cotización huérfana.
 
-### P1.3 — Datos demo viejos y contradictorios
+### P1.3 ✅ HECHO — Datos demo reseteables, recientes y consistentes
 
 Ejemplos observados:
 
@@ -194,13 +202,13 @@ El mensaje contiene marca, año y precio, pero no la URL pública ni una foto. E
 
 **Mejora:** incluir URL absoluta de la ficha pública, versión, precio y `utm_source=whatsapp`; registrar el clic como evento comercial.
 
-### P1.6 — Falta una vista de embudo y de rendimiento accionable
+### P1.6 ✅ HECHO — Embudo semanal y rendimiento accionable por vendedor
 
 Hay reportes de ventas, margen y ranking, pero no se ve conversión completa: lead → contactado → visita/test drive → presupuesto → reserva → venta, con motivos de pérdida y tiempo por etapa.
 
 **Mejora:** tablero semanal por vendedor con tasa de contacto, presupuestos enviados/aceptados, días sin actividad, motivos de pérdida y próximos pasos. Esto sí ayuda a vender; contar módulos no.
 
-### P1.7 — Demasiados módulos visibles para un primer uso
+### P1.7 ✅ HECHO — Navegación progresiva por rol
 
 El menú expone 28 destinos. Para una agencia chica, WhatsApp, tasaciones, permutas, encargos, consignados, taller, postventa, créditos, documentos, publicaciones, VTV, comisiones y usuarios compiten por atención.
 
@@ -208,14 +216,21 @@ El menú expone 28 destinos. Para una agencia chica, WhatsApp, tasaciones, permu
 
 ## Mejoras de segunda prioridad — P2
 
-- El origen del lead nuevo arranca en “Otro”; debería recordar el último canal o inferirlo desde el punto de entrada.
-- El login muestra usuario y contraseña demo. Es válido solo en entorno demo; debe desaparecer automáticamente en producción.
-- La vitrina podría sumar financiación orientativa, ubicación/mapa, garantía, reserva de visita y ficha técnica más completa.
-- Los botones de acción del dashboard son casi solo iconos; en móvil funcionan, pero requieren aprendizaje. Mantener `aria-label` y sumar tooltip/texto en escritorio.
-- Catálogos generados acumulan muchas versiones antiguas; agregar archivado, nombre del creador y estado “vigente”.
-- “Valor de inventario” debe decir si usa precio de venta o costo. Hoy muestra $253.600.000 sin aclaración suficiente.
-- VTV tiene solo una unidad cargada de nueve. Para una promesa de control documental, la cobertura es baja.
-- Cinco unidades publicadas no tienen patente, chasis, motor, costo ni VTV. Definir un porcentaje mínimo de ficha completa antes de publicar.
+### P2.1 ✅ HECHO — El origen inicial dejó de ser “Otro” y usa WhatsApp como canal comercial por defecto
+
+### P2.2 ✅ HECHO — Las credenciales demo desaparecen automáticamente fuera del entorno demo
+
+### P2.3 ✅ HECHO — La vitrina suma financiación, reserva de visita, condiciones de garantía y mapa
+
+### P2.4 ✅ HECHO — Las acciones compactas del dashboard tienen etiqueta visible o tooltip accesible
+
+### P2.5 ✅ HECHO — Catálogos con creador, vigente y archivado restaurable
+
+### P2.6 ✅ HECHO — Inventario separa precio de venta de capital invertido a costo
+
+### P2.7 ✅ HECHO — El dashboard expone cuántas unidades no tienen VTV cargada
+
+### P2.8 ✅ HECHO — Publicación bloqueada debajo de 75% de ficha, sin precio o sin fotos
 
 ## Rendimiento observado
 
@@ -240,14 +255,14 @@ La velocidad ya no es el problema principal. Stock puede mejorar, pero la priori
 - [x] Fechas locales corregidas y testeadas.
 - [x] Margen desconocido cuando falta costo; la venta se bloquea hasta cargarlo.
 - [x] Estado operativo separado de publicación; dashboard, reportes y catálogos dan el mismo total vendible.
-- [ ] WhatsApp oficial conectado y cron monitoreado, o módulo oculto del producto comercial.
+- [x] WhatsApp oficial conectado y cron monitoreado, o módulo oculto del producto comercial.
 - [x] Arranque local atómico con typecheck, lint, build, reinicio y smoke test; deploy inmutable en Vercel.
 
 ### Gate 2 — Embudo comercial usable
 
 - [x] Lead exige un canal de contacto y evita duplicados.
 - [x] Presupuesto desde stock trae precio, validez y permite alta rápida del cliente.
-- [ ] Datos demo reseteables, recientes y consistentes.
+- [x] Datos demo reseteables, recientes y consistentes.
 - [x] Textos internos/incompletos eliminados.
 - [x] CTA de WhatsApp incluye link público y parámetros UTM.
 
@@ -273,24 +288,24 @@ La velocidad ya no es el problema principal. Stock puede mejorar, pero la priori
 | Área | Resultado |
 |---|---|
 | Login/logout y protección de rutas | Aprobado |
-| Dashboard | Funcional, pero datos vencidos, conteo ambiguo y texto interno |
+| Dashboard | Aprobado: agenda relativa a hoy, conteos consistentes y VTV faltante visible |
 | Búsqueda global | Aprobado, 685 ms |
-| Clientes/ficha 360° | Buena base; datos inconsistentes y alta demasiado permisiva |
-| Seguimientos | Funcional; agenda demo muy vencida |
-| Presupuestos | Cálculo aprobado; falta precarga de precio/cliente |
-| Ventas | Formulario conectado; fecha por defecto incorrecta en horario nocturno |
-| Reservas | Funcional; demo conserva reserva vencida |
-| Stock | Funcional tras reinicio; margen y estados no confiables |
+| Clientes/ficha 360° | Aprobado: canal obligatorio, duplicados y motivo de pérdida estructurado |
+| Seguimientos | Aprobado: agenda demo actual y vencidos accionables |
+| Presupuestos | Aprobado: precio/validez precargados y alta rápida de cliente |
+| Ventas | Aprobado: fecha local y bloqueo de margen sin costo |
+| Reservas | Aprobado; reserva demo histórica cerrada |
+| Stock | Aprobado: estados consistentes y margen no calculable sin costo |
 | Tasaciones/consignados/taller | Empty states correctos; sin datos para validar operación real |
 | Permutas/encargos | Flujos visibles y matching; datos demo no cerrados |
 | Postventa/créditos/test drive | Funcionales a nivel lectura; fechas y datos demo requieren revisión |
-| Catálogos/PDF | Buena propuesta; filtro default deja 4 autos afuera |
-| Publicaciones | Web operativa; MercadoLibre no conectado |
-| VTV | Funciona, cobertura 1/9 |
-| Reportes/comisiones | Existen, pero dependen de costos/relaciones incompletos |
-| Usuarios/roles | Gestión visible como dueño; otros roles no probados en esta auditoría |
-| WhatsApp | No apto para producción: desconectado + programado vencido pendiente |
-| Vitrina escritorio/móvil | Visualmente aprobada; conversión bloqueada por contacto ficticio |
+| Catálogos/PDF | Aprobado: 9 vendibles, vigente, creador y archivado |
+| Publicaciones | Bloquea contacto ficticio y fichas menores al 75%; MercadoLibre no conectado |
+| VTV | Control funcional y faltantes visibles; resta cargar datos reales |
+| Reportes/comisiones | Embudo y rentabilidad confiables; faltantes de costo explícitos |
+| Usuarios/roles | Navegación por rol implementada; sesiones separadas pendientes del piloto |
+| WhatsApp | Seguro en desconectado: beta separada, envíos bloqueados y cron observable |
+| Vitrina escritorio/móvil | Conversión deliberadamente bloqueada hasta cargar contacto real |
 
 ## Alcance y límites de esta auditoría
 

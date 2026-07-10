@@ -92,6 +92,12 @@ export async function ingresarPermutaAStock(id: string): Promise<void> {
   if (!can(ctx.profile.rol, "stock.crear")) throw new Error("Sin permiso para cargar stock.");
 
   const sb = createClient();
+  const { data: existente } = await sb.from("vehiculo").select("id").eq("permuta_origen_id", id).maybeSingle<{ id: string }>();
+  if (existente) {
+    revalidatePath("/permutas");
+    revalidatePath("/stock");
+    return;
+  }
   const { data: p } = await sb.from("permuta").select("marca,modelo,anio,kilometros,patente,valor_tasado").eq("id", id).maybeSingle<PermutaVehiculo>();
   if (!p) throw new Error("Permuta no encontrada.");
   if (!p.marca || !p.modelo) throw new Error("La permuta no tiene marca/modelo cargados.");

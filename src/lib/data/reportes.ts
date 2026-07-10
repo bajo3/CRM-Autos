@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { rel, type Rel } from "@/lib/rel";
-import { currentMonthRangeISO } from "@/lib/date";
+import { businessDateISO, currentMonthRangeISO, diffDaysISO } from "@/lib/date";
 import { estaDisponible, estaEnVenta, estadoOperativo } from "@/lib/data/vehiculo-estado";
+import { etiquetaMotivoPerdida, motivoPerdidaDe } from "@/lib/data/motivo-perdida";
 
 type VentaRep = {
   id: string;
@@ -15,6 +16,11 @@ type VentaRep = {
 };
 type StockRep = { estado: string; precio_venta: number | null; precio_costo: number | null };
 type GastoRep = { vehiculo_id: string; monto: number | null };
+type ClienteEmbudo = { id: string; estado: string; vendedor_id: string | null; created_at: string };
+type ActividadVendedor = { vendedor_id: string | null; created_at: string; estado: string };
+type SeguimientoEmbudo = { vendedor_id: string | null; fecha: string; estado: string };
+type ProfileEmbudo = { id: string; nombre: string; apellido: string; activo: boolean };
+type PerdidaEmbudo = { observaciones: string | null };
 
 export type RankingVendedor = {
   vendedor_id: string | null;
@@ -31,6 +37,31 @@ export type Reporte = {
   rentabilidad: { margenBruto: number | null; gastos: number; margenNeto: number | null; ventasSinCosto: number };
   porFormaPago: { forma: string; cantidad: number; monto: number }[];
   ranking: RankingVendedor[];
+  embudo: {
+    leads: number;
+    contactados: number;
+    seguimientosRealizados: number;
+    testDrives: number;
+    presupuestos: number;
+    reservas: number;
+    ventas: number;
+    perdidos: number;
+    motivosPerdida: { motivo: string; cantidad: number }[];
+    porVendedor: {
+      vendedorId: string;
+      nombre: string;
+      leads: number;
+      contactados: number;
+      presupuestos: number;
+      presupuestosEnviados: number;
+      presupuestosAceptados: number;
+      seguimientosRealizados: number;
+      ventas: number;
+      pendientesVencidos: number;
+      ultimaActividad: string | null;
+      diasSinActividad: number | null;
+    }[];
+  };
   stock: {
     porEstado: { estado: string; cantidad: number }[];
     disponibles: number;
@@ -48,8 +79,14 @@ export function rangoMesActual(): { desde: string; hasta: string } {
 /** Agrega las métricas del período. Todo pasa por RLS → solo la empresa actual. */
 export async function getReporte(desde: string, hasta: string): Promise<Reporte> {
   const sb = createClient();
+  const desdeTs = `${desde}T00:00:00`;
+  const hastaTs = `${hasta}T23:59:59.999`;
 
-  const [{ data: ventas }, { data: stock }] = await Promise.all([
+  const [
+    { data: ventas }, { data: stock }, { data: clientesEmbudo }, { data: presupuestosEmbudo },
+    { data: seguimientosEmbudo }, { data: testDrivesEmbudo }, { data: reservasEmbudo },
+    { data: perfiles }, { data: seguimientosVencidos }, { data: perdidasEmbudo },
+  ] = await Promise.all([
     sb
       .from("venta")
       .select(
@@ -62,6 +99,18 @@ export async function getReporte(desde: string, hasta: string): Promise<Reporte>
       .order("fecha_venta", { ascending: false })
       .returns<VentaRep[]>(),
     sb.from("vehiculo").select("estado,precio_venta,precio_costo").returns<StockRep[]>(),
+    sb.from("cliente").select("id,estado,vendedor_id,created_at")
+      .gte("created_at", desdeTs).lte("created_at", hastaTs).returns<ClienteEmbudo[]>(),
+    sb.from("presupuesto").select("vendedor_id,created_at,estado")
+      .gte("created_at", desdeTs).lte("created_at", hastaTs).returns<ActividadVendedor[]>(),
+    sb.from("seguimiento").select("vendedor_id,fecha,estado")
+      .gte("fecha", desde).lte("fecha", hasta).returns<SeguimientoEmbudo[]>(),
+    sb.from("test_drive").select("id", { count: "exact" }).gte("fecha", desde).lte("fecha", hasta),
+    sb.from("reserva").select("id", { count: "exact" }).gte("fecha_reserva", desde).lte("fecha_reserva", hasta),
+    sb.from("profile").select("id,nombre,apellido,activo").eq("activo", true).returns<ProfileEmbudo[]>(),
+    sb.from("seguimiento").select("vendedor_id,fecha,estado").eq("estado", "vencido").returns<SeguimientoEmbudo[]>(),
+    sb.from("cliente").select("observaciones").eq("estado", "perdido")
+      .gte("updated_at", desdeTs).lte("updated_at", hastaTs).returns<PerdidaEmbudo[]>(),
   ]);
 
   const filas = ventas ?? [];
@@ -140,6 +189,45 @@ export async function getReporte(desde: string, hasta: string): Promise<Reporte>
   }
 
   const margenBrutoFinal = ventasSinCosto > 0 ? null : margenBruto;
+  const leads = clientesEmbudo ?? [];
+  const presupuestosPeriodo = presupuestosEmbudo ?? [];
+  const seguimientosPeriodo = seguimientosEmbudo ?? [];
+  const ventasActividad = filas.map((venta) => ({ vendedor_id: venta.vendedor_id, created_at: `${venta.fecha_venta}T12:00:00` }));
+  const vendedores = (perfiles ?? []).map((perfil) => {
+    const leadsVendedor = leads.filter((lead) => lead.vendedor_id === perfil.id);
+    const presupuestosVendedor = presupuestosPeriodo.filter((item) => item.vendedor_id === perfil.id);
+    const seguimientosVendedor = seguimientosPeriodo.filter((item) => item.vendedor_id === perfil.id);
+    const ventasVendedor = filas.filter((venta) => venta.vendedor_id === perfil.id);
+    const actividad = [
+      ...leadsVendedor.map((item) => item.created_at),
+      ...presupuestosVendedor.map((item) => item.created_at),
+      ...seguimientosVendedor.filter((item) => item.estado === "realizado").map((item) => `${item.fecha}T12:00:00`),
+      ...ventasActividad.filter((item) => item.vendedor_id === perfil.id).map((item) => item.created_at),
+    ].sort().at(-1) ?? null;
+
+    return {
+      vendedorId: perfil.id,
+      nombre: `${perfil.nombre} ${perfil.apellido}`.trim() || "Sin nombre",
+      leads: leadsVendedor.length,
+      contactados: leadsVendedor.filter((lead) => lead.estado !== "nuevo").length,
+      presupuestos: presupuestosVendedor.length,
+      presupuestosEnviados: presupuestosVendedor.filter((item) => item.estado === "enviado" || item.estado === "aceptado").length,
+      presupuestosAceptados: presupuestosVendedor.filter((item) => item.estado === "aceptado").length,
+      seguimientosRealizados: seguimientosVendedor.filter((item) => item.estado === "realizado").length,
+      ventas: ventasVendedor.length,
+      pendientesVencidos: (seguimientosVencidos ?? []).filter((item) => item.vendedor_id === perfil.id).length,
+      ultimaActividad: actividad,
+      diasSinActividad: actividad ? Math.max(0, diffDaysISO(actividad.slice(0, 10), businessDateISO())) : null,
+    };
+  }).filter((vendedor) =>
+    vendedor.leads + vendedor.presupuestos + vendedor.seguimientosRealizados + vendedor.ventas + vendedor.pendientesVencidos > 0,
+  ).sort((a, b) => b.ventas - a.ventas || b.presupuestos - a.presupuestos || b.leads - a.leads);
+  const motivos = new Map<string, number>();
+  for (const perdida of perdidasEmbudo ?? []) {
+    const codigo = motivoPerdidaDe(perdida.observaciones) ?? "sin_especificar";
+    const etiqueta = codigo === "sin_especificar" ? "Sin especificar" : etiquetaMotivoPerdida(codigo);
+    motivos.set(etiqueta, (motivos.get(etiqueta) ?? 0) + 1);
+  }
 
   return {
     desde,
@@ -155,6 +243,18 @@ export async function getReporte(desde: string, hasta: string): Promise<Reporte>
       .map(([forma, x]) => ({ forma, ...x }))
       .sort((a, b) => b.monto - a.monto),
     ranking: [...porVend.values()].sort((a, b) => b.monto - a.monto),
+    embudo: {
+      leads: leads.length,
+      contactados: leads.filter((lead) => lead.estado !== "nuevo").length,
+      seguimientosRealizados: seguimientosPeriodo.filter((item) => item.estado === "realizado").length,
+      testDrives: testDrivesEmbudo?.length ?? 0,
+      presupuestos: presupuestosPeriodo.length,
+      reservas: reservasEmbudo?.length ?? 0,
+      ventas: filas.length,
+      perdidos: perdidasEmbudo?.length ?? 0,
+      motivosPerdida: [...motivos.entries()].map(([motivo, cantidad]) => ({ motivo, cantidad })).sort((a, b) => b.cantidad - a.cantidad),
+      porVendedor: vendedores,
+    },
     stock: {
       porEstado: [...estadoMap.entries()]
         .map(([estado, cantidad]) => ({ estado, cantidad }))
